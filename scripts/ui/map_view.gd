@@ -19,6 +19,9 @@ var offset := Vector2.ZERO
 var selected_pid := -1
 var selected_army := -1
 var font: Font
+## 0 = political, 1 = diplomatic (player view), 2 = development
+var map_mode := 0
+const MODE_NAMES := ["Politisch", "Diplomatisch", "Entwicklung"]
 
 var _touches := {}
 var _pinch_dist := 0.0
@@ -109,9 +112,7 @@ func _draw() -> void:
 	for p in game.provinces:
 		if not view.intersects(bboxes[p.id]):
 			continue
-		var c: Color = game.nations[p.owner].color
-		if p.owner == game.player:
-			c = c.lightened(0.1)
+		var c := province_color(p)
 		for poly in polys[p.id]:
 			draw_colored_polygon(poly, c)
 		if p.controller != p.owner:
@@ -135,6 +136,35 @@ func _draw() -> void:
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_draw_labels()
 	_draw_armies()
+
+
+func province_color(p) -> Color:
+	match map_mode:
+		1:
+			var me: String = game.player
+			if me == "":
+				return game.nations[p.owner].color
+			var n = game.nations[me]
+			if p.owner == me:
+				return Color("3a9d4a")
+			if game.is_allied(me, p.owner):
+				return Color("4a7fd0")
+			if game.at_war(me, p.owner):
+				return Color("c0392b")
+			if n.claims.has(p.id):
+				return Color("e0a030")
+			if n.coalition.has(p.owner):
+				return Color("8e3a8e")
+			if game.has_truce(me, p.owner):
+				return Color("9aa7b0")
+			return Color("6b6b62")
+		2:
+			var t := clampf((p.dev - 3.0) / 22.0, 0.0, 1.0)
+			return Color("2d1b4e").lerp(Color("f4d35e"), t)
+	var c: Color = game.nations[p.owner].color
+	if p.owner == game.player:
+		c = c.lightened(0.1)
+	return c
 
 
 func _draw_hatch(poly: PackedVector2Array, bb: Rect2, c: Color) -> void:

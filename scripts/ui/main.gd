@@ -18,6 +18,8 @@ var panel_arg = null
 var selected_army := -1
 var peace_selection := {}
 var last_log_count := 0
+var known_wars := {}
+var known_coalition := 0
 
 var map: MapView
 var top_labels := {}
@@ -133,6 +135,10 @@ func _build_hud() -> void:
 		b.custom_minimum_size = Vector2(60, 60)
 		b.add_theme_font_size_override("font_size", 28)
 		left.add_child(b)
+	var mm := _btn("🗺️", _cycle_map_mode, "Kartenmodus")
+	mm.custom_minimum_size = Vector2(60, 60)
+	mm.add_theme_font_size_override("font_size", 28)
+	left.add_child(mm)
 
 	var zoom := VBoxContainer.new()
 	zoom.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -331,6 +337,10 @@ func _after_game_loaded() -> void:
 	map.selected_army = -1
 	map.selected_pid = -1
 	last_log_count = game.log_lines.size()
+	known_wars = {}
+	for w in game.wars_of(game.player):
+		known_wars[w.id] = true
+	known_coalition = game.nations[game.player].coalition.size()
 	map.focus(game.provinces[game.nations[game.player].capital].center, 1.3)
 	_close_panel()
 	_update_top()
@@ -377,6 +387,8 @@ func _after_tick() -> void:
 	if game.game_over:
 		_show_game_over()
 		return
+	if _check_alerts():
+		return
 	if not game.pending_events.is_empty():
 		_show_event(game.pending_events[0])
 		return
@@ -385,6 +397,53 @@ func _after_tick() -> void:
 		return
 	if side_panel.visible and panel_mode != "peace":
 		_refresh()
+
+
+func _cycle_map_mode() -> void:
+	map.map_mode = (map.map_mode + 1) % map.MODE_NAMES.size()
+	map.queue_redraw()
+	var legend := ""
+	if map.map_mode == 1:
+		legend = " (🟩 du, 🟦 Verbündete, 🟥 Feinde, 🟧 Ansprüche, 🟪 Koalition)"
+	elif map.map_mode == 2:
+		legend = " (dunkel = arm, gelb = reich)"
+	_toast("🗺️ Kartenmodus: " + map.MODE_NAMES[map.map_mode] + legend)
+
+
+## Pops up things that directly affect the player. Returns true if a popup was shown.
+func _check_alerts() -> bool:
+	var me: String = game.player
+	for w in game.wars_of(me):
+		if known_wars.has(w.id):
+			continue
+		known_wars[w.id] = true
+		if game.is_attacker(w, me) and w.attackers[0] == me:
+			continue
+		var att: bool = game.is_attacker(w, me)
+		var them := []
+		for t in game.side_tags(w, not att):
+			them.append(nname(t))
+		_set_speed(0)
+		_open_modal()
+		if att:
+			modal_box.add_child(_lbl("📯 Ruf zu den Waffen", 28))
+			modal_box.add_child(_lbl("Unser Verbündeter %s zieht in den Krieg (%s). Wir kämpfen an seiner Seite gegen: %s" % [nname(w.attackers[0]), w.name, ", ".join(them)]))
+		else:
+			modal_box.add_child(_lbl("🔥 Krieg!", 28))
+			modal_box.add_child(_lbl("%s hat uns den Krieg erklärt (%s).\nGegner: %s" % [nname(w.attackers[0]), w.name, ", ".join(them)]))
+		modal_box.add_child(_btn("⚔️ Zu den Waffen", func(): _close_modal(); _open_panel("wars")))
+		return true
+	var co: int = game.nations[me].coalition.size()
+	if co > known_coalition and co >= 2:
+		known_coalition = co
+		_set_speed(0)
+		_open_modal()
+		modal_box.add_child(_lbl("⚠️ Koalition gegen uns!", 28))
+		modal_box.add_child(_lbl("%d Nationen haben sich wegen unserer aggressiven Expansion (😠 %d) gegen uns verbündet. Senke die AE (Zeit, Diplomatie-Technologie), sonst greifen sie an." % [co, int(game.nations[me].ae)]))
+		modal_box.add_child(_btn("Verstanden", _close_modal))
+		return true
+	known_coalition = mini(known_coalition, co)
+	return false
 
 
 func _set_speed(s: int) -> void:
@@ -791,6 +850,10 @@ func _panel_wars() -> void:
 	var ws_list: Array = game.wars_of(me)
 	if ws_list.is_empty():
 		side_box.add_child(_lbl("Du bist im Frieden. 🕊️"))
+	else:
+		side_box.add_child(_row([
+			_btn("🤖 Alle Armeen: KI", func(): _set_all_auto(true)),
+			_btn("✋ Alle: manuell", func(): _set_all_auto(false))]))
 	for w in ws_list:
 		var att: bool = game.is_attacker(w, me)
 		var ws: float = game.warscore(w) * (1.0 if att else -1.0)
@@ -854,6 +917,13 @@ func _panel_peace(war_id: int) -> void:
 			if not ok:
 				ok = game.offer_peace(me, w, [], true)
 			_after_peace(ok)))
+
+
+func _set_all_auto(on: bool) -> void:
+	for a in game.armies_of(game.player):
+		a.auto = on
+	_toast("🤖 Alle Armeen werden von der KI geführt." if on else "✋ Du führst alle Armeen selbst.")
+	_refresh()
 
 
 func _toggle_peace(on: bool, pid: int) -> void:
