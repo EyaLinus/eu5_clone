@@ -1,0 +1,25 @@
+# army_marker – map army token, anchor 3/3. Grey ramp + ink only: the map tints it with the nation colour.
+# Plain heater shield; the army size number is drawn on top by map_view.gd. 16x16 grid, export x2 = 32 px
+legend:
+. = transparent
+k = ink
+W = white
+L = grey_light
+G = grey
+---
+................
+.kkkkkkkkkkkkkk.
+.kLLLLLLLLLLLLk.
+.kLWWWWWWWWWWGk.
+.kLWWWWWWWWWWGk.
+.kLWWWWWWWWWWGk.
+.kLWWWWWWWWWWGk.
+.kLWWWWWWWWWWGk.
+.kLWWWWWWWWWWGk.
+..kLWWWWWWWWGk..
+..kLWWWWWWWWGk..
+...kLWWWWWWGk...
+....kLWWWWGk....
+.....kGGGGk.....
+......kkkk......
+................

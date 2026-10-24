@@ -1,0 +1,31 @@
+assets:
+  army_marker:
+    created: '2026-10-24'
+    kind: sprite
+    note: 'ANCHOR 3/3 (awaiting approval). Grey ramp only, tinted in map_view.gd.
+      Iteration 1 had crossed swords: removed, read as corner brackets at 42px.'
+    outputs:
+    - assets/art/icons/army_marker.png
+    source: assets/src/pixel/icons/army_marker.txt
+    status: wip
+    updated: '2026-10-24'
+  flag_FRA:
+    created: '2026-10-24'
+    kind: flag
+    note: ANCHOR 2/3 (awaiting approval). 24x16 grid. Fleurs 7x6 are the smallest
+      readable size; 2+1 layout is half a pixel off-centre (even canvas).
+    outputs:
+    - assets/art/icons/flag_FRA.png
+    source: assets/src/pixel/flags/flag_FRA.txt
+    status: wip
+    updated: '2026-10-24'
+  gold:
+    created: '2026-10-24'
+    kind: icon
+    note: ANCHOR 1/3 (awaiting approval). HUD gold, display 28px. Front coin with
+      embossed ring + stack of 4.
+    outputs:
+    - assets/art/icons/gold.png
+    source: assets/src/pixel/icons/gold.txt
+    status: wip
+    updated: '2026-10-24'
