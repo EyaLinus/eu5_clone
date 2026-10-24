@@ -847,6 +847,21 @@ func defenders_for(att: String, def: String) -> Array:
 	if emperor != "" and nations[emperor].alive and hre.has(def) and not hre.has(att) and emperor != def \
 			and emperor != att and not r.has(emperor) and not is_allied(emperor, att) and not has_truce(emperor, att):
 		r.append(emperor)
+	# balance of power: a strong rival of the attacker protects small states next to it
+	if provinces_of(def).size() <= int(bal.protect_max_provinces):
+		var best := ""
+		var best_str := strength(att) * float(bal.protector_min_strength)
+		for t in nations_in_range(def, 1):
+			if t == att or t == player or r.has(t) or not nations[t].alive or is_allied(t, att) or has_truce(t, att):
+				continue
+			if get_rel(t, att) > float(bal.protector_max_relation) or at_war(t, def):
+				continue
+			var st := strength(t)
+			if st > best_str:
+				best_str = st
+				best = t
+		if best != "":
+			r.append(best)
 	return r
 
 
@@ -930,10 +945,14 @@ func make_peace(w: War, winner_att: bool, pids: Array) -> void:
 		log_msg("🕊️ Frieden: %s endet ohne Gebietsänderungen." % w.name, everyone)
 	else:
 		log_msg("🕊️ Frieden in %s: %s erhält %s." % [w.name, nations[lead].name, ", ".join(names)], everyone)
-	for t in losers:
+	for t in losers + winners:
+		var was_alive: bool = nations[t].alive
 		_check_alive(t)
-	for t in winners:
-		_check_alive(t)
+		if was_alive and not nations[t].alive:
+			var key := "died_primary" if (t == w.defenders[0] or t == w.attackers[0]) else "died_ally"
+			if w.coalition:
+				key = "died_coalition"
+			stats[key] = stats.get(key, 0) + 1
 
 
 func _check_alive(tag: String) -> void:
@@ -1314,6 +1333,7 @@ func _inherit(heir: String, tag: String) -> void:
 			a.auto = heir != player
 	_rebuild_owned()
 	log_msg("👑 %s erbt die Länder von %s!" % [nations[heir].name, nations[tag].name])
+	stats["died_inherit"] = stats.get("died_inherit", 0) + 1
 	_check_alive(tag)
 
 

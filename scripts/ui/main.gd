@@ -7,6 +7,8 @@ const Data = preload("res://scripts/core/data.gd")
 const MapView = preload("res://scripts/ui/map_view.gd")
 const Icons = preload("res://scripts/ui/icons.gd")
 const SAVE_PATH := "user://save.json"
+const SETTINGS_PATH := "user://settings.json"
+const UI_SCALES := [0.85, 1.0, 1.2, 1.4]
 const SPEEDS := [0.0, 1.2, 0.6, 0.3, 0.12, 0.04]
 const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP"]
 
@@ -34,9 +36,11 @@ var modal_box: VBoxContainer
 var toast: Label
 var toast_time := 0.0
 var hud: Control
+var settings := {"ui_scale": 1.0}
 
 
 func _ready() -> void:
+	_load_settings()
 	_setup_theme()
 	data = Data.load_all()
 	map = MapView.new()
@@ -59,6 +63,38 @@ func _ready() -> void:
 	await get_tree().process_frame
 	map.focus(Vector2(900, 650), maxf(size.y / map.world_size.y, 0.4))
 	_show_start_menu()
+
+
+func _load_settings() -> void:
+	settings.ui_scale = 1.2 if OS.get_name() == "Android" else 1.0
+	var f := FileAccess.open(SETTINGS_PATH, FileAccess.READ)
+	if f:
+		var d = JSON.parse_string(f.get_as_text())
+		if d is Dictionary:
+			for k in d:
+				settings[k] = d[k]
+	_apply_settings()
+
+
+func _apply_settings() -> void:
+	get_window().content_scale_factor = float(settings.ui_scale)
+
+
+func _save_settings() -> void:
+	var f := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
+	if f:
+		f.store_string(JSON.stringify(settings))
+
+
+func _cycle_ui_scale() -> void:
+	var i := UI_SCALES.find(float(settings.ui_scale))
+	settings.ui_scale = UI_SCALES[(i + 1) % UI_SCALES.size()]
+	_apply_settings()
+	_save_settings()
+	if game == null:
+		_show_start_menu()
+	else:
+		_show_menu()
 
 
 func _setup_theme() -> void:
@@ -310,6 +346,7 @@ func _show_start_menu() -> void:
 	modal_box.add_child(_lbl("1444 – 1644 · Wähle deine Nation. Ziel: Am Ende die höchste Punktzahl (Entwicklung + Prestige + Technologie).", 18))
 	if FileAccess.file_exists(SAVE_PATH):
 		modal_box.add_child(_btn("💾 Weiterspielen", _load_game))
+	modal_box.add_child(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
 	for tag in MAJORS:
 		var nd: Dictionary = data.nations[tag]
 		var b := _btn("%s %s" % [nd.emoji, nd.name], _start_game.bind(tag))
@@ -527,6 +564,7 @@ func _show_menu() -> void:
 	modal_box.add_child(_btn("▶ Weiter", _close_modal))
 	modal_box.add_child(_btn("💾 Speichern", func(): _save_game(); _toast("💾 Gespeichert."); _close_modal()))
 	modal_box.add_child(_btn("📂 Laden", _load_game))
+	modal_box.add_child(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
 	modal_box.add_child(_btn("🏠 Hauptmenü (speichert)", func(): _save_game(); game = null; _show_start_menu()))
 	if OS.get_name() != "Android":
 		modal_box.add_child(_btn("🚪 Beenden", func(): _save_game(); get_tree().quit()))

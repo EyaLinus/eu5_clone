@@ -14,7 +14,7 @@ func _init() -> void:
 	data = Data.load_all()
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
-		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_alliance_joins_war",
+		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_long_run_no_softlock",
 	]:
@@ -179,6 +179,16 @@ func test_alliance_joins_war() -> void:
 	g.declare_war("FRA", "BRI")
 	var w = g.war_between("FRA", "BRI")
 	check(w.defenders.has("ENG"), "defensive ally joins")
+
+
+func test_protector_defends_small_state() -> void:
+	var g = new_game("")
+	for t in g.order:
+		g.nations[t].allies.clear()
+	g.declare_war("FRA", "BRI")
+	var w = g.war_between("FRA", "BRI")
+	check(w.defenders.size() >= 2, "a neighbour protects Brittany (%s)" % str(w.defenders))
+	check(not w.defenders.has("FRA"), "attacker is not a protector")
 
 
 func test_coalition_forms() -> void:

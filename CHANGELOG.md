@@ -1,6 +1,10 @@
 # Changelog
 
-## Unveröffentlicht
+## v0.2.0 – 2026-10-24
+- Gleichgewicht der Mächte: Greift jemand einen Kleinstaat (≤ 3 Provinzen) an, springt der stärkste nicht befreundete
+  Nachbar als Schutzmacht ein. Ausgelöschte Nationen bis 1644 sinken von Ø 29 auf Ø 23 (historisch ~20).
+- Balance Runde 4 (64 Partien): Ø 85 Kriege, größte Nation Ø 16 % der Entwicklung, Großmächte überleben zu 94 %.
+- UI-Größe einstellbar (85–140 %, Android startet bei 120 %), auch im Startmenü.
 - Herrschernamen mit Ordnungszahl für die 7 Großmächte.
 - Icon-Registry: Pixel-Art-PNGs ersetzen Emojis automatisch (`assets/art/icons/`).
 - `tools/sim.gd --bot TAG`: aggressiver Stand-in-Spieler zum Testen von AE/Koalitionen.

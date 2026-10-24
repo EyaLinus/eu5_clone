@@ -40,6 +40,9 @@ alliance, inherit, province, war`. Neue Schlüssel immer in beiden UI-Textfunkti
 - Plausibilitätsregel: Die KI annektiert nie die Hauptstadt einer der 7 Großmächte.
 - HRE: Greift ein Nicht-Mitglied ein Mitglied an, verteidigt der Kaiser (`defenders_for`).
 - Der Spieler wird nie durch Erbschafts-Events geschluckt (`_inherit`).
+- Gleichgewicht der Mächte: Bei Angriff auf einen Staat mit ≤ `protect_max_provinces` Provinzen verteidigt der
+  stärkste nicht befreundete Nachbar (≥ `protector_min_strength` × Angreiferstärke) mit (`defenders_for`).
+- Eroberte Hauptstädte kosten `capital_peace_mult`-fach Kriegspunkte und AE.
 
 ## Werkzeuge
 - `tools/sim.gd` Batch-Simulation, `tools/metrics.gd` Kennzahlen, `tools/trace.gd` 20-Jahres-Verlauf einer Partie.
