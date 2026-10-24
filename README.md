@@ -36,6 +36,8 @@ aus echten Küstenlinien (Natural Earth, Public Domain).
   oder Kapitulation. Nach 12 Jahren endet jeder Krieg automatisch (keine Endloskriege).
 - **Aggressive Expansion (😠 AE):** Eroberung kostet AE pro Entwicklung (weniger mit Anspruch). Ab der
   Koalitionsgrenze treten Nachbarn einer Koalition bei, die bei ausreichender Stärke den Krieg erklärt.
+- **Kriegsmüdigkeit und Unruhe:** Lange Kriege machen das Volk müde, frisch erobertes Land ist unruhig und kann
+  zum alten Besitzer zurückfallen. Garnisonen und Unterdrückung helfen.
 - **Vasallen:** Statt Land zu fordern, kannst du den besiegten Kriegsführer zum Vasallen machen. Vasallen zahlen
   Tribut, kämpfen mit dir und lassen sich nach 15 Jahren diplomatisch annektieren.
 - **Inhalte:** pro großer Nation 6 Missionen und 5–7 historische Events mit je 3 Entscheidungen,
@@ -47,6 +49,8 @@ aus echten Küstenlinien (Natural Earth, Public Domain).
 - Provinz antippen → Infos und Aktionen.
 - Armee (Kreis mit Zahl) antippen, dann Zielprovinz antippen → Marschbefehl. 🤖 = KI steuert die Armee.
 - Links: 🏛️ Nation, 🤝 Diplomatie, ⚔️ Kriege/Frieden, 🎯 Missionen, 📜 Chronik.
+- Am PC: Leertaste = Pause/Weiter, 1–5 = Tempo, Esc = Panel schließen.
+- Ein orangefarbener Punkt an einem Tab zeigt, dass dort etwas zu tun ist.
 - Automatisches Speichern jedes Jahr und beim Verlassen der App.
 
 ## Entwicklung
