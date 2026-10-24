@@ -29,7 +29,7 @@ Bedingungen (`Game.check_conditions`): `year_min/max, owns, owns_any, not_owns, 
 min_dev, alive, not_alive, ae_min, gold_min, allied, allies, tech{adm,dip,mil}, regs, major`.
 Effekte (`Game.apply_effects`): `gold, adm, dip, mil, ae, prestige, manpower, regs, dev_capital, dev_random,
 relations{TAG:x}, claim[keys], flag, mods{income,combat,manpower,adm,dip,mil,ae_decay}, ruler{adm,dip,mil},
-alliance, inherit, province, war`. Neue Schlüssel immer in beiden UI-Textfunktionen
+alliance, inherit, vassal, province, war`. Neue Schlüssel immer in beiden UI-Textfunktionen
 (`effects_text`, `conditions_text` in `main.gd`) und in `test_data_references` ergänzen.
 
 ## Wichtige Regeln

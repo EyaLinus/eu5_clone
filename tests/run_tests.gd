@@ -68,7 +68,7 @@ func test_data_references() -> void:
 		for k in ["owns", "owns_any", "not_owns", "claim"]:
 			for key in d.get(k, []):
 				check(keys.has(key), "%s: province key %s exists" % [r[0], key])
-		for k in ["alive", "not_alive", "allied", "alliance", "inherit", "war"]:
+		for k in ["alive", "not_alive", "allied", "alliance", "inherit", "war", "vassal"]:
 			if d.has(k):
 				check(tags.has(d[k]), "%s: tag %s exists" % [r[0], d[k]])
 		if d.has("province"):

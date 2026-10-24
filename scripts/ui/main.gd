@@ -1107,6 +1107,8 @@ func effects_text(e: Dictionary) -> String:
 			parts.append("🤝 Bündnis mit " + game.nations[v].name)
 		elif k == "inherit":
 			parts.append("👑 Erbe: " + game.nations[v].name)
+		elif k == "vassal":
+			parts.append("⛓️ Vasall: " + game.nations[v].name)
 		elif k == "province":
 			parts.append("🏘️ Erhalte " + game.provinces[game.key_to_pid[v]].name)
 		elif k == "war":

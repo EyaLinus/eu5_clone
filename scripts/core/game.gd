@@ -1016,11 +1016,11 @@ func make_peace(w: War, winner_att: bool, pids: Array, vassalize: bool = false) 
 			stats[key] = stats.get(key, 0) + 1
 
 
-func _vassalize(lord: String, tag: String, coalition_war: bool) -> void:
+func _vassalize(lord: String, tag: String, reduced_ae: bool) -> void:
 	var v: Nation = nations[tag]
 	var l: Nation = nations[lord]
 	var ae: float = v.dev_total * float(bal.ae_per_dev) * float(bal.vassal_ae_mult)
-	if coalition_war:
+	if reduced_ae:
 		ae *= 0.3
 	l.ae += ae
 	l.prestige += v.dev_total * float(bal.prestige_per_dev_taken) * 0.5
@@ -1469,8 +1469,12 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 				if nations.has(v) and nations[v].alive:
 					n.claims[nations[v].capital] = true
 					declare_war(tag, v)
-			"stability_unrest":
-				pass
+			"vassal":
+				# event-driven vassalization (dynastic deals), only for free, independent minors
+				if nations.has(v) and v != tag and v != player and nations[v].alive and nations[v].overlord == "" \
+						and n.overlord == "" and not nations[v].playable and not at_war(tag, v):
+					_vassalize(tag, v, true)
+					log_msg("⛓️ %s wird Vasall von %s." % [nations[v].name, n.name], [tag, v])
 	_update_cached(n)
 
 

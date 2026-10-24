@@ -31,8 +31,9 @@ func _spend_power(g, n) -> void:
 			g.develop(n.tag, best)
 	# integrate vassals diplomatically once allowed (peace time only)
 	for v in g.vassals_of(n.tag):
+		# rare decision (about ai_annex_chance per year) so vassals often outlive their waiting period
 		if g.annex_months_left(v) == 0 and n.dip >= g.annex_cost(v) + 20.0 and n.adm >= g.annex_adm_cost(v) + 60.0 \
-				and not g.is_at_war(n.tag):
+				and not g.is_at_war(n.tag) and g.rng.randf() < float(g.bal.ai_annex_chance) / 12.0:
 			g.annex_vassal(n.tag, v)
 	if n.dip > cap * 0.7:
 		_fabricate_claim(g, n)

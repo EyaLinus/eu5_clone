@@ -41,7 +41,6 @@
      {"text": "Er soll die Krone stärken.", "effects": {"mods": {"adm": 1}, "prestige": 10}},
      {"text": "Er soll Habsburg schwächen.", "effects": {"claim": ["luxembourg", "franchecomte"], "dip": 40}},
      {"text": "Wir brauchen ihn nicht.", "effects": {"gold": 100}}]},
-
   {"id": "eng_roses", "tag": "ENG", "title": "Die Rosenkriege", "text": "York und Lancaster streiten um die Krone. Der Bürgerkrieg droht.",
    "trigger": {"year_min": 1453, "year_max": 1490},
    "options": [
@@ -84,7 +83,6 @@
      {"text": "Exportzölle erheben.", "effects": {"gold": 90}},
      {"text": "Weber ins Land holen.", "effects": {"dev_random": 2}},
      {"text": "Handelsvertrag mit Burgund.", "effects": {"relations": {"BUR": 40}, "dip": 25}}]},
-
   {"id": "spa_isabella", "tag": "SPA", "title": "Isabella und Ferdinand", "text": "Die Erbin Kastiliens und der Erbe Aragóns könnten heiraten und Spanien vereinen.",
    "trigger": {"year_min": 1465, "year_max": 1500, "alive": "ARA", "at_peace": true},
    "options": [
@@ -127,7 +125,6 @@
      {"text": "Die Ehe schließen.", "effects": {"alliance": "HAB", "prestige": 10}},
      {"text": "Gold statt Bündnis.", "effects": {"gold": 100}},
      {"text": "Ablehnen: Spanien den Spaniern.", "effects": {"adm": 50}}]},
-
   {"id": "boh_podiebrad", "tag": "BOH", "title": "Georg von Podiebrad", "text": "Ein hussitischer Adliger wird zum König gewählt. Der Papst ist empört.",
    "trigger": {"year_max": 1475},
    "options": [
@@ -164,7 +161,6 @@
      {"text": "Großzügig stiften.", "effects": {"gold": -60, "adm": 60, "dip": 30}},
      {"text": "Theologen fördern.", "effects": {"prestige": 10}},
      {"text": "Keine Mittel übrig.", "effects": {"gold": 30}}]},
-
   {"id": "hab_frederick", "tag": "HAB", "title": "AEIOU", "text": "Friedrich III. lässt seine Devise überall anbringen: Austria erit in orbe ultima.",
    "trigger": {"year_max": 1490},
    "options": [
@@ -201,7 +197,6 @@
      {"text": "Familienbündnis!", "effects": {"alliance": "SPA", "prestige": 10}},
      {"text": "Spanisches Silber erbitten.", "effects": {"gold": 120}},
      {"text": "Eigene Wege gehen.", "effects": {"adm": 40}}]},
-
   {"id": "rus_ivan3", "tag": "RUS", "title": "Iwan der Große", "text": "Ein energischer Großfürst sammelt die russischen Lande.",
    "trigger": {"year_min": 1462, "year_max": 1505},
    "options": [
@@ -238,7 +233,6 @@
      {"text": "Die Expedition finanzieren.", "effects": {"gold": -40, "mods": {"income": 0.08}}, "ai": 60},
      {"text": "Pelzhandel besteuern.", "effects": {"gold": 120}},
      {"text": "Kein Interesse am Osten.", "effects": {"mil": 40}}]},
-
   {"id": "nap_alfonso", "tag": "NAP", "title": "Alfonso der Großmütige", "text": "Der aragonesische König hat Neapel erobert und will es zum Zentrum seines Hofes machen.",
    "trigger": {"year_max": 1460},
    "options": [
@@ -275,7 +269,6 @@
      {"text": "Den Genuesen Privilegien geben.", "effects": {"gold": 80, "relations": {"GEN": 40}}},
      {"text": "Den Venezianern Privilegien geben.", "effects": {"gold": 80, "relations": {"VEN": 40}}},
      {"text": "Einheimische Händler fördern.", "effects": {"mods": {"income": 0.04}}}]},
-
   {"id": "gen_plague", "once": false, "tag": "*", "title": "Die Pest kehrt zurück", "text": "Eine Seuche wütet in den Städten.",
    "trigger": {},
    "options": [
@@ -329,5 +322,155 @@
    "options": [
      {"text": "Die Grenzherren unterstützen.", "effects": {"mil": 30, "ae": 3}},
      {"text": "Diplomatisch lösen.", "effects": {"dip": -20, "prestige": 5}},
-     {"text": "Ignorieren.", "effects": {"adm": 15}}]}
+     {"text": "Ignorieren.", "effects": {"adm": 15}}]},
+  {"id": "fra_burgundy_fall", "tag": "FRA", "title": "Das Erbe Karls des Kühnen", "text": "Karl der Kühne ist vor Nancy gefallen. Seine Tochter Maria erbt ein Reich ohne Armee, und Burgund liegt offen vor uns.",
+   "trigger": {"year_min": 1477, "year_max": 1500, "alive": "BUR", "flag": "ev_fra_louis11"},
+   "options": [
+     {"text": "Burgund gehört zur Krone!", "effects": {"claim": ["dijon", "franchecomte"], "prestige": 5}, "ai": 60},
+     {"text": "Ein Ehebündnis anstreben.", "effects": {"relations": {"BUR": 40}, "dip": 20}},
+     {"text": "Abwarten und die Verwaltung stärken.", "effects": {"adm": 40}}]},
+  {"id": "fra_estates", "tag": "FRA", "title": "Die Generalstände", "text": "Die drei Stände verlangen, gehört zu werden. Der König braucht Geld, die Stände wollen Mitsprache.",
+   "trigger": {"year_min": 1484, "year_max": 1600},
+   "options": [
+     {"text": "Steuern bewilligen lassen.", "effects": {"gold": 100, "prestige": -5}, "ai": 50},
+     {"text": "Die Krone regiert allein.", "effects": {"mods": {"adm": 1}, "dip": -30}},
+     {"text": "Den Ständen Zugeständnisse machen.", "effects": {"dip": 40, "prestige": 5}}]},
+  {"id": "fra_albret", "tag": "FRA", "title": "Das Haus Albret", "text": "Die Könige von Navarra suchen den Schutz der französischen Krone gegen Kastilien.",
+   "trigger": {"year_min": 1480, "year_max": 1590, "alive": "NAV", "at_peace": true},
+   "options": [
+     {"text": "Navarra unter unseren Schutz stellen.", "effects": {"vassal": "NAV", "prestige": 5}, "ai": 60},
+     {"text": "Ein Bündnis genügt.", "effects": {"alliance": "NAV"}},
+     {"text": "Uns nicht einmischen.", "effects": {"dip": 30}}]},
+  {"id": "eng_navy", "tag": "ENG", "title": "Die Königliche Flotte", "text": "Neue Werften in Portsmouth könnten England zur Seemacht machen, aber Schiffe sind teuer.",
+   "trigger": {"year_min": 1510},
+   "options": [
+     {"text": "Kriegsschiffe bauen.", "effects": {"gold": -60, "mods": {"combat": 0.03}}, "ai": 50},
+     {"text": "Kaperbriefe ausstellen.", "effects": {"gold": 70, "ae": 3}},
+     {"text": "Seeleute für das Heer.", "effects": {"mil": 40}}]},
+  {"id": "eng_poynings", "tag": "ENG", "title": "Poynings' Gesetz", "text": "Das irische Parlament soll nur noch tagen, wenn der König zustimmt. Die irischen Fürsten sind gespalten.",
+   "trigger": {"year_min": 1494, "year_max": 1600, "alive": "IRE", "at_peace": true},
+   "options": [
+     {"text": "Die Fürsten zur Lehnstreue zwingen.", "effects": {"vassal": "IRE", "ae": 3}, "ai": 60},
+     {"text": "Ansprüche auf ganz Irland erheben.", "effects": {"claim": ["munster", "ulster"]}},
+     {"text": "Irland sich selbst überlassen.", "effects": {"dip": 30}}]},
+  {"id": "eng_castillon", "tag": "ENG", "title": "Nach Castillon", "text": "Talbot ist gefallen, die Gascogne wankt. Soll England weiter um sein Erbe in Frankreich kämpfen?",
+   "trigger": {"year_min": 1450, "year_max": 1470, "owns": ["bordeaux"]},
+   "options": [
+     {"text": "Neue Truppen über den Kanal!", "effects": {"mil": 30, "regs": 3}, "ai": 50},
+     {"text": "Frieden mit Frankreich suchen.", "effects": {"relations": {"FRA": 40}, "dip": 30, "prestige": -5}},
+     {"text": "Der Weinhandel muss weitergehen.", "effects": {"gold": 60}}]},
+  {"id": "spa_navarre", "tag": "SPA", "title": "Die Frage Navarra", "text": "Das kleine Königreich in den Pyrenäen kontrolliert die Pässe nach Frankreich.",
+   "trigger": {"year_min": 1500, "year_max": 1560, "alive": "NAV"},
+   "options": [
+     {"text": "Navarra erobern!", "effects": {"war": "NAV", "mil": 20}, "ai": 50},
+     {"text": "Navarra zum Vasallen machen.", "effects": {"vassal": "NAV", "ae": 5}, "ai": 40},
+     {"text": "Die Pässe befestigen.", "effects": {"adm": 30}}]},
+  {"id": "spa_comuneros", "tag": "SPA", "title": "Aufstand der Comuneros", "text": "Die Städte Kastiliens erheben sich gegen die fremden Berater des jungen Königs.",
+   "trigger": {"year_min": 1515, "year_max": 1560},
+   "options": [
+     {"text": "Den Aufstand niederschlagen.", "effects": {"regs": 2, "gold": -50, "prestige": 5}, "ai": 50},
+     {"text": "Den Städten entgegenkommen.", "effects": {"adm": -30, "dip": 40}},
+     {"text": "Die Rädelsführer enteignen.", "effects": {"dev_random": -2, "gold": 60}}]},
+  {"id": "spa_escorial", "tag": "SPA", "title": "El Escorial", "text": "Der König plant ein gewaltiges Kloster und Palast in den Bergen bei Madrid.",
+   "trigger": {"year_min": 1560},
+   "options": [
+     {"text": "Baut den Escorial!", "effects": {"gold": -120, "prestige": 15, "dev_capital": 2}, "ai": 50},
+     {"text": "Lieber in die Verwaltung investieren.", "effects": {"adm": 40}},
+     {"text": "Das Geld bleibt in der Schatzkammer.", "effects": {"gold": 60}}]},
+  {"id": "boh_compacts", "tag": "BOH", "title": "Die Basler Kompaktaten", "text": "Der Papst will die Zugeständnisse an die Utraquisten widerrufen. Böhmen ist in Aufruhr.",
+   "trigger": {"year_max": 1480},
+   "options": [
+     {"text": "Am Kelch festhalten!", "effects": {"dip": 40, "relations": {"PAP": -20}}, "ai": 50},
+     {"text": "Sich mit Rom versöhnen.", "effects": {"relations": {"PAP": 30}, "prestige": 5}},
+     {"text": "Die Hussitenheere stärken.", "effects": {"mods": {"manpower": 0.05}}}]},
+  {"id": "boh_silesia", "tag": "BOH", "title": "Die Schlesischen Stände", "text": "Die reichen Städte Schlesiens bieten Geld für die Bestätigung ihrer Privilegien.",
+   "trigger": {"owns": ["silesia"]},
+   "options": [
+     {"text": "Privilegien bestätigen.", "effects": {"gold": 60}, "ai": 50},
+     {"text": "Den Handel fördern.", "effects": {"dev_random": 2}},
+     {"text": "Truppen statt Gold.", "effects": {"manpower": 3, "mil": 20}}]},
+  {"id": "boh_rudolf", "tag": "BOH", "title": "Der Hof Rudolfs II.", "text": "Prag wird zum Zentrum der Künste und Wissenschaften. Astronomen und Alchemisten strömen an den Hof.",
+   "trigger": {"year_min": 1576, "year_max": 1612},
+   "options": [
+     {"text": "Kepler und Brahe fördern.", "effects": {"dev_capital": 2, "gold": -60, "prestige": 10}, "ai": 50},
+     {"text": "Ordnung in die Kanzlei bringen.", "effects": {"adm": 50}},
+     {"text": "Gesandte aus ganz Europa empfangen.", "effects": {"dip": 40}}]},
+  {"id": "boh_majesty", "tag": "BOH", "title": "Der Majestätsbrief", "text": "Die protestantischen Stände fordern Religionsfreiheit, verbrieft durch den König.",
+   "trigger": {"year_min": 1605, "year_max": 1625, "flag": "ev_boh_rudolf"},
+   "options": [
+     {"text": "Den Brief unterzeichnen.", "effects": {"prestige": 5, "relations": {"HAB": -25}, "mods": {"income": 0.03}}, "ai": 50},
+     {"text": "Mit Wien an einem Strang ziehen.", "effects": {"relations": {"HAB": 30}, "dip": 30}},
+     {"text": "Die Stände entwaffnen.", "effects": {"mil": 40, "prestige": -5}}]},
+  {"id": "hab_corvinus", "tag": "HAB", "title": "Matthias Corvinus", "text": "Der ungarische König streckt die Hand nach Wien aus. Seine Schwarze Armee ist gefürchtet.",
+   "trigger": {"year_min": 1458, "year_max": 1490, "alive": "HUN"},
+   "options": [
+     {"text": "Wien verteidigen!", "effects": {"regs": 3, "mil": 30}, "ai": 50},
+     {"text": "Mit Ungarn verhandeln.", "effects": {"relations": {"HUN": 30}, "dip": 20}},
+     {"text": "Gegenansprüche erheben.", "effects": {"gold": -40, "claim": ["pressburg"]}}]},
+  {"id": "hab_worms", "tag": "HAB", "title": "Reichstag zu Worms", "text": "Die Reichsstände beraten über Ewigen Landfrieden, Reichskammergericht und den Gemeinen Pfennig.",
+   "trigger": {"year_min": 1495, "year_max": 1520},
+   "options": [
+     {"text": "Die Reichsreform vorantreiben.", "effects": {"mods": {"dip": 1}, "prestige": 5}, "ai": 50},
+     {"text": "Den Gemeinen Pfennig eintreiben.", "effects": {"gold": 80}},
+     {"text": "Die Erblande zuerst.", "effects": {"adm": 40}}]},
+  {"id": "hab_schwaz", "tag": "HAB", "title": "Schwazer Silber", "text": "In den Tiroler Bergwerken wird so viel Silber gefördert wie nirgends sonst in Europa.",
+   "trigger": {"owns": ["tirol"]},
+   "options": [
+     {"text": "Die Fugger beteiligen.", "effects": {"gold": 80}, "ai": 50},
+     {"text": "Den Bergbau ausbauen.", "effects": {"mods": {"income": 0.03}}},
+     {"text": "Die Bergstädte fördern.", "effects": {"dev_random": 1, "adm": 20}}]},
+  {"id": "hab_bavaria", "tag": "HAB", "title": "Der Landshuter Erbfolgekrieg", "text": "Bayern ist durch Erbstreit geschwächt. Wien könnte vermitteln und Bayern an sich binden.",
+   "trigger": {"year_min": 1504, "year_max": 1560, "alive": "BAV", "at_peace": true},
+   "options": [
+     {"text": "Bayern unter unseren Schutz stellen.", "effects": {"vassal": "BAV", "ae": 5}, "ai": 50},
+     {"text": "Ein Bündnis schließen.", "effects": {"alliance": "BAV"}},
+     {"text": "Kufstein und Kitzbühel fordern.", "effects": {"claim": ["regensburg"]}}]},
+  {"id": "rus_novgorod", "tag": "RUS", "title": "Das Ende der Republik Nowgorod", "text": "Nowgorod sucht Hilfe bei Litauen. Für Moskau ist das Verrat.",
+   "trigger": {"year_min": 1470, "year_max": 1500, "alive": "NOV"},
+   "options": [
+     {"text": "Nach Nowgorod marschieren!", "effects": {"war": "NOV", "mil": 20}, "ai": 50},
+     {"text": "Nowgorod zur Unterwerfung zwingen.", "effects": {"vassal": "NOV", "ae": 10}, "ai": 40},
+     {"text": "Die Glocke des Wetsche nehmen, sonst nichts.", "effects": {"claim": ["novgorod"], "dip": 20}}]},
+  {"id": "rus_ryazan", "tag": "RUS", "title": "Das Großfürstentum Rjasan", "text": "Der junge Fürst von Rjasan wächst am Moskauer Hof auf. Sein Land ist praktisch unser.",
+   "trigger": {"year_min": 1456, "year_max": 1520, "alive": "RYA", "at_peace": true},
+   "options": [
+     {"text": "Rjasan wird Vasall Moskaus.", "effects": {"vassal": "RYA"}, "ai": 70},
+     {"text": "Ein Bündnis unter Brüdern.", "effects": {"alliance": "RYA"}},
+     {"text": "Diplomatische Geschenke.", "effects": {"dip": 30}}]},
+  {"id": "rus_sudebnik", "tag": "RUS", "title": "Der Sudebnik", "text": "Ein einheitliches Gesetzbuch für alle russischen Lande soll die Macht des Großfürsten festigen.",
+   "trigger": {"year_min": 1497, "year_max": 1560},
+   "options": [
+     {"text": "Das Gesetzbuch verkünden.", "effects": {"adm": 50}, "ai": 50},
+     {"text": "Prikase gründen.", "effects": {"mods": {"adm": 1}, "gold": -60}},
+     {"text": "Die Bojaren einbinden.", "effects": {"prestige": 5, "dip": 20}}]},
+  {"id": "rus_kazan", "tag": "RUS", "title": "Der Fall von Kasan", "text": "Das Khanat Kasan blockiert die Wolga. Der Zar ruft zum Feldzug.",
+   "trigger": {"year_min": 1540, "year_max": 1600, "alive": "KAZ"},
+   "options": [
+     {"text": "Kasan belagern!", "effects": {"war": "KAZ", "mil": 20}, "ai": 50},
+     {"text": "Ansprüche festigen.", "effects": {"claim": ["kazan"]}},
+     {"text": "Mit Kasan handeln.", "effects": {"gold": 60}}]},
+  {"id": "nap_ferrante", "tag": "NAP", "title": "Ferrante von Neapel", "text": "Alfons hinterlässt Neapel seinem Sohn, Aragón aber seinem Bruder. Neapel steht allein.",
+   "trigger": {"year_min": 1458, "year_max": 1475},
+   "options": [
+     {"text": "Neapel zuerst!", "effects": {"relations": {"ARA": -30}, "prestige": 10, "adm": 20}, "ai": 50},
+     {"text": "Das Band zu Aragón erneuern.", "effects": {"alliance": "ARA"}},
+     {"text": "Gesandte an alle Höfe Italiens.", "effects": {"dip": 40}}]},
+  {"id": "nap_otranto", "tag": "NAP", "title": "Die Türken in Otranto", "text": "Eine osmanische Flotte ist in Apulien gelandet. Ganz Italien blickt auf Neapel.",
+   "trigger": {"year_min": 1480, "year_max": 1500, "alive": "TUR"},
+   "options": [
+     {"text": "Otranto befreien!", "effects": {"regs": 3, "gold": -40, "prestige": 5}, "ai": 50},
+     {"text": "Den Papst um Hilfe bitten.", "effects": {"relations": {"PAP": 30}, "dip": 20}},
+     {"text": "Die Küste aufgeben.", "effects": {"gold": 40, "dev_random": -1}}]},
+  {"id": "nap_viceroy", "tag": "NAP", "title": "Spaniens langer Arm", "text": "Madrid bietet Schutz gegen Frankreich, verlangt aber Einfluss in Neapel.",
+   "trigger": {"year_min": 1504, "year_max": 1600, "alive": "SPA"},
+   "options": [
+     {"text": "Bündnis mit Spanien.", "effects": {"alliance": "SPA", "prestige": -5}, "ai": 50},
+     {"text": "Unabhängigkeit bewahren.", "effects": {"relations": {"SPA": -20}, "mil": 40}},
+     {"text": "Neutral bleiben.", "effects": {"dip": 30}}]},
+  {"id": "nap_studium", "tag": "NAP", "title": "Das Studium Neapels", "text": "Die alte Universität Friedrichs II. soll neu aufblühen.",
+   "trigger": {"year_min": 1460},
+   "options": [
+     {"text": "Gelehrte berufen.", "effects": {"adm": 30, "gold": -30}, "ai": 50},
+     {"text": "Die Stadt ausbauen.", "effects": {"dev_capital": 1}},
+     {"text": "Ein Fest für die Gelehrten.", "effects": {"prestige": 5}}]}
 ]

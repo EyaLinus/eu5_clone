@@ -5,11 +5,14 @@
   seines gesamten Landes, halbe AE, keine Admin-Kosten). Vasallen zahlen 20 % ihres Einkommens als Tribut,
   kämpfen in deinen Kriegen, werden von dir verteidigt und dürfen weder Krieg erklären noch Bündnisse schließen.
 - **Diplomatische Annexion** nach 15 Jahren: kostet 12 🕊️ und 5 📜 pro Entwicklung und etwas AE.
-- KI vasallisiert besiegte Kleinstaaten (≤ 2 Provinzen) statt sie aufzuteilen und annektiert sie später.
-- Kriegserklärungs-Dialog zeigt jetzt alle Verteidiger (Verbündete, Lehnsherr, Kaiser, Schutzmacht) und deren Stärke.
-- Nationenlisten zeigen Pixel-Flaggen; lange Buttontexte werden gekürzt statt das Panel zu sprengen.
-- Balance (5 Runden à 32 Partien): Ø 24–25 Nationen ausgelöscht, größte Nation Ø 16 %, Großmächte überleben zu
-  ~93 %, Ø 55–70 Kriege (weniger als vorher, weil Vasallen keine Kriege erklären), ~23 Vasallisierungen pro Partie.
+- KI vasallisiert besiegte Kleinstaaten (≤ 2 Provinzen) statt sie aufzuteilen und annektiert nur gelegentlich.
+- **25 neue Events:** jetzt 10 pro Großmacht, darunter Vasallen-Events (Rjasan, Nowgorod, Navarra, Irland, Bayern)
+  und Ketten (Ludwig XI. → Erbe Burgunds, Rudolf II. → Majestätsbrief). Neuer Event-Effekt `vassal`.
+- **Pixel-Art:** Icons, Armee-Marker und Flaggen für alle 50 Nationen (Emoji bleibt Fallback).
+- Kriegserklärungs-Dialog zeigt alle Verteidiger (Verbündete, Lehnsherr, Kaiser, Schutzmacht) und deren Stärke.
+- Nationenlisten zeigen Flaggen; lange Buttontexte werden gekürzt statt das Panel zu sprengen.
+- Balance (2 × 32 Partien): Ø 24–25 Nationen ausgelöscht, größte Nation Ø 16 %, Großmächte überleben zu 91–95 %,
+  Ø 62–64 Kriege (weniger als vorher, weil Vasallen keine Kriege erklären), ~25 Vasallisierungen, ~20 Annexionen.
 
 ## v0.2.0 – 2026-10-24
 - Gleichgewicht der Mächte: Greift jemand einen Kleinstaat (≤ 3 Provinzen) an, springt der stärkste nicht befreundete

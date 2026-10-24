@@ -68,5 +68,6 @@
   "annex_dip_per_dev": 12.0,
   "ai_vassal_max_provinces": 2,
   "annex_ae_mult": 0.4,
-  "annex_adm_mult": 1.0
+  "annex_adm_mult": 1.0,
+  "ai_annex_chance": 0.08
 }
