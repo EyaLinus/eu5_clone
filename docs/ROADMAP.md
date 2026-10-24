@@ -1,5 +1,8 @@
 # Roadmap
 
+> Stand 2026-10-24 21:35 (pausiert wegen Nutzungslimit): v0.4.0 veröffentlicht, main sauber, keine offene Arbeit.
+> Nächste Schritte: Content-PRs reviewen/mergen, HRE-Kaiserwahl, Spielstatistik am Spielende, Tutorial-Hinweise.
+
 Priorisiert nach Nutzen für den Spieler pro Aufwand. Status: ✅ fertig, 🔨 in Arbeit, ⏳ geplant.
 
 ## v0.1 – spielbarer Kern ✅
