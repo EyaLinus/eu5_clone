@@ -1238,7 +1238,7 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 
 ## Personal-union style inheritance: `heir` takes over all of `tag`'s lands.
 func _inherit(heir: String, tag: String) -> void:
-	if not nations.has(tag) or not nations[tag].alive or at_war(heir, tag) or is_at_war(tag):
+	if tag == player or not nations.has(tag) or not nations[tag].alive or at_war(heir, tag) or is_at_war(tag):
 		return
 	for pid in provinces_of(tag).duplicate():
 		var p: Province = provinces[pid]
@@ -1335,8 +1335,9 @@ func _check_events(n: Nation) -> void:
 		var t: String = e.get("tag", "*")
 		if t != "*" and t != n.tag:
 			continue
-		if n.flags.has("ev_" + e.id) and e.get("once", true):
-			continue
+		if n.flags.has("ev_" + e.id):
+			if e.get("once", true) or month - int(n.flags["ev_" + e.id]) < 120:
+				continue
 		if not check_conditions(n.tag, e.get("trigger", {})):
 			continue
 		eligible.append(e)
@@ -1352,7 +1353,7 @@ func _check_events(n: Nation) -> void:
 	if rng.randf() > chance:
 		return
 	var e: Dictionary = pool[rng.randi_range(0, pool.size() - 1)]
-	n.flags["ev_" + e.id] = true
+	n.flags["ev_" + e.id] = month
 	stats.events += 1
 	if n.tag == player:
 		pending_events.append(e.id)
