@@ -99,16 +99,16 @@ outputs:
   build_integration: false   # run tools/build_art.sh after editing sources; PNGs are committed
 
 asset_kinds:
-  icon: { display_px: 28, grid: 16 }          # HUD row (main.gd _icon_rect 28) – see note
+  icon: { display_px: 32, grid: 16 }          # HUD row (main.gd _icon_rect), integer x2
   tab_icon: { display_px: 36, grid: 16 }      # 60x60 buttons with expand_icon
   flag: { display_px: [48, 32], grid: [24, 16] }
   army_marker: { display_px: 42, grid: 16 }   # map_view.gd: ARMY_R * 2.8
 
 notes:
   - >
-    Pixel art only looks crisp at integer scales. HUD icons at 28 px from a 16-px grid are
-    1.75x and canvas_items stretch adds another non-integer factor on phones, so pixels
-    will be slightly uneven. Preferred fix on the UI side: display icons at 32 px.
+    Pixel art only looks crisp at integer scales. HUD icons are shown at 32 px (x2), but
+    canvas_items stretch adds a non-integer factor on phones, so pixels can be slightly uneven.
+    army_marker is tinted with the plain nation colour; the map skips its circle when the texture exists.
 
 naming:
   case: snake
