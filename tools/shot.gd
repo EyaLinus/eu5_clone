@@ -42,4 +42,7 @@ func _run(m) -> void:
 	m._close_panel()
 	m.map.zoom_by(0.45)
 	await _shot("07_zoomed_out")
+	m.map.map_mode = 1
+	m.map.queue_redraw()
+	await _shot("08_diplomatic")
 	quit()

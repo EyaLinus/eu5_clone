@@ -8,10 +8,10 @@ Armeen/Schlachten/Belagerungen, Kriegspunkte und Frieden, Bündnisse, Ansprüche
 Events und Missionen für 7 Nationen, Save/Load, Tests, Headless-Balance, APK + EXE.
 
 ## v0.2 – Spielgefühl (nächster Schritt)
-1. ⏳ Kartenmodi: politisch / diplomatisch (Verbündete, Feinde, Ansprüche, Koalition) / Entwicklung.
-2. ⏳ Benachrichtigungen als Popups für Dinge, die den Spieler direkt betreffen (Kriegserklärung gegen uns,
+1. ✅ Kartenmodi: politisch / diplomatisch (Verbündete, Feinde, Ansprüche, Koalition) / Entwicklung.
+2. ✅ (teilweise) Benachrichtigungen als Popups für Dinge, die den Spieler direkt betreffen (Kriegserklärung gegen uns,
    Koalition gegen uns, Verbündeter ruft zu den Waffen, Mission erfüllbar).
-3. ⏳ Armee-Komfort: "alle Armeen automatisch" im Krieg, Belagerungsfortschritt im Armeepanel, Ziel-Vorschau.
+3. ✅ (teilweise) Armee-Komfort: "alle Armeen automatisch" im Krieg, Belagerungsfortschritt im Armeepanel, Ziel-Vorschau.
 4. ⏳ Herrschernamen und Dynastien pro Großmacht (Flavor, kaum Aufwand).
 5. ⏳ Einstellungen: UI-Skalierung für kleine Handys, Autosave-Intervall.
 6. ⏳ Balance für den Spieler: Testläufe mit "Spieler-Bot", der aggressiv expandiert, um AE/Koalitionen zu prüfen.
