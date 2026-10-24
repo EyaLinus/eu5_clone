@@ -36,7 +36,8 @@ style:
 
 palette:
   ink: "#1b1622"            # outlines
-  paper: "#efe4c8"          # light review background / parchment
+  paper: "#efe4c8"          # parchment, light review background
+  paper_dark: "#c9b185"     # parchment shade, text lines
   slate: "#2b3445"          # UI panel colour (review background only)
   white: "#f4f1e8"
   grey_light: "#c9ccd1"
@@ -64,6 +65,7 @@ palette:
 ramps:
   gold: [gold_dark, gold, gold_light]
   grey: [grey_dark, grey, grey_light, white]
+  paper: [paper_dark, paper]
   red: [red_dark, red, red_light]
   blue: [blue_dark, blue, blue_light]
   green: [green_dark, green, green_light]
@@ -97,6 +99,10 @@ outputs:
   atlas:
     enabled: false
   build_integration: false   # run tools/build_art.sh after editing sources; PNGs are committed
+  generators:                # grids written by scripts (edit these, not the .txt):
+    - tools/art/hud_icons.py   # HUD resource icons
+    - tools/art/ui_icons.py    # tabs + popups
+    - tools/art/flags.py       # all flag_<TAG> except the hand-made anchor flag_FRA
 
 asset_kinds:
   icon: { display_px: 32, grid: 16 }          # HUD row (main.gd _icon_rect), integer x2

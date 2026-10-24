@@ -1,31 +1,679 @@
 assets:
+  adm:
+    created: '2026-10-24'
+    kind: icon
+    note: 'adm – administrative power: parchment scroll'
+    outputs:
+    - assets/art/icons/adm.png
+    source: assets/src/pixel/icons/adm.txt
+    status: done
+    updated: '2026-10-24'
+  ae:
+    created: '2026-10-24'
+    kind: icon
+    note: 'ae – aggressive expansion: angry red face'
+    outputs:
+    - assets/art/icons/ae.png
+    source: assets/src/pixel/icons/ae.txt
+    status: done
+    updated: '2026-10-24'
+  army:
+    created: '2026-10-24'
+    kind: icon
+    note: 'army – regiments / force limit: heater shield with cross'
+    outputs:
+    - assets/art/icons/army.png
+    source: assets/src/pixel/icons/army.txt
+    status: done
+    updated: '2026-10-24'
   army_marker:
     created: '2026-10-24'
     kind: sprite
-    note: 'ANCHOR 3/3 (awaiting approval). Grey ramp only, tinted in map_view.gd.
+    note: 'ANCHOR 3/3 (approved by Linus 2026-10-24). Grey ramp only, tinted in map_view.gd.
       Iteration 1 had crossed swords: removed, read as corner brackets at 42px.'
     outputs:
     - assets/art/icons/army_marker.png
     source: assets/src/pixel/icons/army_marker.txt
-    status: wip
+    status: done
+    updated: '2026-10-24'
+  claim:
+    created: '2026-10-24'
+    kind: icon
+    note: 'claim – territorial claim: charter with red wax seal'
+    outputs:
+    - assets/art/icons/claim.png
+    source: assets/src/pixel/icons/claim.txt
+    status: done
+    updated: '2026-10-24'
+  coalition:
+    created: '2026-10-24'
+    kind: icon
+    note: 'coalition – coalition formed: three allied shields'
+    outputs:
+    - assets/art/icons/coalition.png
+    source: assets/src/pixel/icons/coalition.txt
+    status: done
+    updated: '2026-10-24'
+  date:
+    created: '2026-10-24'
+    kind: icon
+    note: 'date – game date: hourglass'
+    outputs:
+    - assets/art/icons/date.png
+    source: assets/src/pixel/icons/date.txt
+    status: done
+    updated: '2026-10-24'
+  dev:
+    created: '2026-10-24'
+    kind: icon
+    note: 'dev – development: two houses'
+    outputs:
+    - assets/art/icons/dev.png
+    source: assets/src/pixel/icons/dev.txt
+    status: done
+    updated: '2026-10-24'
+  dip:
+    created: '2026-10-24'
+    kind: icon
+    note: 'dip – diplomatic power: dove'
+    outputs:
+    - assets/art/icons/dip.png
+    source: assets/src/pixel/icons/dip.txt
+    status: done
+    updated: '2026-10-24'
+  event:
+    created: '2026-10-24'
+    kind: icon
+    note: 'event – event popup: gold bell'
+    outputs:
+    - assets/art/icons/event.png
+    source: assets/src/pixel/icons/event.txt
+    status: done
+    updated: '2026-10-24'
+  flag_ALB:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_ALB – Albania – black double eagle on red
+    outputs:
+    - assets/art/icons/flag_ALB.png
+    source: assets/src/pixel/flags/flag_ALB.txt
+    status: done
+    updated: '2026-10-24'
+  flag_ARA:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_ARA – Aragón – four red pallets on gold
+    outputs:
+    - assets/art/icons/flag_ARA.png
+    source: assets/src/pixel/flags/flag_ARA.txt
+    status: done
+    updated: '2026-10-24'
+  flag_BAV:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_BAV – Bavaria – blue and white lozenges
+    outputs:
+    - assets/art/icons/flag_BAV.png
+    source: assets/src/pixel/flags/flag_BAV.txt
+    status: done
+    updated: '2026-10-24'
+  flag_BOH:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_BOH – Bohemia – white lion rampant, crowned, on red
+    outputs:
+    - assets/art/icons/flag_BOH.png
+    source: assets/src/pixel/flags/flag_BOH.txt
+    status: done
+    updated: '2026-10-24'
+  flag_BOS:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_BOS – Bosnia – white bend on blue
+    outputs:
+    - assets/art/icons/flag_BOS.png
+    source: assets/src/pixel/flags/flag_BOS.txt
+    status: done
+    updated: '2026-10-24'
+  flag_BRA:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_BRA – Brandenburg – red eagle on white
+    outputs:
+    - assets/art/icons/flag_BRA.png
+    source: assets/src/pixel/flags/flag_BRA.txt
+    status: done
+    updated: '2026-10-24'
+  flag_BRI:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_BRI – Brittany – ermine
+    outputs:
+    - assets/art/icons/flag_BRI.png
+    source: assets/src/pixel/flags/flag_BRI.txt
+    status: done
+    updated: '2026-10-24'
+  flag_BUR:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_BUR – Burgundy – red saltire on white
+    outputs:
+    - assets/art/icons/flag_BUR.png
+    source: assets/src/pixel/flags/flag_BUR.txt
+    status: done
+    updated: '2026-10-24'
+  flag_BYZ:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_BYZ – Byzantium – Palaiologos cross with four betas
+    outputs:
+    - assets/art/icons/flag_BYZ.png
+    source: assets/src/pixel/flags/flag_BYZ.txt
+    status: done
+    updated: '2026-10-24'
+  flag_CRI:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_CRI – Crimea – gold tamga on blue
+    outputs:
+    - assets/art/icons/flag_CRI.png
+    source: assets/src/pixel/flags/flag_CRI.txt
+    status: done
+    updated: '2026-10-24'
+  flag_DAN:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_DAN – Kalmar Union – red Nordic cross on gold
+    outputs:
+    - assets/art/icons/flag_DAN.png
+    source: assets/src/pixel/flags/flag_DAN.txt
+    status: done
+    updated: '2026-10-24'
+  flag_ENG:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_ENG – England – St George's cross (simplified from the 1444 royal arms)
+    outputs:
+    - assets/art/icons/flag_ENG.png
+    source: assets/src/pixel/flags/flag_ENG.txt
+    status: done
     updated: '2026-10-24'
   flag_FRA:
     created: '2026-10-24'
     kind: flag
-    note: ANCHOR 2/3 (awaiting approval). 24x16 grid. Fleurs 7x6 are the smallest
-      readable size; 2+1 layout is half a pixel off-centre (even canvas).
+    note: ANCHOR 2/3 (approved by Linus 2026-10-24). 24x16 grid. Fleurs 7x6 are the
+      smallest readable size; 2+1 layout is half a pixel off-centre (even canvas).
     outputs:
     - assets/art/icons/flag_FRA.png
     source: assets/src/pixel/flags/flag_FRA.txt
-    status: wip
+    status: done
+    updated: '2026-10-24'
+  flag_GEN:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_GEN – Genoa – cross of St George, bordered
+    outputs:
+    - assets/art/icons/flag_GEN.png
+    source: assets/src/pixel/flags/flag_GEN.txt
+    status: done
+    updated: '2026-10-24'
+  flag_GRA:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_GRA – Granada – Nasrid gold bend on red
+    outputs:
+    - assets/art/icons/flag_GRA.png
+    source: assets/src/pixel/flags/flag_GRA.txt
+    status: done
+    updated: '2026-10-24'
+  flag_HAB:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_HAB – Austria – red-white-red
+    outputs:
+    - assets/art/icons/flag_HAB.png
+    source: assets/src/pixel/flags/flag_HAB.txt
+    status: done
+    updated: '2026-10-24'
+  flag_HES:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_HES – Hesse – barred lion on blue
+    outputs:
+    - assets/art/icons/flag_HES.png
+    source: assets/src/pixel/flags/flag_HES.txt
+    status: done
+    updated: '2026-10-24'
+  flag_HSA:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_HSA – Hanse – white over red
+    outputs:
+    - assets/art/icons/flag_HSA.png
+    source: assets/src/pixel/flags/flag_HSA.txt
+    status: done
+    updated: '2026-10-24'
+  flag_HUN:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_HUN – Hungary – Árpád stripes
+    outputs:
+    - assets/art/icons/flag_HUN.png
+    source: assets/src/pixel/flags/flag_HUN.txt
+    status: done
+    updated: '2026-10-24'
+  flag_IRE:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_IRE – Irish lords – gold harp on green
+    outputs:
+    - assets/art/icons/flag_IRE.png
+    source: assets/src/pixel/flags/flag_IRE.txt
+    status: done
+    updated: '2026-10-24'
+  flag_KAZ:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_KAZ – Kazan – white crescent on green
+    outputs:
+    - assets/art/icons/flag_KAZ.png
+    source: assets/src/pixel/flags/flag_KAZ.txt
+    status: done
+    updated: '2026-10-24'
+  flag_KOL:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_KOL – Cologne – red chief with three crowns
+    outputs:
+    - assets/art/icons/flag_KOL.png
+    source: assets/src/pixel/flags/flag_KOL.txt
+    status: done
+    updated: '2026-10-24'
+  flag_LIT:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_LIT – Lithuania – Columns of Gediminas
+    outputs:
+    - assets/art/icons/flag_LIT.png
+    source: assets/src/pixel/flags/flag_LIT.txt
+    status: done
+    updated: '2026-10-24'
+  flag_LIV:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_LIV – Livonian Order – red cross and sword
+    outputs:
+    - assets/art/icons/flag_LIV.png
+    source: assets/src/pixel/flags/flag_LIV.txt
+    status: done
+    updated: '2026-10-24'
+  flag_LUN:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_LUN – Brunswick-Lüneburg – gold lions on red
+    outputs:
+    - assets/art/icons/flag_LUN.png
+    source: assets/src/pixel/flags/flag_LUN.txt
+    status: done
+    updated: '2026-10-24'
+  flag_MLO:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_MLO – Milan – crowned Visconti serpent
+    outputs:
+    - assets/art/icons/flag_MLO.png
+    source: assets/src/pixel/flags/flag_MLO.txt
+    status: done
+    updated: '2026-10-24'
+  flag_MOL:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_MOL – Moldavia – aurochs head
+    outputs:
+    - assets/art/icons/flag_MOL.png
+    source: assets/src/pixel/flags/flag_MOL.txt
+    status: done
+    updated: '2026-10-24'
+  flag_NAP:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_NAP – Naples – Aragon pallets impaled with Anjou (simplified)
+    outputs:
+    - assets/art/icons/flag_NAP.png
+    source: assets/src/pixel/flags/flag_NAP.txt
+    status: done
+    updated: '2026-10-24'
+  flag_NAV:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_NAV – Navarre – gold chains on red
+    outputs:
+    - assets/art/icons/flag_NAV.png
+    source: assets/src/pixel/flags/flag_NAV.txt
+    status: done
+    updated: '2026-10-24'
+  flag_NOV:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_NOV – Novgorod – white and blue with gold throne
+    outputs:
+    - assets/art/icons/flag_NOV.png
+    source: assets/src/pixel/flags/flag_NOV.txt
+    status: done
+    updated: '2026-10-24'
+  flag_NUR:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_NUR – Nuremberg – gold half and red-white bends
+    outputs:
+    - assets/art/icons/flag_NUR.png
+    source: assets/src/pixel/flags/flag_NUR.txt
+    status: done
+    updated: '2026-10-24'
+  flag_PAL:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_PAL – Palatinate – gold lion on black
+    outputs:
+    - assets/art/icons/flag_PAL.png
+    source: assets/src/pixel/flags/flag_PAL.txt
+    status: done
+    updated: '2026-10-24'
+  flag_PAP:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_PAP – Papal States – crossed keys, gold and silver, on red
+    outputs:
+    - assets/art/icons/flag_PAP.png
+    source: assets/src/pixel/flags/flag_PAP.txt
+    status: done
+    updated: '2026-10-24'
+  flag_POL:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_POL – Poland – white eagle on red
+    outputs:
+    - assets/art/icons/flag_POL.png
+    source: assets/src/pixel/flags/flag_POL.txt
+    status: done
+    updated: '2026-10-24'
+  flag_POM:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_POM – Pomerania – red griffin on white
+    outputs:
+    - assets/art/icons/flag_POM.png
+    source: assets/src/pixel/flags/flag_POM.txt
+    status: done
+    updated: '2026-10-24'
+  flag_POR:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_POR – Portugal – blue shield, red border
+    outputs:
+    - assets/art/icons/flag_POR.png
+    source: assets/src/pixel/flags/flag_POR.txt
+    status: done
+    updated: '2026-10-24'
+  flag_PRV:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_PRV – Provence – Anjou chief over Aragonese pallets
+    outputs:
+    - assets/art/icons/flag_PRV.png
+    source: assets/src/pixel/flags/flag_PRV.txt
+    status: done
+    updated: '2026-10-24'
+  flag_RUS:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_RUS – Russia/Muscovy – gold double-headed eagle on red (simplified)
+    outputs:
+    - assets/art/icons/flag_RUS.png
+    source: assets/src/pixel/flags/flag_RUS.txt
+    status: done
+    updated: '2026-10-24'
+  flag_RYA:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_RYA – Ryazan – green and gold
+    outputs:
+    - assets/art/icons/flag_RYA.png
+    source: assets/src/pixel/flags/flag_RYA.txt
+    status: done
+    updated: '2026-10-24'
+  flag_SAV:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_SAV – Savoy – white cross on red
+    outputs:
+    - assets/art/icons/flag_SAV.png
+    source: assets/src/pixel/flags/flag_SAV.txt
+    status: done
+    updated: '2026-10-24'
+  flag_SAX:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_SAX – Saxony – barry gold and black, green crancelin
+    outputs:
+    - assets/art/icons/flag_SAX.png
+    source: assets/src/pixel/flags/flag_SAX.txt
+    status: done
+    updated: '2026-10-24'
+  flag_SCO:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_SCO – Scotland – saltire
+    outputs:
+    - assets/art/icons/flag_SCO.png
+    source: assets/src/pixel/flags/flag_SCO.txt
+    status: done
+    updated: '2026-10-24'
+  flag_SER:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_SER – Serbia – white double eagle on red
+    outputs:
+    - assets/art/icons/flag_SER.png
+    source: assets/src/pixel/flags/flag_SER.txt
+    status: done
+    updated: '2026-10-24'
+  flag_SPA:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_SPA – Spain/Castile – quartered castles and lions (simplified)
+    outputs:
+    - assets/art/icons/flag_SPA.png
+    source: assets/src/pixel/flags/flag_SPA.txt
+    status: done
+    updated: '2026-10-24'
+  flag_SWI:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_SWI – Swiss Confederation – couped white cross on red
+    outputs:
+    - assets/art/icons/flag_SWI.png
+    source: assets/src/pixel/flags/flag_SWI.txt
+    status: done
+    updated: '2026-10-24'
+  flag_TEU:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_TEU – Teutonic Order – black cross on white
+    outputs:
+    - assets/art/icons/flag_TEU.png
+    source: assets/src/pixel/flags/flag_TEU.txt
+    status: done
+    updated: '2026-10-24'
+  flag_TUR:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_TUR – Ottomans – white crescent on red
+    outputs:
+    - assets/art/icons/flag_TUR.png
+    source: assets/src/pixel/flags/flag_TUR.txt
+    status: done
+    updated: '2026-10-24'
+  flag_TUS:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_TUS – Florence – red lily on white
+    outputs:
+    - assets/art/icons/flag_TUS.png
+    source: assets/src/pixel/flags/flag_TUS.txt
+    status: done
+    updated: '2026-10-24'
+  flag_VEN:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_VEN – Venice – gold lion of St Mark on red
+    outputs:
+    - assets/art/icons/flag_VEN.png
+    source: assets/src/pixel/flags/flag_VEN.txt
+    status: done
+    updated: '2026-10-24'
+  flag_WAL:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_WAL – Wallachia – gold eagle on blue
+    outputs:
+    - assets/art/icons/flag_WAL.png
+    source: assets/src/pixel/flags/flag_WAL.txt
+    status: done
+    updated: '2026-10-24'
+  flag_WUR:
+    created: '2026-10-24'
+    kind: flag
+    note: flag_WUR – Württemberg – three stag antlers
+    outputs:
+    - assets/art/icons/flag_WUR.png
+    source: assets/src/pixel/flags/flag_WUR.txt
+    status: done
+    updated: '2026-10-24'
+  fort:
+    created: '2026-10-24'
+    kind: icon
+    note: 'fort – fortification: stone tower'
+    outputs:
+    - assets/art/icons/fort.png
+    source: assets/src/pixel/icons/fort.txt
+    status: done
     updated: '2026-10-24'
   gold:
     created: '2026-10-24'
     kind: icon
-    note: ANCHOR 1/3 (awaiting approval). HUD gold, display 28px. Front coin with
-      embossed ring + stack of 4.
+    note: ANCHOR 1/3 (approved by Linus 2026-10-24). HUD gold, display 28px. Front
+      coin with embossed ring + stack of 4.
     outputs:
     - assets/art/icons/gold.png
     source: assets/src/pixel/icons/gold.txt
-    status: wip
+    status: done
+    updated: '2026-10-24'
+  manpower:
+    created: '2026-10-24'
+    kind: icon
+    note: 'manpower – recruits: two helmeted soldiers'
+    outputs:
+    - assets/art/icons/manpower.png
+    source: assets/src/pixel/icons/manpower.txt
+    status: done
+    updated: '2026-10-24'
+  mil:
+    created: '2026-10-24'
+    kind: icon
+    note: 'mil – military power: crossed swords'
+    outputs:
+    - assets/art/icons/mil.png
+    source: assets/src/pixel/icons/mil.txt
+    status: done
+    updated: '2026-10-24'
+  peace:
+    created: '2026-10-24'
+    kind: icon
+    note: 'peace – peace treaty: dove (same art as dip)'
+    outputs:
+    - assets/art/icons/peace.png
+    source: assets/src/pixel/icons/peace.txt
+    status: done
+    updated: '2026-10-24'
+  prestige:
+    created: '2026-10-24'
+    kind: icon
+    note: prestige – gold star
+    outputs:
+    - assets/art/icons/prestige.png
+    source: assets/src/pixel/icons/prestige.txt
+    status: done
+    updated: '2026-10-24'
+  siege:
+    created: '2026-10-24'
+    kind: icon
+    note: 'siege – siege / burning: flame'
+    outputs:
+    - assets/art/icons/siege.png
+    source: assets/src/pixel/icons/siege.txt
+    status: done
+    updated: '2026-10-24'
+  tab_diplomacy:
+    created: '2026-10-24'
+    kind: icon
+    note: 'tab_diplomacy – diplomacy: sealed letter'
+    outputs:
+    - assets/art/icons/tab_diplomacy.png
+    source: assets/src/pixel/icons/tab_diplomacy.txt
+    status: done
+    updated: '2026-10-24'
+  tab_log:
+    created: '2026-10-24'
+    kind: icon
+    note: 'tab_log – chronicle: open book'
+    outputs:
+    - assets/art/icons/tab_log.png
+    source: assets/src/pixel/icons/tab_log.txt
+    status: done
+    updated: '2026-10-24'
+  tab_mapmode:
+    created: '2026-10-24'
+    kind: icon
+    note: 'tab_mapmode – map modes: folded map'
+    outputs:
+    - assets/art/icons/tab_mapmode.png
+    source: assets/src/pixel/icons/tab_mapmode.txt
+    status: done
+    updated: '2026-10-24'
+  tab_missions:
+    created: '2026-10-24'
+    kind: icon
+    note: 'tab_missions – missions: target with arrow'
+    outputs:
+    - assets/art/icons/tab_missions.png
+    source: assets/src/pixel/icons/tab_missions.txt
+    status: done
+    updated: '2026-10-24'
+  tab_nation:
+    created: '2026-10-24'
+    kind: icon
+    note: 'tab_nation – nation overview: gold crown'
+    outputs:
+    - assets/art/icons/tab_nation.png
+    source: assets/src/pixel/icons/tab_nation.txt
+    status: done
+    updated: '2026-10-24'
+  tab_wars:
+    created: '2026-10-24'
+    kind: icon
+    note: 'tab_wars – wars tab: same art as war'
+    outputs:
+    - assets/art/icons/tab_wars.png
+    source: assets/src/pixel/icons/tab_wars.txt
+    status: done
+    updated: '2026-10-24'
+  war:
+    created: '2026-10-24'
+    kind: icon
+    note: 'war – war declared: crossed swords on a red disc'
+    outputs:
+    - assets/art/icons/war.png
+    source: assets/src/pixel/icons/war.txt
+    status: done
     updated: '2026-10-24'
