@@ -27,7 +27,7 @@ TARGETS = {
     "coalition_wars": (0.3, 15.0),   # AE coalitions per game (AI self-limits AE)
     "timeout_share": (0.0, 0.12),   # wars ended by the hard timeout
     "bankrupt_months": (0, 1500),   # summed over all 50 nations x 2400 months
-    "wars": (80, 220),              # keep the world lively
+    "wars": (50, 220),              # keep the world lively (vassals cannot declare wars since v0.3)
 }
 
 
@@ -65,6 +65,9 @@ def measure(results):
         "events": avg(lambda r: r["stats"]["events"]),
         "missions": avg(lambda r: r["stats"]["missions"]),
         "battles": avg(lambda r: r["stats"]["battles"]),
+        "vassalized": avg(lambda r: r["stats"].get("vassalized", 0)),
+        "annexed": avg(lambda r: r["stats"].get("annexed", 0)),
+        "provinces_changed": avg(lambda r: r["stats"]["provinces_changed"]),
         "major_dev": {t: round(avg(lambda r: r["majors"][t]["dev"]), 1) for t in MAJORS},
         "major_alive": {t: round(avg(lambda r: 1.0 if r["majors"][t]["alive"] else 0.0), 2) for t in MAJORS},
         "top_tags": {},
@@ -141,7 +144,8 @@ def main():
             mm = e["metrics"]
             f.write(f"## Iteration {e['iter']} ({mm['runs']} runs) {'✅ in range' if e['ok'] else ''}\n\n")
             for k in ["eliminated", "top_share", "max_top_share", "major_survival", "coalition_wars", "wars",
-                      "timeout_share", "bankrupt_months", "battles", "events", "missions"]:
+                      "timeout_share", "bankrupt_months", "battles", "events", "missions", "vassalized", "annexed",
+                      "provinces_changed"]:
                 f.write(f"- {k}: {round(mm[k], 3)}\n")
             f.write(f"- major_dev: {mm['major_dev']}\n- major_alive: {mm['major_alive']}\n- top_tags: {mm['top_tags']}\n")
             if e["changes"]:

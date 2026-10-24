@@ -29,6 +29,11 @@ func _spend_power(g, n) -> void:
 		var best := _cheapest_province(g, n.tag)
 		if best >= 0:
 			g.develop(n.tag, best)
+	# integrate vassals diplomatically once allowed (peace time only)
+	for v in g.vassals_of(n.tag):
+		if g.annex_months_left(v) == 0 and n.dip >= g.annex_cost(v) + 20.0 and n.adm >= g.annex_adm_cost(v) + 60.0 \
+				and not g.is_at_war(n.tag):
+			g.annex_vassal(n.tag, v)
 	if n.dip > cap * 0.7:
 		_fabricate_claim(g, n)
 
@@ -103,6 +108,10 @@ func _fabricate_claim(g, n) -> void:
 
 func _diplomacy(g, n) -> void:
 	var tag: String = n.tag
+	if n.overlord != "":
+		if n.dip >= float(g.bal.improve_relation_cost) + 30.0 and g.get_rel(tag, n.overlord) < 50.0:
+			g.improve_relations(tag, n.overlord)
+		return
 	for ally in n.allies.duplicate():
 		if g.get_rel(tag, ally) < -30.0:
 			g.break_alliance(tag, ally)
@@ -112,7 +121,7 @@ func _diplomacy(g, n) -> void:
 	var best_score := -1e9
 	for t in g.nations_in_range(tag, 4):
 		var o = g.nations[t]
-		if not o.alive or g.is_allied(tag, t) or g.at_war(tag, t) or t == g.player:
+		if not o.alive or g.is_allied(tag, t) or g.at_war(tag, t) or t == g.player or o.overlord != "":
 			continue
 		if g.has_claim_on(tag, t) or g.has_claim_on(t, tag):
 			continue
@@ -150,7 +159,7 @@ func accepts_alliance(g, target: String, from: String) -> bool:
 func _consider_war(g, n) -> void:
 	var tag: String = n.tag
 	var ae_cap: float = float(g.bal.ae_coalition_threshold) * float(g.bal.ai_ae_limit)
-	if (n.ae > ae_cap and not n.flags.has("bot_ignore_ae")) or n.gold < 0.0:
+	if (n.ae > ae_cap and not n.flags.has("bot_ignore_ae")) or n.gold < 0.0 or n.overlord != "":
 		return
 	if n.adm < float(g.bal.core_cost_per_dev) * 8.0:
 		return
@@ -159,6 +168,8 @@ func _consider_war(g, n) -> void:
 	var mine: float = g.strength(tag)
 	for ally in n.allies:
 		mine += g.strength(ally) * 0.7
+	for v in g.vassals_of(tag):
+		mine += g.strength(v)
 	var best := ""
 	var best_score := 0.0
 	for t in g.neighbors_of(tag):
@@ -195,6 +206,9 @@ func _consider_peace(g, n) -> void:
 		var ws: float = g.warscore(w) * (1.0 if att else -1.0)
 		var dur: int = g.month - w.start
 		if ws >= 25.0 or (ws >= 8.0 and dur > 36):
+			if wants_vassal(g, w, att, ws):
+				g.offer_peace(n.tag, w, [], true, true)
+				continue
 			var pids := pick_demands(g, w, att, ws)
 			if not pids.is_empty():
 				g.offer_peace(n.tag, w, pids, true)
@@ -206,6 +220,16 @@ func _consider_peace(g, n) -> void:
 				continue
 		if dur > 48 and absf(ws) < 15.0:
 			g.offer_peace(n.tag, w, [], true)
+
+
+## Small beaten states become vassals instead of being carved up (keeps the map alive, less AE).
+func wants_vassal(g, w, for_att: bool, budget: float) -> bool:
+	if g.side_tags(w, for_att)[0] == g.player or g.vassal_block_reason(w, for_att) != "":
+		return false
+	var target: String = g.side_tags(w, not for_att)[0]
+	if g.provinces_of(target).size() > int(g.bal.ai_vassal_max_provinces):
+		return false
+	return g.vassal_cost(w, for_att) <= budget
 
 
 func pick_demands(g, w, for_att: bool, budget: float) -> Array:
@@ -249,11 +273,11 @@ func pick_demands(g, w, for_att: bool, budget: float) -> Array:
 
 
 ## ws_from: war score from the proposer's point of view.
-func accepts_peace(g, w, pids: Array, ws_from: float, from_receives: bool) -> bool:
+func accepts_peace(g, w, pids: Array, ws_from: float, from_receives: bool, vassal_cost: float = 0.0) -> bool:
 	var dur: int = g.month - w.start
-	var cost: float = g.peace_cost(pids)
+	var cost: float = g.peace_cost(pids) + vassal_cost
 	if from_receives:
-		if pids.is_empty():
+		if pids.is_empty() and vassal_cost <= 0.0:
 			return ws_from >= -10.0 or (dur > 72 and ws_from >= -25.0)
 		return cost <= ws_from + 5.0
 	# proposer concedes provinces; receiver's war score is -ws_from

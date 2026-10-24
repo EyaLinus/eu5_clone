@@ -52,6 +52,8 @@ class Nation:
 	var flags := {}
 	var missions_done := {}
 	var coalition: Array = []
+	var overlord: String = ""
+	var vassal_since: int = 0
 	# cached per month
 	var dev_total: int = 0
 	var income: float = 0.0
@@ -286,8 +288,23 @@ func add_rel(a: String, b: String, v: float) -> void:
 		n.relations[pair[1]] = clampf(n.relations.get(pair[1], 0.0) + v, -100.0, 100.0)
 
 
+## Alliance or overlord/vassal link: both mean "same side" (no war, free passage, joint wars).
 func is_allied(a: String, b: String) -> bool:
-	return nations[a].allies.has(b)
+	return nations[a].allies.has(b) or nations[a].overlord == b or nations[b].overlord == a
+
+
+func vassals_of(tag: String) -> Array:
+	var r := []
+	for t in order:
+		if nations[t].alive and nations[t].overlord == tag:
+			r.append(t)
+	return r
+
+
+## The nation and its subjects (or its overlord and fellow subjects) that always fight together.
+func _subject_bloc(tag: String) -> Array:
+	var top: String = nations[tag].overlord if nations[tag].overlord != "" else tag
+	return [top] + vassals_of(top)
 
 
 func has_truce(a: String, b: String) -> bool:
@@ -480,7 +497,11 @@ func _economy(n: Nation) -> void:
 	if not is_at_war(n.tag):
 		maint *= float(bal.peace_maintenance_mult)
 	n.expenses = maint
-	n.gold += n.income - maint
+	if n.overlord != "":
+		var tribute: float = maxf(0.0, n.income * float(bal.vassal_tribute))
+		n.expenses += tribute
+		nations[n.overlord].gold += tribute
+	n.gold += n.income - n.expenses
 	var cap := float(bal.power_cap)
 	n.adm = minf(cap, n.adm + monthly_power(n, "adm"))
 	n.dip = minf(cap, n.dip + monthly_power(n, "dip"))
@@ -758,6 +779,30 @@ func peace_cost(pids: Array) -> float:
 	return s
 
 
+## Turning the losing war leader into a vassal costs part of the price of all its land.
+func vassal_cost(w: War, for_attackers: bool) -> float:
+	var target: String = side_tags(w, not for_attackers)[0]
+	return peace_cost(provinces_of(target)) * float(bal.vassal_peace_mult)
+
+
+## Empty string if the winning side's leader may vassalize the losing leader, otherwise the reason.
+func vassal_block_reason(w: War, for_attackers: bool) -> String:
+	var lead: String = side_tags(w, for_attackers)[0]
+	var target: String = side_tags(w, not for_attackers)[0]
+	var t: Nation = nations[target]
+	if target == player:
+		return "Der Spieler kann kein Vasall werden."
+	if t.overlord != "":
+		return "%s ist bereits Vasall." % t.name
+	if nations[lead].overlord != "":
+		return "Vasallen können keine Vasallen haben."
+	if t.dev_total * 1.0 > nations[lead].dev_total * float(bal.vassal_max_dev_ratio):
+		return "%s ist zu groß, um Vasall zu werden." % t.name
+	if t.playable and lead != player:
+		return "Großmächte werden nicht zu KI-Vasallen."
+	return ""
+
+
 func _is_capital(pid: int) -> bool:
 	return nations[provinces[pid].owner].capital == pid
 
@@ -781,6 +826,9 @@ func _wars_tick() -> void:
 		var ws := warscore(w)
 		if absf(ws) >= 99.0:
 			var winner_att := ws > 0
+			if ai.wants_vassal(self, w, winner_att, 100.0):
+				make_peace(w, winner_att, [], true)
+				continue
 			var pick: Array = ai.pick_demands(self, w, winner_att, 100.0)
 			make_peace(w, winner_att, pick)
 			continue
@@ -798,6 +846,8 @@ func declare_war(att: String, def: String, coalition_members: Array = []) -> Str
 		return "Ihr seid verbündet."
 	if has_truce(att, def):
 		return "Es besteht ein Waffenstillstand."
+	if nations[att].overlord != "" and coalition_members.is_empty():
+		return "Vasallen dürfen keine Kriege erklären."
 	var n: Nation = nations[att]
 	var has_cb := coalition_members.size() > 0 or has_claim_on(att, def)
 	if not has_cb:
@@ -821,6 +871,9 @@ func declare_war(att: String, def: String, coalition_members: Array = []) -> Str
 		if not w.attackers.has(ally) and not w.defenders.has(ally):
 			w.defenders.append(ally)
 	if not w.coalition:
+		for t in _subject_bloc(att):
+			if not w.attackers.has(t) and not w.defenders.has(t):
+				w.attackers.append(t)
 		for ally in nations[att].allies:
 			if not w.defenders.has(ally) and not is_allied(ally, def) and get_rel(att, ally) >= 20.0 and nations[ally].alive:
 				w.attackers.append(ally)
@@ -841,8 +894,11 @@ func declare_war(att: String, def: String, coalition_members: Array = []) -> Str
 ## Nations that would join `def` against `att`: allies, and the emperor for Holy Roman Empire members.
 func defenders_for(att: String, def: String) -> Array:
 	var r := []
+	for t in _subject_bloc(def):
+		if t != def and t != att and nations[att].overlord != t and not r.has(t):
+			r.append(t)
 	for ally in nations[def].allies:
-		if not is_allied(ally, att) and nations[ally].alive and not has_truce(ally, att):
+		if not is_allied(ally, att) and nations[ally].alive and not has_truce(ally, att) and not r.has(ally):
 			r.append(ally)
 	if emperor != "" and nations[emperor].alive and hre.has(def) and not hre.has(att) and emperor != def \
 			and emperor != att and not r.has(emperor) and not is_allied(emperor, att) and not has_truce(emperor, att):
@@ -891,10 +947,11 @@ func has_claim_on(tag: String, target: String) -> bool:
 
 
 ## Ends the war. `winner_att` tells which side receives `pids`.
-func make_peace(w: War, winner_att: bool, pids: Array) -> void:
+func make_peace(w: War, winner_att: bool, pids: Array, vassalize: bool = false) -> void:
 	var winners: Array = side_tags(w, winner_att)
 	var losers: Array = side_tags(w, not winner_att)
 	var lead: String = winners[0]
+	var new_vassal: String = losers[0] if vassalize else ""
 	for pid in pids:
 		var p: Province = provinces[pid]
 		var to: String = receiver_of(pid, winners)
@@ -918,10 +975,12 @@ func make_peace(w: War, winner_att: bool, pids: Array) -> void:
 		if nations[old].capital == pid:
 			p.fort = 0
 		stats.provinces_changed += 1
-	if pids.is_empty():
+	if pids.is_empty() and new_vassal == "":
 		stats.white_peace += 1
 	stats.peace_deals += 1
 	wars.erase(w)
+	if new_vassal != "":
+		_vassalize(lead, new_vassal, w.coalition)
 	for a in w.attackers:
 		for d in w.defenders:
 			nations[a].truces[d] = month + int(bal.truce_months)
@@ -941,7 +1000,9 @@ func make_peace(w: War, winner_att: bool, pids: Array) -> void:
 	var names := []
 	for pid in pids:
 		names.append(provinces[pid].name)
-	if pids.is_empty():
+	if new_vassal != "":
+		log_msg("⛓️ Frieden in %s: %s wird Vasall von %s." % [w.name, nations[new_vassal].name, nations[lead].name], everyone)
+	elif pids.is_empty():
 		log_msg("🕊️ Frieden: %s endet ohne Gebietsänderungen." % w.name, everyone)
 	else:
 		log_msg("🕊️ Frieden in %s: %s erhält %s." % [w.name, nations[lead].name, ", ".join(names)], everyone)
@@ -953,6 +1014,80 @@ func make_peace(w: War, winner_att: bool, pids: Array) -> void:
 			if w.coalition:
 				key = "died_coalition"
 			stats[key] = stats.get(key, 0) + 1
+
+
+func _vassalize(lord: String, tag: String, coalition_war: bool) -> void:
+	var v: Nation = nations[tag]
+	var l: Nation = nations[lord]
+	var ae: float = v.dev_total * float(bal.ae_per_dev) * float(bal.vassal_ae_mult)
+	if coalition_war:
+		ae *= 0.3
+	l.ae += ae
+	l.prestige += v.dev_total * float(bal.prestige_per_dev_taken) * 0.5
+	v.overlord = lord
+	v.vassal_since = month
+	v.coalition.clear()
+	for ally in v.allies.duplicate():
+		break_alliance(tag, ally)
+	# subjects of the new vassal now serve the new overlord
+	for t in order:
+		if nations[t].overlord == tag:
+			nations[t].overlord = lord
+			nations[t].vassal_since = month
+	for t in order:
+		nations[t].coalition.erase(tag)
+	add_rel(lord, tag, 30.0)
+	stats.vassalized = stats.get("vassalized", 0) + 1
+
+
+func annex_cost(tag: String) -> float:
+	return nations[tag].dev_total * float(bal.annex_dip_per_dev)
+
+
+## Annexed land must be integrated like conquered land (admin power).
+func annex_adm_cost(tag: String) -> float:
+	return nations[tag].dev_total * float(bal.core_cost_per_dev) * float(bal.annex_adm_mult)
+
+
+func annex_months_left(tag: String) -> int:
+	return maxi(0, nations[tag].vassal_since + int(bal.vassal_annex_years) * 12 - month)
+
+
+## Diplomatic annexation of a vassal after `vassal_annex_years`: all land moves to the overlord.
+func annex_vassal(lord: String, tag: String) -> String:
+	var v: Nation = nations[tag]
+	var l: Nation = nations[lord]
+	if v.overlord != lord or not v.alive:
+		return "%s ist nicht dein Vasall." % v.name
+	if annex_months_left(tag) > 0:
+		return "Erst in %d Monaten möglich." % annex_months_left(tag)
+	if is_at_war(lord) or is_at_war(tag):
+		return "Nicht während eines Krieges."
+	var c := annex_cost(tag)
+	if l.dip < c:
+		return "Zu wenig Diplomatie (%d)." % int(c)
+	var ac := annex_adm_cost(tag)
+	if l.adm < ac:
+		return "Zu wenig Verwaltung (%d)." % int(ac)
+	l.dip -= c
+	l.adm -= ac
+	l.ae += v.dev_total * float(bal.ae_per_dev) * float(bal.annex_ae_mult)
+	for pid in provinces_of(tag).duplicate():
+		var p: Province = provinces[pid]
+		p.owner = lord
+		p.controller = lord
+		p.core_months = int(bal.core_months)
+		l.claims.erase(pid)
+	_rebuild_owned()
+	for a in armies:
+		if a.owner == tag:
+			a.owner = lord
+			a.auto = true
+	log_msg("📜 %s wird diplomatisch von %s annektiert." % [v.name, l.name], [lord, tag])
+	stats.annexed = stats.get("annexed", 0) + 1
+	_check_alive(tag)
+	stats.died_annexed = stats.get("died_annexed", 0) + 1
+	return ""
 
 
 func _check_alive(tag: String) -> void:
@@ -976,6 +1111,10 @@ func _check_alive(tag: String) -> void:
 			wars.erase(w)
 	for t in order:
 		nations[t].coalition.erase(tag)
+		if nations[t].overlord == tag:
+			nations[t].overlord = ""
+			log_msg("🗽 %s ist wieder unabhängig." % nations[t].name, [t])
+	n.overlord = ""
 	log_msg("☠️ %s hat aufgehört zu existieren." % n.name)
 
 
@@ -991,18 +1130,22 @@ func _move_capital(n: Nation) -> void:
 
 ## Peace offer by `from` (a war leader). With `from_receives` the proposer takes `pids`,
 ## otherwise it hands them over. Returns true if accepted; offers to the player are queued.
-func offer_peace(from: String, w: War, pids: Array, from_receives: bool = true) -> bool:
+func offer_peace(from: String, w: War, pids: Array, from_receives: bool = true, vassalize: bool = false) -> bool:
 	var from_att := is_attacker(w, from)
 	var other: String = side_tags(w, not from_att)[0]
 	var ws := warscore(w) * (1.0 if from_att else -1.0)
+	if vassalize:
+		if not from_receives or vassal_block_reason(w, from_att) != "":
+			return false
+		pids = []
 	if other == player:
 		for o in pending_peace:
 			if o.war == w.id:
 				return false
-		pending_peace.append({"war": w.id, "from": from, "pids": pids, "from_receives": from_receives})
+		pending_peace.append({"war": w.id, "from": from, "pids": pids, "from_receives": from_receives, "vassal": vassalize})
 		return false
-	if ai.accepts_peace(self, w, pids, ws, from_receives):
-		make_peace(w, from_att == from_receives, pids)
+	if ai.accepts_peace(self, w, pids, ws, from_receives, vassal_cost(w, from_att) if vassalize else 0.0):
+		make_peace(w, from_att == from_receives, pids, vassalize)
 		return true
 	return false
 
@@ -1013,7 +1156,7 @@ func answer_player_peace(offer: Dictionary, accept: bool) -> void:
 	if w == null:
 		return
 	if accept:
-		make_peace(w, is_attacker(w, offer.from) == bool(offer.get("from_receives", true)), offer.pids)
+		make_peace(w, is_attacker(w, offer.from) == bool(offer.get("from_receives", true)), offer.pids, bool(offer.get("vassal", false)))
 
 
 func war_by_id(id: int) -> War:
@@ -1039,7 +1182,7 @@ func _coalitions_yearly() -> void:
 		if n.ae >= thr:
 			for t in nations_in_range(tag, int(bal.coalition_range)):
 				var o: Nation = nations[t]
-				if not o.alive or n.coalition.has(t) or is_allied(t, tag) or t == player:
+				if not o.alive or n.coalition.has(t) or is_allied(t, tag) or t == player or o.overlord != "":
 					continue
 				if rng.randf() < 0.3 + (n.ae - thr) / thr:
 					n.coalition.append(t)
@@ -1053,7 +1196,7 @@ func _coalitions_yearly() -> void:
 					members.append(t)
 					cs += strength(t)
 			var mine := strength(tag)
-			for ally in n.allies:
+			for ally in n.allies + vassals_of(tag):
 				if not members.has(ally):
 					mine += strength(ally)
 			if members.size() >= 2 and cs >= mine * float(bal.coalition_strength_ratio):
@@ -1064,6 +1207,9 @@ func _coalitions_yearly() -> void:
 ## Player may join an existing coalition against a nation with high AE.
 func join_coalition(tag: String, target: String) -> String:
 	var t: Nation = nations[target]
+	if nations[tag].overlord != "":
+		return "Vasallen treten keinen Koalitionen bei."
+
 	if t.ae < float(bal.ae_coalition_threshold):
 		return "%s ist nicht bedrohlich genug (AE < %d)." % [t.name, int(bal.ae_coalition_threshold)]
 	if is_allied(tag, target):
@@ -1194,6 +1340,8 @@ func propose_alliance(tag: String, target: String) -> String:
 		return "Bereits verbündet."
 	if at_war(tag, target):
 		return "Ihr seid im Krieg."
+	if n.overlord != "" or nations[target].overlord != "":
+		return "Vasallen schließen keine eigenen Bündnisse."
 	if n.allies.size() >= int(bal.max_allies):
 		return "Maximal %d Bündnisse." % int(bal.max_allies)
 	if n.dip < float(bal.alliance_cost):
@@ -1500,7 +1648,7 @@ func to_dict() -> Dictionary:
 				"mil": n.mil, "ae": n.ae, "prestige": n.prestige, "manpower": n.manpower, "tech": n.tech,
 				"ruler": n.ruler, "ruler_name": n.ruler_name, "name_counts": n.name_counts, "mods": n.mods, "relations": n.relations, "allies": n.allies,
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
-				"coalition": n.coalition}
+				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since}
 	d.nations = ns
 	var ar := []
 	for a in armies:
@@ -1528,7 +1676,8 @@ func from_dict(d: Dictionary) -> void:
 		var pids := []
 		for x in o.pids:
 			pids.append(int(x))
-		pending_peace.append({"war": int(o.war), "from": o.from, "pids": pids, "from_receives": o.get("from_receives", true)})
+		pending_peace.append({"war": int(o.war), "from": o.from, "pids": pids, "from_receives": o.get("from_receives", true),
+				"vassal": o.get("vassal", false)})
 	log_lines = d.log
 	game_over = d.get("game_over", false)
 	for k in d.stats:
@@ -1570,6 +1719,8 @@ func from_dict(d: Dictionary) -> void:
 		n.flags = e.flags
 		n.missions_done = e.missions_done
 		n.coalition = e.coalition
+		n.overlord = e.get("overlord", "")
+		n.vassal_since = int(e.get("vassal_since", 0))
 	armies.clear()
 	for e in d.armies:
 		var a := Army.new()
