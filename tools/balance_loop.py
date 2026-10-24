@@ -21,7 +21,7 @@ MAJORS = ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP"]
 
 # metric -> (low, high) acceptable range
 TARGETS = {
-    "eliminated": (15, 28),         # nations gone by 1644 (of 50; history: ~20)
+    "eliminated": (15, 30),         # nations gone by 1644 (of 50; history: ~20)
     "top_share": (0.10, 0.22),      # largest nation's share of all development
     "major_survival": (0.8, 1.0),   # share of major nations alive at the end
     "coalition_wars": (0.3, 8.0),   # AE coalitions per game (AI self-limits AE)

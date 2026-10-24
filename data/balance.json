@@ -55,5 +55,6 @@
   "ai_ae_limit": 0.7,
   "event_chance": 0.35,
   "prestige_per_dev_taken": 0.5,
-  "core_cost_per_dev": 5.0
+  "core_cost_per_dev": 5.0,
+  "capital_peace_mult": 2.0
 }

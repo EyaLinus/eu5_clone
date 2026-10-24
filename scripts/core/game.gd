@@ -730,8 +730,15 @@ func _occupation_pct(owners: Array, occupiers: Array) -> float:
 func peace_cost(pids: Array) -> float:
 	var s := 0.0
 	for pid in pids:
-		s += provinces[pid].dev * float(bal.peace_cost_per_dev)
+		var c: float = provinces[pid].dev * float(bal.peace_cost_per_dev)
+		if _is_capital(pid):
+			c *= float(bal.capital_peace_mult)
+		s += c
 	return s
+
+
+func _is_capital(pid: int) -> bool:
+	return nations[provinces[pid].owner].capital == pid
 
 
 ## Provinces the given side could demand: owned by the other side, occupied by this side.
@@ -859,6 +866,8 @@ func make_peace(w: War, winner_att: bool, pids: Array) -> void:
 		var ae: float = p.dev * float(bal.ae_per_dev)
 		if n.claims.has(pid):
 			ae *= 0.6
+		if _is_capital(pid):
+			ae *= float(bal.capital_peace_mult)
 		if w.coalition:
 			ae *= 0.3
 		n.ae += ae
