@@ -5,6 +5,10 @@ für **Android (APK)** und **Windows (EXE)**. Einzelspieler, Emoji-Grafik als Pl
 
 Download: siehe [Releases](../../releases) (`EU5Lite.apk`, `EU5Lite.exe`).
 
+- **Android:** APK aufs Handy laden, Installation aus unbekannten Quellen erlauben, installieren (Querformat).
+- **Windows:** `EU5Lite.exe` starten. SmartScreen warnt, weil die Datei nicht signiert ist: "Weitere Informationen" → "Trotzdem ausführen".
+- Releases baut die CI: Actions → "Test, build and release" → "Run workflow" mit `release_tag` (z. B. `v0.2.0`).
+
 ## Spielbare Nationen
 
 | Nation | Bonus |

@@ -6,6 +6,11 @@ on:
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Create a GitHub release with this tag (e.g. v0.1.0); empty = build only"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -69,18 +74,25 @@ jobs:
           path: build/android/EU5Lite.apk
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.release_tag != ''
     needs: export
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+      - name: Release notes from CHANGELOG (latest section)
+        run: awk '/^## /{n++} n==1' CHANGELOG.md > dist/RELEASE_NOTES.md && cat dist/RELEASE_NOTES.md
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          name: EU5 Lite ${{ github.event.inputs.release_tag || github.ref_name }}
+          body_path: dist/RELEASE_NOTES.md
           files: |
             dist/EU5Lite.exe
             dist/EU5Lite.apk
-          generate_release_notes: true
+          generate_release_notes: false
