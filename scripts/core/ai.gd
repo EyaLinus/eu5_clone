@@ -1,0 +1,333 @@
+extends RefCounted
+## AI for every nation the player does not control, plus auto-managed player armies.
+## `g` is the game (scripts/core/game.gd); untyped to avoid a cyclic preload.
+
+
+func think(g, n) -> void:
+	_spend_power(g, n)
+	_spend_gold(g, n)
+	var slot: int = (g.month + n.capital) % 6
+	if slot == 0:
+		_diplomacy(g, n)
+	elif slot == 3 and not g.is_at_war(n.tag):
+		_consider_war(g, n)
+	if (g.month + n.capital) % 3 == 0:
+		_consider_peace(g, n)
+	control_armies(g, n.tag)
+
+
+# ---------------------------------------------------------------- economy
+
+func _spend_power(g, n) -> void:
+	for kind in g.POWERS:
+		var c: float = g.tech_cost(n.tag, kind)
+		if n.get(kind) >= c:
+			g.buy_tech(n.tag, kind)
+	# surplus admin goes into development of the cheapest province
+	var cap := float(g.bal.power_cap)
+	if n.adm > g.tech_cost(n.tag, "adm") * 1.6 or n.adm > cap * 0.8:
+		var best := _cheapest_province(g, n.tag)
+		if best >= 0:
+			g.develop(n.tag, best)
+	if n.dip > cap * 0.7:
+		_fabricate_claim(g, n)
+
+
+func _cheapest_province(g, tag: String) -> int:
+	var best := -1
+	for pid in g.provinces_of(tag):
+		var p = g.provinces[pid]
+		if p.dev >= int(g.bal.max_dev) or p.controller != tag:
+			continue
+		if best < 0 or p.dev < g.provinces[best].dev:
+			best = pid
+	return best
+
+
+func _spend_gold(g, n) -> void:
+	var tag: String = n.tag
+	var fl: float = g.force_limit(tag)
+	var regs: float = g.army_regs(tag)
+	var war: bool = g.is_at_war(tag)
+	var want: float = fl if war else fl * 0.75
+	if n.gold < -5.0 or (not war and regs > fl + 1.0):
+		var arms: Array = g.armies_of(tag)
+		if not arms.is_empty():
+			arms.sort_custom(func(x, y): return x.regs > y.regs)
+			g.disband(arms[0], 1.0)
+		return
+	var cost := float(g.bal.regiment_cost)
+	var reserve: float = 10.0 + n.expenses * 4.0
+	var k: int = int(minf(minf((n.gold - reserve) / cost, want - regs), n.manpower))
+	if k >= 1:
+		var where: int = n.capital
+		if g.provinces[where].controller != tag:
+			where = -1
+			for pid in g.provinces_of(tag):
+				if g.provinces[pid].controller == tag:
+					where = pid
+					break
+		if where >= 0:
+			g.recruit(tag, where, k)
+		return
+	if not war and regs >= want - 1.0:
+		var best := _cheapest_province(g, tag)
+		if best >= 0 and n.gold > g.build_cost(best) + reserve + 40.0:
+			g.build(tag, best)
+
+
+# ---------------------------------------------------------------- diplomacy
+
+func _fabricate_claim(g, n) -> void:
+	var best := -1
+	var best_score := -1e9
+	for pid in g.provinces_of(n.tag):
+		for a in g.provinces[pid].adj:
+			var p = g.provinces[a]
+			if p.owner == n.tag or n.claims.has(a) or g.is_allied(n.tag, p.owner):
+				continue
+			var s: float = p.dev - g.strength(p.owner) * 0.2
+			if s > best_score:
+				best_score = s
+				best = a
+	if best >= 0:
+		g.fabricate_claim(n.tag, best)
+
+
+func _diplomacy(g, n) -> void:
+	var tag: String = n.tag
+	for ally in n.allies.duplicate():
+		if g.get_rel(tag, ally) < -30.0:
+			g.break_alliance(tag, ally)
+	if n.allies.size() >= 2:
+		return
+	var best := ""
+	var best_score := -1e9
+	for t in g.nations_in_range(tag, 4):
+		var o = g.nations[t]
+		if not o.alive or g.is_allied(tag, t) or g.at_war(tag, t) or t == g.player:
+			continue
+		if g.has_claim_on(tag, t) or g.has_claim_on(t, tag):
+			continue
+		var s: float = g.get_rel(tag, t) + g.strength(t) * 0.5
+		if s > best_score:
+			best_score = s
+			best = t
+	if best == "":
+		return
+	if n.dip >= float(g.bal.alliance_cost) and accepts_alliance(g, best, tag):
+		g.propose_alliance(tag, best)
+	elif n.dip >= float(g.bal.improve_relation_cost) + 30.0:
+		g.improve_relations(tag, best)
+
+
+func accepts_alliance(g, target: String, from: String) -> bool:
+	var t = g.nations[target]
+	if t.allies.size() >= int(g.bal.max_allies):
+		return false
+	if g.has_claim_on(from, target) or g.has_claim_on(target, from):
+		return false
+	var s: float = g.get_rel(target, from)
+	var my_str: float = g.strength(target)
+	for nb in g.neighbors_of(target):
+		if nb != from and g.strength(nb) > my_str and g.neighbors_of(from).has(nb):
+			s += 25.0
+			break
+	if g.strength(from) > my_str * 1.5:
+		s += 10.0
+	if g.nations[from].ae > float(g.bal.ae_coalition_threshold):
+		s -= 40.0
+	return s >= 25.0
+
+
+func _consider_war(g, n) -> void:
+	var tag: String = n.tag
+	if n.ae > float(g.bal.ae_coalition_threshold) * float(g.bal.ai_ae_limit) or n.gold < 0.0:
+		return
+	if g.rng.randf() > float(g.bal.ai_war_chance) * n.aggression:
+		return
+	var mine: float = g.strength(tag)
+	for ally in n.allies:
+		mine += g.strength(ally) * 0.7
+	var best := ""
+	var best_score := 0.0
+	for t in g.neighbors_of(tag):
+		var o = g.nations[t]
+		if not o.alive or g.is_allied(tag, t) or g.has_truce(tag, t) or g.at_war(tag, t):
+			continue
+		var claim: bool = g.has_claim_on(tag, t)
+		if not claim and n.dip < float(g.bal.nocb_war_dip) + 10.0:
+			continue
+		var theirs: float = g.strength(t)
+		for ally in o.allies:
+			if not g.is_allied(tag, ally) and not g.has_truce(tag, ally):
+				theirs += g.strength(ally)
+		var ratio: float = mine / maxf(theirs, 0.5)
+		var need: float = float(g.bal.ai_war_ratio) / n.aggression * (0.85 if claim else 1.0)
+		if ratio < need:
+			continue
+		var s: float = ratio + (1.0 if claim else 0.0)
+		if s > best_score:
+			best_score = s
+			best = t
+	if best != "":
+		g.declare_war(tag, best)
+
+
+# ---------------------------------------------------------------- peace
+
+func _consider_peace(g, n) -> void:
+	for w in g.wars_of(n.tag).duplicate():
+		if not g.wars.has(w):
+			continue
+		var att: bool = g.is_attacker(w, n.tag)
+		if g.side_tags(w, att)[0] != n.tag:
+			continue
+		var ws: float = g.warscore(w) * (1.0 if att else -1.0)
+		var dur: int = g.month - w.start
+		if ws >= 25.0 or (ws >= 8.0 and dur > 36):
+			var pids := pick_demands(g, w, att, ws)
+			if not pids.is_empty():
+				g.offer_peace(n.tag, w, pids, true)
+				continue
+		if ws <= -30.0 and dur > 12:
+			var give := pick_demands(g, w, not att, -ws * 0.8)
+			if not give.is_empty():
+				g.offer_peace(n.tag, w, give, false)
+				continue
+		if dur > 48 and absf(ws) < 15.0:
+			g.offer_peace(n.tag, w, [], true)
+
+
+func pick_demands(g, w, for_att: bool, budget: float) -> Array:
+	var winners: Array = g.side_tags(w, for_att)
+	var lead: String = winners[0]
+	var cands: Array = g.demandable(w, for_att)
+	var scored := []
+	for pid in cands:
+		var p = g.provinces[pid]
+		var s: float = p.dev
+		var to: String = p.controller if winners.has(p.controller) else lead
+		if g.nations[to].claims.has(pid):
+			s += 15.0
+		for a in p.adj:
+			if g.provinces[a].owner == to:
+				s += 10.0
+				break
+		scored.append([s, pid])
+	scored.sort_custom(func(x, y): return x[0] > y[0])
+	var r := []
+	var spent := 0.0
+	for e in scored:
+		var c: float = g.peace_cost([e[1]])
+		if spent + c <= budget:
+			r.append(e[1])
+			spent += c
+	return r
+
+
+## ws_from: war score from the proposer's point of view.
+func accepts_peace(g, w, pids: Array, ws_from: float, from_receives: bool) -> bool:
+	var dur: int = g.month - w.start
+	var cost: float = g.peace_cost(pids)
+	if from_receives:
+		if pids.is_empty():
+			return ws_from >= -10.0 or (dur > 72 and ws_from >= -25.0)
+		return cost <= ws_from + 5.0
+	# proposer concedes provinces; receiver's war score is -ws_from
+	return cost + 5.0 >= -ws_from * 0.7
+
+
+# ---------------------------------------------------------------- armies
+
+func control_armies(g, tag: String) -> void:
+	var n = g.nations[tag]
+	var enemies: Array = g.enemies_of(tag)
+	var mine: Array = []
+	for a in g.armies:
+		if a.owner == tag and a.auto:
+			mine.append(a)
+	if mine.is_empty():
+		return
+	if enemies.is_empty():
+		for a in mine:
+			if a.pid != n.capital and a.target != n.capital:
+				g.move_army(a, n.capital)
+		g.merge_armies(tag, n.capital)
+		return
+	if (g.month + tag.hash()) % 2 != 0:
+		return
+	var enemy_power := {}
+	for e in g.armies:
+		if enemies.has(e.owner):
+			enemy_power[e.pid] = enemy_power.get(e.pid, 0.0) + e.regs * g.combat_mult(e.owner)
+	for a in mine:
+		_command(g, a, enemies, enemy_power)
+
+
+func _command(g, a, enemies: Array, enemy_power: Dictionary) -> void:
+	var tag: String = a.owner
+	var my_power: float = a.regs * g.combat_mult(tag)
+	# flee if a much stronger enemy stands next to us
+	for nb in g.provinces[a.pid].adj:
+		if enemy_power.get(nb, 0.0) > my_power * 1.4 and enemy_power.get(a.pid, 0.0) == 0.0:
+			var home: int = g.nations[tag].capital
+			if a.pid != home and enemy_power.get(home, 0.0) < my_power:
+				g.move_army(a, home)
+				return
+	# BFS over reachable provinces, pick the best target
+	var dist := {a.pid: 0}
+	var queue := [a.pid]
+	var head := 0
+	var best := -1
+	var best_score := -1e9
+	while head < queue.size():
+		var cur: int = queue[head]
+		head += 1
+		var d: int = dist[cur]
+		var p = g.provinces[cur]
+		var ep: float = enemy_power.get(cur, 0.0)
+		var s := -1e9
+		if ep > 0.0:
+			if ep < my_power * 0.9:
+				s = 80.0 + ep - d * 6.0
+		elif enemies.has(p.controller):
+			s = 40.0 + p.dev - d * 5.0
+			if p.owner == tag:
+				s += 30.0
+			if g.nations[tag].claims.has(cur):
+				s += 15.0
+			if g.nations[p.owner].capital == cur:
+				s += 10.0
+		if s > best_score:
+			best_score = s
+			best = cur
+		if d >= 10:
+			continue
+		for nb in p.adj:
+			if dist.has(nb) or not g.can_enter(tag, nb):
+				continue
+			if enemy_power.get(nb, 0.0) > my_power * 1.1:
+				continue
+			dist[nb] = d + 1
+			queue.append(nb)
+	if best >= 0 and best != a.pid:
+		if a.target != best:
+			g.move_army(a, best)
+	elif best == a.pid:
+		a.target = -1
+
+
+func pick_event_option(g, n, e: Dictionary) -> int:
+	var total := 0.0
+	var weights := []
+	for i in e.options.size():
+		var w := float(e.options[i].get("ai", 50.0 if i == 0 else 25.0))
+		weights.append(w)
+		total += w
+	var r: float = g.rng.randf() * total
+	for i in weights.size():
+		r -= weights[i]
+		if r <= 0.0:
+			return i
+	return 0

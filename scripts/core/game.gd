@@ -1,0 +1,1510 @@
+extends RefCounted
+## Core simulation of the game. Has no Node dependencies, so it runs headless
+## (balance runs, tests) exactly like in the UI. One tick = one month.
+
+const AI = preload("res://scripts/core/ai.gd")
+
+const POWERS := ["adm", "dip", "mil"]
+const MONTH_NAMES := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
+
+
+class Province:
+	var id: int
+	var key: String
+	var name: String
+	var owner: String
+	var controller: String
+	var dev: int
+	var center: Vector2
+	var adj: Array = []
+	var core_months: int = 0
+	var siege: float = 0.0
+	var fort: int = 0
+
+
+class Nation:
+	var tag: String
+	var name: String
+	var color: Color
+	var emoji: String
+	var playable: bool = false
+	var idea: String = ""
+	var alive: bool = true
+	var capital: int = -1
+	var gold: float = 0.0
+	var adm: float = 0.0
+	var dip: float = 0.0
+	var mil: float = 0.0
+	var ae: float = 0.0
+	var prestige: float = 0.0
+	var manpower: float = 0.0
+	var aggression: float = 1.0
+	var tech := {"adm": 0, "dip": 0, "mil": 0}
+	var ruler := {"adm": 2, "dip": 2, "mil": 2, "years": 20}
+	var mods := {"income": 0.0, "combat": 0.0, "manpower": 0.0, "adm": 0.0, "dip": 0.0, "mil": 0.0, "ae_decay": 0.0}
+	var relations := {}
+	var allies: Array = []
+	var truces := {}
+	var claims := {}
+	var flags := {}
+	var missions_done := {}
+	var coalition: Array = []
+	# cached per month
+	var dev_total: int = 0
+	var income: float = 0.0
+	var expenses: float = 0.0
+	var max_manpower: float = 0.0
+
+
+class Army:
+	var id: int
+	var owner: String
+	var pid: int
+	var regs: float
+	var full: float
+	var target: int = -1
+	var auto: bool = true
+	var path: Array = []
+
+
+class War:
+	var id: int
+	var name: String = ""
+	var attackers: Array = []
+	var defenders: Array = []
+	var start: int = 0
+	var battle_score: float = 0.0
+	var coalition: bool = false
+	var goal: int = -1
+
+
+var bal: Dictionary = {}
+var provinces: Array = []
+var key_to_pid := {}
+var nations := {}
+var order: Array = []
+var armies: Array = []
+var wars: Array = []
+var month: int = 0
+var rng := RandomNumberGenerator.new()
+var player: String = ""
+var event_defs: Array = []
+var event_by_id := {}
+var mission_defs := {}
+var log_lines: Array = []
+var pending_events: Array = []
+var pending_peace: Array = []
+var owned := {}
+var next_army_id: int = 1
+var next_war_id: int = 1
+var game_over: bool = false
+var stats := {"wars": 0, "battles": 0, "peace_deals": 0, "provinces_changed": 0, "coalition_wars": 0,
+		"events": 0, "missions": 0, "eliminated": 0, "white_peace": 0, "timeouts": 0, "bankrupt_months": 0}
+var ai
+
+
+func _init() -> void:
+	ai = AI.new()
+
+
+# ---------------------------------------------------------------- setup
+
+func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
+	bal = data.balance
+	rng.seed = seed_value
+	player = player_tag
+	for pd in data.map.provinces:
+		var p := Province.new()
+		p.id = int(pd.id)
+		p.key = pd.key
+		p.name = pd.name
+		p.owner = pd.owner
+		p.controller = pd.owner
+		p.dev = int(pd.dev)
+		p.center = Vector2(pd.center[0], pd.center[1])
+		for a in pd.adj:
+			p.adj.append(int(a))
+		provinces.append(p)
+		key_to_pid[p.key] = p.id
+	for tag in data.nations:
+		var nd: Dictionary = data.nations[tag]
+		var n := Nation.new()
+		n.tag = tag
+		n.name = nd.name
+		n.color = Color(nd.color)
+		n.emoji = nd.get("emoji", "🏳️")
+		n.playable = nd.get("playable", false)
+		n.idea = nd.get("idea", "")
+		n.aggression = float(nd.get("aggression", 0.8))
+		n.capital = key_to_pid[nd.capital]
+		var bonus: Dictionary = nd.get("bonus", {})
+		for k in bonus:
+			n.mods[k] = float(bonus[k])
+		n.gold = 40.0
+		n.adm = 50.0
+		n.dip = 50.0
+		n.mil = 50.0
+		_new_ruler(n)
+		nations[tag] = n
+		order.append(tag)
+		provinces[n.capital].fort = 1
+	_rebuild_owned()
+	for tag in order:
+		var n: Nation = nations[tag]
+		_update_cached(n)
+		n.manpower = n.max_manpower
+		var regs: float = round(force_limit(tag) * 0.6)
+		spawn_army(tag, n.capital, regs)
+	event_defs = data.get("events", [])
+	for e in event_defs:
+		event_by_id[e.id] = e
+	mission_defs = data.get("missions", {})
+	_apply_start_diplomacy(data.get("diplomacy", {}))
+	# mission targets act as permanent claims (historical expansion goals)
+	for tag in mission_defs:
+		if not nations.has(tag):
+			continue
+		for m in mission_defs[tag]:
+			for key in m.get("require", {}).get("owns", []):
+				var pid: int = key_to_pid.get(key, -1)
+				if pid >= 0 and provinces[pid].owner != tag:
+					nations[tag].claims[pid] = true
+
+
+func _apply_start_diplomacy(d: Dictionary) -> void:
+	for pair in d.get("alliances", []):
+		_ally(pair[0], pair[1])
+		add_rel(pair[0], pair[1], 60)
+	for pair in d.get("rivals", []):
+		add_rel(pair[0], pair[1], -60)
+	var cl: Dictionary = d.get("claims", {})
+	for tag in cl:
+		for key in cl[tag]:
+			nations[tag].claims[key_to_pid[key]] = true
+
+
+func _new_ruler(n: Nation) -> void:
+	var lo := int(bal.ruler_min)
+	var hi := int(bal.ruler_max)
+	n.ruler = {"adm": rng.randi_range(lo, hi), "dip": rng.randi_range(lo, hi), "mil": rng.randi_range(lo, hi),
+			"years": rng.randi_range(8, 35)}
+
+
+# ---------------------------------------------------------------- queries
+
+func date_string(m: int = -1) -> String:
+	if m < 0:
+		m = month
+	var total: int = int(bal.start_month) - 1 + m
+	return "%s %d" % [MONTH_NAMES[total % 12], int(bal.start_year) + total / 12]
+
+
+func year() -> int:
+	return int(bal.start_year) + (int(bal.start_month) - 1 + month) / 12
+
+
+func _rebuild_owned() -> void:
+	owned.clear()
+	for tag in nations:
+		owned[tag] = []
+	for p in provinces:
+		owned[p.owner].append(p.id)
+
+
+func provinces_of(tag: String) -> Array:
+	return owned.get(tag, [])
+
+
+func nation_dev(tag: String) -> int:
+	var s := 0
+	for pid in provinces_of(tag):
+		s += provinces[pid].dev
+	return s
+
+
+func force_limit(tag: String) -> float:
+	var n: Nation = nations[tag]
+	return float(bal.base_force_limit) + n.dev_total * float(bal.force_limit_per_dev) + n.tech.mil / 2
+
+
+func armies_of(tag: String) -> Array:
+	var r := []
+	for a in armies:
+		if a.owner == tag:
+			r.append(a)
+	return r
+
+
+func army_regs(tag: String) -> float:
+	var s := 0.0
+	for a in armies:
+		if a.owner == tag:
+			s += a.regs
+	return s
+
+
+func combat_mult(tag: String) -> float:
+	var n: Nation = nations[tag]
+	return 1.0 + n.tech.mil * float(bal.mil_tech_combat) + n.mods.combat
+
+
+func strength(tag: String) -> float:
+	return army_regs(tag) * combat_mult(tag)
+
+
+func get_rel(a: String, b: String) -> float:
+	return nations[a].relations.get(b, 0.0)
+
+
+func add_rel(a: String, b: String, v: float) -> void:
+	for pair in [[a, b], [b, a]]:
+		var n: Nation = nations[pair[0]]
+		n.relations[pair[1]] = clampf(n.relations.get(pair[1], 0.0) + v, -100.0, 100.0)
+
+
+func is_allied(a: String, b: String) -> bool:
+	return nations[a].allies.has(b)
+
+
+func has_truce(a: String, b: String) -> bool:
+	return nations[a].truces.get(b, -1) > month
+
+
+func war_between(a: String, b: String) -> War:
+	for w in wars:
+		if (w.attackers.has(a) and w.defenders.has(b)) or (w.defenders.has(a) and w.attackers.has(b)):
+			return w
+	return null
+
+
+func at_war(a: String, b: String) -> bool:
+	return war_between(a, b) != null
+
+
+func wars_of(tag: String) -> Array:
+	var r := []
+	for w in wars:
+		if w.attackers.has(tag) or w.defenders.has(tag):
+			r.append(w)
+	return r
+
+
+func is_at_war(tag: String) -> bool:
+	return not wars_of(tag).is_empty()
+
+
+func enemies_of(tag: String) -> Array:
+	var r := []
+	for w in wars_of(tag):
+		var side: Array = w.defenders if w.attackers.has(tag) else w.attackers
+		for t in side:
+			if not r.has(t):
+				r.append(t)
+	return r
+
+
+func neighbors_of(tag: String) -> Array:
+	var r := []
+	for pid in provinces_of(tag):
+		for a in provinces[pid].adj:
+			var o: String = provinces[a].owner
+			if o != tag and not r.has(o):
+				r.append(o)
+	return r
+
+
+## Nations whose territory is within `hops` provinces of tag's territory.
+func nations_in_range(tag: String, hops: int) -> Array:
+	var seen := {}
+	var frontier: Array = provinces_of(tag).duplicate()
+	for pid in frontier:
+		seen[pid] = true
+	for i in hops:
+		var nxt := []
+		for pid in frontier:
+			for a in provinces[pid].adj:
+				if not seen.has(a):
+					seen[a] = true
+					nxt.append(a)
+		frontier = nxt
+	var r := []
+	for pid in seen:
+		var o: String = provinces[pid].owner
+		if o != tag and not r.has(o):
+			r.append(o)
+	return r
+
+
+func can_enter(tag: String, pid: int) -> bool:
+	var p: Province = provinces[pid]
+	for t in [p.owner, p.controller]:
+		if t == tag or is_allied(tag, t) or at_war(tag, t):
+			return true
+	return false
+
+
+func find_path(tag: String, from: int, to: int) -> Array:
+	if from == to:
+		return [from]
+	if not can_enter(tag, to):
+		return []
+	var prev := {from: -1}
+	var queue := [from]
+	var head := 0
+	while head < queue.size():
+		var cur: int = queue[head]
+		head += 1
+		for a in provinces[cur].adj:
+			if prev.has(a) or not can_enter(tag, a):
+				continue
+			prev[a] = cur
+			if a == to:
+				var path := [to]
+				var c: int = cur
+				while c != -1:
+					path.push_front(c)
+					c = prev[c]
+				return path
+			queue.append(a)
+	return []
+
+
+func power_of(n: Nation, kind: String) -> float:
+	return n.get(kind)
+
+
+func monthly_power(n: Nation, kind: String) -> float:
+	return float(bal.base_power) + n.ruler[kind] + n.mods[kind]
+
+
+func tech_cost(tag: String, kind: String) -> float:
+	var n: Nation = nations[tag]
+	var lvl: int = n.tech[kind] + 1
+	var expected: float = (year() - int(bal.start_year)) / float(bal.tech_years_per_level)
+	var ahead: float = maxf(0.0, lvl - expected)
+	return round((float(bal.tech_base) + float(bal.tech_step) * lvl) * (1.0 + ahead * float(bal.tech_ahead_penalty)))
+
+
+func develop_cost(pid: int) -> float:
+	return float(bal.develop_base) + float(bal.develop_step) * provinces[pid].dev
+
+
+func build_cost(pid: int) -> float:
+	return float(bal.build_base) + float(bal.build_step) * provinces[pid].dev
+
+
+func score(tag: String) -> float:
+	var n: Nation = nations[tag]
+	if not n.alive:
+		return 0.0
+	return n.dev_total + n.prestige + 3.0 * (n.tech.adm + n.tech.dip + n.tech.mil)
+
+
+func log_msg(text: String, tags: Array = []) -> void:
+	if tags.is_empty() or tags.has(player):
+		log_lines.append("%s: %s" % [date_string(), text])
+		if log_lines.size() > 60:
+			log_lines.pop_front()
+
+
+# ---------------------------------------------------------------- tick
+
+func tick() -> void:
+	if game_over:
+		return
+	for tag in order:
+		var n: Nation = nations[tag]
+		if n.alive:
+			_economy(n)
+	_armies_tick()
+	_wars_tick()
+	for tag in order:
+		var n: Nation = nations[tag]
+		if n.alive and tag != player:
+			ai.think(self, n)
+	if player != "" and nations[player].alive:
+		ai.control_armies(self, player)
+	month += 1
+	if month % 12 == 0:
+		_yearly()
+	if month >= int(bal.total_months):
+		game_over = true
+		log_msg("Das Zeitalter endet. Das Spiel ist vorbei.")
+	elif player != "" and not nations[player].alive:
+		game_over = true
+
+
+func _update_cached(n: Nation) -> void:
+	n.dev_total = nation_dev(n.tag)
+	n.max_manpower = 3.0 + n.dev_total * float(bal.manpower_per_dev) * (1.0 + n.mods.manpower)
+
+
+func _economy(n: Nation) -> void:
+	_update_cached(n)
+	var inc := 0.0
+	for pid in provinces_of(n.tag):
+		var p: Province = provinces[pid]
+		if p.controller != n.tag:
+			continue
+		var v: float = p.dev * float(bal.income_per_dev)
+		if p.core_months > 0:
+			v *= float(bal.uncored_income_mult)
+			p.core_months -= 1
+		inc += v
+	n.income = inc * (1.0 + n.tech.adm * float(bal.adm_tech_income) + n.mods.income)
+	var maint: float = army_regs(n.tag) * float(bal.regiment_maintenance)
+	if not is_at_war(n.tag):
+		maint *= float(bal.peace_maintenance_mult)
+	n.expenses = maint
+	n.gold += n.income - maint
+	var cap := float(bal.power_cap)
+	n.adm = minf(cap, n.adm + monthly_power(n, "adm"))
+	n.dip = minf(cap, n.dip + monthly_power(n, "dip"))
+	n.mil = minf(cap, n.mil + monthly_power(n, "mil"))
+	n.manpower = minf(n.max_manpower, n.manpower + n.max_manpower / (float(bal.manpower_regen_years) * 12.0))
+	var decay: float = float(bal.ae_decay_per_year) * (1.0 + n.mods.ae_decay + 0.05 * n.tech.dip) / 12.0
+	n.ae = maxf(0.0, n.ae - decay)
+	for t in n.relations:
+		var r: float = n.relations[t]
+		n.relations[t] = r - signf(r) * minf(absf(r), 0.15)
+	if n.gold < -20.0:
+		stats.bankrupt_months += 1
+		# bankruptcy: troops desert until the budget recovers
+		var arms := armies_of(n.tag)
+		if not arms.is_empty():
+			arms.sort_custom(func(x, y): return x.regs > y.regs)
+			arms[0].regs -= 1.0
+			arms[0].full = maxf(arms[0].regs, arms[0].full - 1.0)
+			if arms[0].regs < 0.5:
+				armies.erase(arms[0])
+			if n.tag == player:
+				log_msg("💸 Bankrott! Truppen desertieren.")
+		if n.gold < -100.0:
+			n.gold = -100.0
+
+
+func _yearly() -> void:
+	for tag in order:
+		var n: Nation = nations[tag]
+		if not n.alive:
+			continue
+		n.ruler.years -= 1
+		if n.ruler.years <= 0:
+			_new_ruler(n)
+			log_msg("👑 Ein neuer Herrscher besteigt den Thron (%d/%d/%d)." % [n.ruler.adm, n.ruler.dip, n.ruler.mil], [tag])
+		_check_events(n)
+		if tag != player:
+			for m in available_missions(tag):
+				if mission_ready(tag, m):
+					complete_mission(tag, m.id)
+	_coalitions_yearly()
+
+
+# ---------------------------------------------------------------- armies
+
+func spawn_army(tag: String, pid: int, regs: float) -> Army:
+	var a := Army.new()
+	a.id = next_army_id
+	next_army_id += 1
+	a.owner = tag
+	a.pid = pid
+	a.regs = regs
+	a.full = regs
+	a.auto = tag != player
+	armies.append(a)
+	return a
+
+
+func army_by_id(id: int) -> Army:
+	for a in armies:
+		if a.id == id:
+			return a
+	return null
+
+
+func armies_in(pid: int) -> Array:
+	var r := []
+	for a in armies:
+		if a.pid == pid:
+			r.append(a)
+	return r
+
+
+func _armies_tick() -> void:
+	for a in armies.duplicate():
+		if a.target >= 0 and a.target != a.pid:
+			if a.path.size() < 2 or a.path[0] != a.pid or a.path[-1] != a.target or not can_enter(a.owner, a.path[1]):
+				a.path = find_path(a.owner, a.pid, a.target)
+			if a.path.size() >= 2:
+				a.path.pop_front()
+				a.pid = a.path[0]
+			else:
+				a.target = -1
+		if a.target == a.pid:
+			a.target = -1
+	var touched := {}
+	for a in armies:
+		touched[a.pid] = true
+	for pid in touched:
+		_resolve_battles(pid)
+	for p in provinces:
+		_siege(p)
+	for a in armies:
+		_reinforce(a)
+
+
+func _resolve_battles(pid: int) -> void:
+	for _i in 4:
+		var here := armies_in(pid)
+		var war: War = null
+		var side_a := []
+		var side_b := []
+		for x in here:
+			for y in here:
+				if war == null and at_war(x.owner, y.owner):
+					war = war_between(x.owner, y.owner)
+		if war == null:
+			return
+		for x in here:
+			if war.attackers.has(x.owner):
+				side_a.append(x)
+			elif war.defenders.has(x.owner):
+				side_b.append(x)
+		if side_a.is_empty() or side_b.is_empty():
+			return
+		_battle(war, side_a, side_b, pid)
+
+
+func _side_power(arms: Array, pid: int) -> float:
+	var s := 0.0
+	for a in arms:
+		var m := combat_mult(a.owner)
+		if provinces[pid].owner == a.owner:
+			m += float(bal.home_defense)
+		s += a.regs * m
+	return s
+
+
+func _battle(war: War, att: Array, def: Array, pid: int) -> void:
+	stats.battles += 1
+	var pa := _side_power(att, pid) * rng.randf_range(0.75, 1.25)
+	var pd := _side_power(def, pid) * rng.randf_range(0.75, 1.25)
+	var att_wins := pa >= pd
+	var win: Array = att if att_wins else def
+	var lose: Array = def if att_wins else att
+	var ratio: float = minf(pa, pd) / maxf(maxf(pa, pd), 0.01)
+	var lose_frac: float = clampf(float(bal.battle_loser_loss) / sqrt(maxf(ratio, 0.05)), 0.2, 0.85)
+	var win_frac: float = clampf(float(bal.battle_winner_loss) * sqrt(ratio), 0.03, 0.4)
+	var lost := 0.0
+	for a in win:
+		a.regs *= 1.0 - win_frac
+	for a in lose:
+		lost += a.regs * lose_frac
+		a.regs *= 1.0 - lose_frac
+	var ws: float = lost * float(bal.battle_ws_per_reg)
+	var cap := float(bal.battle_ws_cap)
+	war.battle_score = clampf(war.battle_score + (ws if att_wins else -ws), -cap, cap)
+	var winner_tag: String = win[0].owner
+	var loser_tag: String = lose[0].owner
+	var involved := []
+	for a in att + def:
+		involved.append(a.owner)
+	log_msg("⚔️ Schlacht bei %s: %s siegt über %s (%.1f Regimenter verloren)." % [
+			provinces[pid].name, nations[winner_tag].name, nations[loser_tag].name, lost], involved)
+	for a in lose:
+		_retreat(a)
+
+
+func _retreat(a: Army) -> void:
+	if a.regs < 0.5:
+		armies.erase(a)
+		return
+	var best := -1
+	for nb in provinces[a.pid].adj:
+		var p: Province = provinces[nb]
+		if p.controller == a.owner or is_allied(a.owner, p.controller):
+			var hostile := false
+			for o in armies_in(nb):
+				if at_war(o.owner, a.owner):
+					hostile = true
+			if not hostile:
+				best = nb
+				if p.owner == a.owner:
+					break
+	if best < 0:
+		armies.erase(a)
+		log_msg("💀 Eine Armee von %s wurde aufgerieben." % nations[a.owner].name, [a.owner])
+		return
+	a.pid = best
+	a.target = -1
+
+
+func _siege(p: Province) -> void:
+	var here := armies_in(p.id)
+	if here.is_empty():
+		p.siege = maxf(0.0, p.siege - 10.0)
+		return
+	var besiegers := []
+	for a in here:
+		if at_war(a.owner, p.controller):
+			besiegers.append(a)
+	if besiegers.is_empty():
+		p.siege = 0.0
+		return
+	for a in here:
+		for b in besiegers:
+			if at_war(a.owner, b.owner):
+				return  # contested, battle decides first
+	var regs := 0.0
+	for b in besiegers:
+		regs += b.regs
+	var prog: float = float(bal.siege_base) * minf(regs, 20.0) / (sqrt(p.dev) + 2.0) / (1.0 + p.fort * float(bal.fort_siege_mult))
+	p.siege += prog
+	if p.siege >= 100.0:
+		p.siege = 0.0
+		var sieger: String = besiegers[0].owner
+		var old: String = p.controller
+		var w := war_between(sieger, old)
+		if w != null and ((w.attackers.has(sieger) and w.attackers.has(p.owner)) or (w.defenders.has(sieger) and w.defenders.has(p.owner))):
+			p.controller = p.owner
+		else:
+			p.controller = sieger
+		log_msg("🏳️ %s wurde von %s eingenommen." % [p.name, nations[p.controller].name], [sieger, old, p.owner])
+
+
+func _reinforce(a: Army) -> void:
+	if a.regs >= a.full:
+		return
+	var p: Province = provinces[a.pid]
+	if p.controller != a.owner and not is_allied(a.owner, p.controller):
+		return
+	var n: Nation = nations[a.owner]
+	var amt: float = minf(a.full - a.regs, minf(a.full * float(bal.reinforce_rate), n.manpower))
+	if amt <= 0.0 or n.gold < 0.0:
+		return
+	a.regs += amt
+	n.manpower -= amt
+	n.gold -= amt * float(bal.regiment_cost) * 0.5
+
+
+# ---------------------------------------------------------------- wars
+
+func side_tags(w: War, attackers: bool) -> Array:
+	return w.attackers if attackers else w.defenders
+
+
+func is_attacker(w: War, tag: String) -> bool:
+	return w.attackers.has(tag)
+
+
+## War score from the attackers' point of view, -100..100.
+func warscore(w: War) -> float:
+	var occ_att := _occupation_pct(w.defenders, w.attackers)
+	var occ_def := _occupation_pct(w.attackers, w.defenders)
+	var cap_bonus := 0.0
+	if w.attackers.has(provinces[nations[w.defenders[0]].capital].controller):
+		cap_bonus += 10.0
+	if w.defenders.has(provinces[nations[w.attackers[0]].capital].controller):
+		cap_bonus -= 10.0
+	return clampf(occ_att - occ_def + w.battle_score + cap_bonus, -100.0, 100.0)
+
+
+func _occupation_pct(owners: Array, occupiers: Array) -> float:
+	var total := 0
+	var occ := 0
+	for t in owners:
+		for pid in provinces_of(t):
+			var p: Province = provinces[pid]
+			total += p.dev
+			if occupiers.has(p.controller):
+				occ += p.dev
+	if total == 0:
+		return 100.0
+	return 100.0 * occ / total
+
+
+func peace_cost(pids: Array) -> float:
+	var s := 0.0
+	for pid in pids:
+		s += provinces[pid].dev * float(bal.peace_cost_per_dev)
+	return s
+
+
+## Provinces the given side could demand: owned by the other side, occupied by this side.
+func demandable(w: War, for_attackers: bool) -> Array:
+	var mine: Array = side_tags(w, for_attackers)
+	var theirs: Array = side_tags(w, not for_attackers)
+	var r := []
+	for t in theirs:
+		for pid in provinces_of(t):
+			if mine.has(provinces[pid].controller):
+				r.append(pid)
+	return r
+
+
+func _wars_tick() -> void:
+	for w in wars.duplicate():
+		if not wars.has(w):
+			continue
+		var ws := warscore(w)
+		if absf(ws) >= 99.0:
+			var winner_att := ws > 0
+			var pick: Array = ai.pick_demands(self, w, winner_att, 100.0)
+			make_peace(w, winner_att, pick)
+			continue
+		if month - w.start >= int(bal.war_timeout_months):
+			stats.timeouts += 1
+			make_peace(w, true, [])
+
+
+func declare_war(att: String, def: String, coalition_members: Array = []) -> String:
+	if att == def:
+		return "Ungültiges Ziel."
+	if at_war(att, def):
+		return "Ihr seid bereits im Krieg."
+	if is_allied(att, def):
+		return "Ihr seid verbündet."
+	if has_truce(att, def):
+		return "Es besteht ein Waffenstillstand."
+	var n: Nation = nations[att]
+	var has_cb := coalition_members.size() > 0 or has_claim_on(att, def)
+	if not has_cb:
+		if n.dip < float(bal.nocb_war_dip):
+			return "Zu wenig Diplomatie für einen Krieg ohne Kriegsgrund."
+		n.dip -= float(bal.nocb_war_dip)
+		n.ae += float(bal.ae_no_cb)
+	var w := War.new()
+	w.id = next_war_id
+	next_war_id += 1
+	w.start = month
+	w.coalition = coalition_members.size() > 0
+	if w.coalition:
+		w.attackers = coalition_members.duplicate()
+		w.name = "Koalition gegen %s" % nations[def].name
+	else:
+		w.attackers = [att]
+		w.name = "%s-%s-Krieg" % [nations[att].name, nations[def].name]
+	w.defenders = [def]
+	for ally in nations[def].allies:
+		if not w.attackers.has(ally) and not is_allied(ally, att) and nations[ally].alive and not has_truce(ally, att):
+			w.defenders.append(ally)
+	if not w.coalition:
+		for ally in nations[att].allies:
+			if not w.defenders.has(ally) and not is_allied(ally, def) and get_rel(att, ally) >= 20.0 and nations[ally].alive:
+				w.attackers.append(ally)
+	for a in w.attackers:
+		for d in w.defenders:
+			add_rel(a, d, -40.0)
+	wars.append(w)
+	stats.wars += 1
+	if w.coalition:
+		stats.coalition_wars += 1
+	log_msg("🔥 %s: %s erklärt %s den Krieg!" % [w.name, nations[w.attackers[0]].name, nations[def].name],
+			w.attackers + w.defenders)
+	if def == player or w.defenders.has(player) or w.attackers.has(player):
+		pass
+	return ""
+
+
+func has_claim_on(tag: String, target: String) -> bool:
+	for pid in nations[tag].claims:
+		if provinces[pid].owner == target:
+			return true
+	return false
+
+
+## Ends the war. `winner_att` tells which side receives `pids`.
+func make_peace(w: War, winner_att: bool, pids: Array) -> void:
+	var winners: Array = side_tags(w, winner_att)
+	var losers: Array = side_tags(w, not winner_att)
+	var lead: String = winners[0]
+	for pid in pids:
+		var p: Province = provinces[pid]
+		var to: String = p.controller if winners.has(p.controller) else lead
+		if not nations[to].alive:
+			to = lead
+		var n: Nation = nations[to]
+		var ae: float = p.dev * float(bal.ae_per_dev)
+		if n.claims.has(pid):
+			ae *= 0.6
+		if w.coalition:
+			ae *= 0.3
+		n.ae += ae
+		n.prestige += p.dev * float(bal.prestige_per_dev_taken)
+		n.claims.erase(pid)
+		var old := p.owner
+		p.owner = to
+		p.controller = to
+		p.core_months = int(bal.core_months)
+		p.siege = 0.0
+		if nations[old].capital == pid:
+			p.fort = 0
+		stats.provinces_changed += 1
+	if pids.is_empty():
+		stats.white_peace += 1
+	stats.peace_deals += 1
+	wars.erase(w)
+	for a in w.attackers:
+		for d in w.defenders:
+			nations[a].truces[d] = month + int(bal.truce_months)
+			nations[d].truces[a] = month + int(bal.truce_months)
+	if w.coalition:
+		for t in w.defenders:
+			nations[t].ae *= 0.5
+	_rebuild_owned()
+	var everyone: Array = w.attackers + w.defenders
+	for p in provinces:
+		if everyone.has(p.owner) and p.controller != p.owner and not at_war(p.owner, p.controller):
+			p.controller = p.owner
+	for a in armies:
+		if everyone.has(a.owner) and not can_enter(a.owner, a.pid):
+			a.pid = nations[a.owner].capital
+			a.target = -1
+	var names := []
+	for pid in pids:
+		names.append(provinces[pid].name)
+	if pids.is_empty():
+		log_msg("🕊️ Frieden: %s endet ohne Gebietsänderungen." % w.name, everyone)
+	else:
+		log_msg("🕊️ Frieden in %s: %s erhält %s." % [w.name, nations[lead].name, ", ".join(names)], everyone)
+	for t in losers:
+		_check_alive(t)
+	for t in winners:
+		_check_alive(t)
+
+
+func _check_alive(tag: String) -> void:
+	var n: Nation = nations[tag]
+	if not n.alive or not provinces_of(tag).is_empty():
+		if n.alive and provinces[n.capital].owner != tag:
+			_move_capital(n)
+		return
+	n.alive = false
+	stats.eliminated += 1
+	for a in armies.duplicate():
+		if a.owner == tag:
+			armies.erase(a)
+	for ally in n.allies:
+		nations[ally].allies.erase(tag)
+	n.allies.clear()
+	for w in wars.duplicate():
+		w.attackers.erase(tag)
+		w.defenders.erase(tag)
+		if w.attackers.is_empty() or w.defenders.is_empty():
+			wars.erase(w)
+	for t in order:
+		nations[t].coalition.erase(tag)
+	log_msg("☠️ %s hat aufgehört zu existieren." % n.name)
+
+
+func _move_capital(n: Nation) -> void:
+	var best := -1
+	for pid in provinces_of(n.tag):
+		if best < 0 or provinces[pid].dev > provinces[best].dev:
+			best = pid
+	if best >= 0:
+		n.capital = best
+		provinces[best].fort = maxi(provinces[best].fort, 1)
+
+
+## Peace offer by `from` (a war leader). With `from_receives` the proposer takes `pids`,
+## otherwise it hands them over. Returns true if accepted; offers to the player are queued.
+func offer_peace(from: String, w: War, pids: Array, from_receives: bool = true) -> bool:
+	var from_att := is_attacker(w, from)
+	var other: String = side_tags(w, not from_att)[0]
+	var ws := warscore(w) * (1.0 if from_att else -1.0)
+	if other == player:
+		for o in pending_peace:
+			if o.war == w.id:
+				return false
+		pending_peace.append({"war": w.id, "from": from, "pids": pids, "from_receives": from_receives})
+		return false
+	if ai.accepts_peace(self, w, pids, ws, from_receives):
+		make_peace(w, from_att == from_receives, pids)
+		return true
+	return false
+
+
+func answer_player_peace(offer: Dictionary, accept: bool) -> void:
+	pending_peace.erase(offer)
+	var w := war_by_id(int(offer.war))
+	if w == null:
+		return
+	if accept:
+		make_peace(w, is_attacker(w, offer.from) == bool(offer.get("from_receives", true)), offer.pids)
+
+
+func war_by_id(id: int) -> War:
+	for w in wars:
+		if w.id == id:
+			return w
+	return null
+
+
+# ---------------------------------------------------------------- coalitions
+
+func _coalitions_yearly() -> void:
+	var thr := float(bal.ae_coalition_threshold)
+	for tag in order:
+		var n: Nation = nations[tag]
+		if not n.alive:
+			continue
+		if n.ae < thr * 0.6:
+			if not n.coalition.is_empty():
+				log_msg("🤝 Die Koalition gegen %s löst sich auf." % n.name, n.coalition + [tag])
+			n.coalition.clear()
+			continue
+		if n.ae >= thr:
+			for t in nations_in_range(tag, int(bal.coalition_range)):
+				var o: Nation = nations[t]
+				if not o.alive or n.coalition.has(t) or is_allied(t, tag) or t == player:
+					continue
+				if rng.randf() < 0.3 + (n.ae - thr) / thr:
+					n.coalition.append(t)
+					add_rel(t, tag, -30.0)
+					log_msg("⚠️ %s tritt der Koalition gegen %s bei!" % [o.name, n.name], [tag, t])
+		if n.coalition.size() >= 2:
+			var members := []
+			var cs := 0.0
+			for t in n.coalition:
+				if nations[t].alive and not has_truce(t, tag) and not at_war(t, tag):
+					members.append(t)
+					cs += strength(t)
+			var mine := strength(tag)
+			for ally in n.allies:
+				if not members.has(ally):
+					mine += strength(ally)
+			if members.size() >= 2 and cs >= mine * float(bal.coalition_strength_ratio):
+				members.sort_custom(func(x, y): return strength(x) > strength(y))
+				declare_war(members[0], tag, members)
+
+
+## Player may join an existing coalition against a nation with high AE.
+func join_coalition(tag: String, target: String) -> String:
+	var t: Nation = nations[target]
+	if t.ae < float(bal.ae_coalition_threshold):
+		return "%s ist nicht bedrohlich genug (AE < %d)." % [t.name, int(bal.ae_coalition_threshold)]
+	if is_allied(tag, target):
+		return "Ihr seid verbündet."
+	if not t.coalition.has(tag):
+		t.coalition.append(tag)
+		add_rel(tag, target, -30.0)
+	return ""
+
+
+# ---------------------------------------------------------------- actions
+
+func develop(tag: String, pid: int) -> String:
+	var n: Nation = nations[tag]
+	var p: Province = provinces[pid]
+	if p.owner != tag:
+		return "Nicht deine Provinz."
+	if p.dev >= int(bal.max_dev):
+		return "Maximale Entwicklung erreicht."
+	var c := develop_cost(pid)
+	if n.adm < c:
+		return "Zu wenig Admin (%d benötigt)." % c
+	n.adm -= c
+	p.dev += 1
+	_update_cached(n)
+	return ""
+
+
+func build(tag: String, pid: int) -> String:
+	var n: Nation = nations[tag]
+	var p: Province = provinces[pid]
+	if p.owner != tag:
+		return "Nicht deine Provinz."
+	if p.dev >= int(bal.max_dev):
+		return "Maximale Entwicklung erreicht."
+	var c := build_cost(pid)
+	if n.gold < c:
+		return "Zu wenig Gold (%d benötigt)." % c
+	n.gold -= c
+	p.dev += 1
+	_update_cached(n)
+	return ""
+
+
+func buy_tech(tag: String, kind: String) -> String:
+	var n: Nation = nations[tag]
+	var c := tech_cost(tag, kind)
+	if n.get(kind) < c:
+		return "Zu wenig Punkte (%d benötigt)." % c
+	n.set(kind, n.get(kind) - c)
+	n.tech[kind] += 1
+	return ""
+
+
+func recruit(tag: String, pid: int, count: int) -> String:
+	var n: Nation = nations[tag]
+	if provinces[pid].owner != tag or provinces[pid].controller != tag:
+		return "Rekrutierung nur in eigenen, unbesetzten Provinzen."
+	var cost: float = count * float(bal.regiment_cost)
+	if n.gold < cost:
+		return "Zu wenig Gold (%d benötigt)." % cost
+	if n.manpower < count:
+		return "Zu wenig Mannschaften."
+	if army_regs(tag) + count > force_limit(tag) + 0.01:
+		return "Truppenlimit erreicht (%d)." % int(force_limit(tag))
+	n.gold -= cost
+	n.manpower -= count
+	for a in armies_in(pid):
+		if a.owner == tag:
+			a.regs += count
+			a.full += count
+			return ""
+	spawn_army(tag, pid, count)
+	return ""
+
+
+func disband(army: Army, count: float) -> void:
+	army.regs -= count
+	army.full = maxf(army.regs, army.full - count)
+	if army.regs < 0.5:
+		armies.erase(army)
+
+
+func merge_armies(tag: String, pid: int) -> void:
+	var here := []
+	for a in armies_in(pid):
+		if a.owner == tag:
+			here.append(a)
+	for i in range(1, here.size()):
+		here[0].regs += here[i].regs
+		here[0].full += here[i].full
+		armies.erase(here[i])
+
+
+func split_army(army: Army) -> Army:
+	if army.regs < 2.0:
+		return null
+	var half: float = floor(army.regs / 2.0)
+	army.regs -= half
+	army.full = maxf(army.regs, army.full - half)
+	var b := spawn_army(army.owner, army.pid, half)
+	b.auto = army.auto
+	return b
+
+
+func move_army(army: Army, pid: int) -> String:
+	var path := find_path(army.owner, army.pid, pid)
+	if path.is_empty():
+		return "Kein Weg dorthin (kein Zugang)."
+	army.target = pid
+	army.path = path
+	return ""
+
+
+func improve_relations(tag: String, target: String) -> String:
+	var n: Nation = nations[tag]
+	var c := float(bal.improve_relation_cost)
+	if n.dip < c:
+		return "Zu wenig Diplomatie."
+	n.dip -= c
+	add_rel(tag, target, float(bal.improve_relation_amount))
+	return ""
+
+
+func propose_alliance(tag: String, target: String) -> String:
+	var n: Nation = nations[tag]
+	if is_allied(tag, target):
+		return "Bereits verbündet."
+	if at_war(tag, target):
+		return "Ihr seid im Krieg."
+	if n.allies.size() >= int(bal.max_allies):
+		return "Maximal %d Bündnisse." % int(bal.max_allies)
+	if n.dip < float(bal.alliance_cost):
+		return "Zu wenig Diplomatie."
+	n.dip -= float(bal.alliance_cost)
+	if target != player and not ai.accepts_alliance(self, target, tag):
+		return "%s lehnt ab (Beziehung %d)." % [nations[target].name, int(get_rel(tag, target))]
+	_ally(tag, target)
+	log_msg("🤝 Bündnis zwischen %s und %s." % [n.name, nations[target].name], [tag, target])
+	return ""
+
+
+func _ally(a: String, b: String) -> void:
+	if not nations[a].allies.has(b):
+		nations[a].allies.append(b)
+	if not nations[b].allies.has(a):
+		nations[b].allies.append(a)
+
+
+func break_alliance(tag: String, target: String) -> void:
+	nations[tag].allies.erase(target)
+	nations[target].allies.erase(tag)
+	add_rel(tag, target, -30.0)
+
+
+func fabricate_claim(tag: String, pid: int) -> String:
+	var n: Nation = nations[tag]
+	var p: Province = provinces[pid]
+	if p.owner == tag:
+		return "Bereits deine Provinz."
+	if n.claims.has(pid):
+		return "Anspruch besteht bereits."
+	var borders := false
+	for a in p.adj:
+		if provinces[a].owner == tag:
+			borders = true
+	if not borders:
+		return "Nur auf angrenzende Provinzen."
+	if n.dip < float(bal.claim_cost):
+		return "Zu wenig Diplomatie (%d)." % int(bal.claim_cost)
+	n.dip -= float(bal.claim_cost)
+	n.claims[pid] = true
+	add_rel(tag, p.owner, -10.0)
+	return ""
+
+
+# ---------------------------------------------------------------- effects, events, missions
+
+func apply_effects(tag: String, eff: Dictionary) -> void:
+	var n: Nation = nations[tag]
+	for k in eff:
+		var v = eff[k]
+		match k:
+			"gold":
+				n.gold += float(v)
+			"adm", "dip", "mil":
+				n.set(k, clampf(n.get(k) + float(v), 0.0, float(bal.power_cap)))
+			"ae":
+				n.ae = maxf(0.0, n.ae + float(v))
+			"prestige":
+				n.prestige += float(v)
+			"manpower":
+				n.manpower = maxf(0.0, n.manpower + float(v))
+			"regs":
+				if float(v) > 0:
+					var placed := false
+					for a in armies_in(n.capital):
+						if a.owner == tag and not placed:
+							a.regs += float(v)
+							a.full += float(v)
+							placed = true
+					if not placed:
+						spawn_army(tag, n.capital, float(v))
+			"dev_capital":
+				var p: Province = provinces[n.capital]
+				p.dev = clampi(p.dev + int(v), 1, int(bal.max_dev))
+			"dev_random":
+				var own := provinces_of(tag)
+				for i in absi(int(v)):
+					if own.is_empty():
+						break
+					var p: Province = provinces[own[rng.randi_range(0, own.size() - 1)]]
+					p.dev = clampi(p.dev + signi(int(v)), 1, int(bal.max_dev))
+			"relations":
+				for t in v:
+					if nations.has(t):
+						add_rel(tag, t, float(v[t]))
+			"claim":
+				for key in v:
+					var pid: int = key_to_pid.get(key, -1)
+					if pid >= 0 and provinces[pid].owner != tag:
+						n.claims[pid] = true
+			"flag":
+				n.flags[v] = true
+			"mods":
+				for m in v:
+					n.mods[m] = n.mods.get(m, 0.0) + float(v[m])
+			"ruler":
+				for m in v:
+					n.ruler[m] = clampi(int(n.ruler[m]) + int(v[m]), 0, 6)
+			"alliance":
+				if nations.has(v) and nations[v].alive and not at_war(tag, v):
+					_ally(tag, v)
+					add_rel(tag, v, 30.0)
+			"inherit":
+				_inherit(tag, v)
+			"province":
+				var pid: int = key_to_pid.get(v, -1)
+				if pid >= 0 and provinces[pid].owner != tag and not is_at_war(provinces[pid].owner):
+					var old: String = provinces[pid].owner
+					provinces[pid].owner = tag
+					provinces[pid].controller = tag
+					provinces[pid].core_months = int(bal.core_months)
+					_rebuild_owned()
+					_check_alive(old)
+			"war":
+				if nations.has(v) and nations[v].alive:
+					n.claims[nations[v].capital] = true
+					declare_war(tag, v)
+			"stability_unrest":
+				pass
+	_update_cached(n)
+
+
+## Personal-union style inheritance: `heir` takes over all of `tag`'s lands.
+func _inherit(heir: String, tag: String) -> void:
+	if not nations.has(tag) or not nations[tag].alive or at_war(heir, tag) or is_at_war(tag):
+		return
+	for pid in provinces_of(tag).duplicate():
+		var p: Province = provinces[pid]
+		p.owner = heir
+		p.controller = heir
+		p.core_months = int(bal.core_months) / 2
+	for a in armies:
+		if a.owner == tag:
+			a.owner = heir
+			a.auto = heir != player
+	_rebuild_owned()
+	log_msg("👑 %s erbt die Länder von %s!" % [nations[heir].name, nations[tag].name])
+	_check_alive(tag)
+
+
+func check_conditions(tag: String, c: Dictionary) -> bool:
+	var n: Nation = nations[tag]
+	var y := year()
+	for k in c:
+		var v = c[k]
+		match k:
+			"year_min":
+				if y < int(v):
+					return false
+			"year_max":
+				if y > int(v):
+					return false
+			"owns":
+				for key in v:
+					if provinces[key_to_pid[key]].owner != tag:
+						return false
+			"owns_any":
+				var any := false
+				for key in v:
+					if provinces[key_to_pid[key]].owner == tag:
+						any = true
+				if not any:
+					return false
+			"not_owns":
+				for key in v:
+					if provinces[key_to_pid[key]].owner == tag:
+						return false
+			"at_war":
+				if is_at_war(tag) != bool(v):
+					return false
+			"flag":
+				if not n.flags.has(v):
+					return false
+			"not_flag":
+				if n.flags.has(v):
+					return false
+			"min_dev":
+				if n.dev_total < int(v):
+					return false
+			"alive":
+				if not nations.has(v) or not nations[v].alive:
+					return false
+			"not_alive":
+				if nations.has(v) and nations[v].alive:
+					return false
+			"ae_min":
+				if n.ae < float(v):
+					return false
+			"gold_min":
+				if n.gold < float(v):
+					return false
+			"allied":
+				if not is_allied(tag, v):
+					return false
+			"tech":
+				for t in v:
+					if n.tech[t] < int(v[t]):
+						return false
+			"regs":
+				if army_regs(tag) < float(v):
+					return false
+			"allies":
+				if n.allies.size() < int(v):
+					return false
+			"at_peace":
+				if is_at_war(tag):
+					return false
+			"major":
+				if n.playable != bool(v):
+					return false
+	return true
+
+
+func _check_events(n: Nation) -> void:
+	if n.tag == player and pending_events.size() > 2:
+		return
+	var eligible := []
+	for e in event_defs:
+		var t: String = e.get("tag", "*")
+		if t != "*" and t != n.tag:
+			continue
+		if n.flags.has("ev_" + e.id) and e.get("once", true):
+			continue
+		if not check_conditions(n.tag, e.get("trigger", {})):
+			continue
+		eligible.append(e)
+	if eligible.is_empty():
+		return
+	# nation specific events take priority over generic ones
+	var specific := eligible.filter(func(e): return e.get("tag", "*") != "*")
+	var chance := float(bal.event_chance)
+	var pool: Array = eligible
+	if not specific.is_empty() and rng.randf() < 0.75:
+		pool = specific
+		chance = minf(1.0, chance * 1.6)
+	if rng.randf() > chance:
+		return
+	var e: Dictionary = pool[rng.randi_range(0, pool.size() - 1)]
+	n.flags["ev_" + e.id] = true
+	stats.events += 1
+	if n.tag == player:
+		pending_events.append(e.id)
+	else:
+		apply_effects(n.tag, e.options[ai.pick_event_option(self, n, e)].get("effects", {}))
+
+
+func choose_event_option(tag: String, event_id: String, idx: int) -> void:
+	pending_events.erase(event_id)
+	var e: Dictionary = event_by_id[event_id]
+	var opt: Dictionary = e.options[clampi(idx, 0, e.options.size() - 1)]
+	apply_effects(tag, opt.get("effects", {}))
+
+
+func available_missions(tag: String) -> Array:
+	var r := []
+	for m in mission_defs.get(tag, []):
+		if nations[tag].missions_done.has(m.id):
+			continue
+		var pre: String = m.get("after", "")
+		if pre != "" and not nations[tag].missions_done.has(pre):
+			continue
+		r.append(m)
+	return r
+
+
+func mission_ready(tag: String, m: Dictionary) -> bool:
+	return check_conditions(tag, m.get("require", {}))
+
+
+func complete_mission(tag: String, mission_id: String) -> String:
+	for m in available_missions(tag):
+		if m.id == mission_id:
+			if not mission_ready(tag, m):
+				return "Bedingungen nicht erfüllt."
+			nations[tag].missions_done[m.id] = true
+			apply_effects(tag, m.get("reward", {}))
+			stats.missions += 1
+			log_msg("🎯 Mission erfüllt: %s" % m.title, [tag])
+			return ""
+	return "Mission nicht verfügbar."
+
+
+# ---------------------------------------------------------------- save / load
+
+func to_dict() -> Dictionary:
+	var d := {"month": month, "player": player, "rng_state": str(rng.state), "rng_seed": str(rng.seed),
+			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
+			"pending_peace": pending_peace, "log": log_lines, "stats": stats, "game_over": game_over}
+	var ps := []
+	for p in provinces:
+		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort])
+	d.provinces = ps
+	var ns := {}
+	for tag in order:
+		var n: Nation = nations[tag]
+		var cl := []
+		for pid in n.claims:
+			cl.append(pid)
+		ns[tag] = {"alive": n.alive, "capital": n.capital, "gold": n.gold, "adm": n.adm, "dip": n.dip,
+				"mil": n.mil, "ae": n.ae, "prestige": n.prestige, "manpower": n.manpower, "tech": n.tech,
+				"ruler": n.ruler, "mods": n.mods, "relations": n.relations, "allies": n.allies,
+				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
+				"coalition": n.coalition}
+	d.nations = ns
+	var ar := []
+	for a in armies:
+		ar.append({"id": a.id, "owner": a.owner, "pid": a.pid, "regs": a.regs, "full": a.full,
+				"target": a.target, "auto": a.auto})
+	d.armies = ar
+	var ws := []
+	for w in wars:
+		ws.append({"id": w.id, "name": w.name, "attackers": w.attackers, "defenders": w.defenders,
+				"start": w.start, "battle_score": w.battle_score, "coalition": w.coalition, "goal": w.goal})
+	d.wars = ws
+	return d
+
+
+func from_dict(d: Dictionary) -> void:
+	month = int(d.month)
+	player = d.player
+	rng.seed = int(d.rng_seed)
+	rng.state = int(d.rng_state)
+	next_army_id = int(d.next_army_id)
+	next_war_id = int(d.next_war_id)
+	pending_events = d.pending_events
+	pending_peace = []
+	for o in d.pending_peace:
+		var pids := []
+		for x in o.pids:
+			pids.append(int(x))
+		pending_peace.append({"war": int(o.war), "from": o.from, "pids": pids, "from_receives": o.get("from_receives", true)})
+	log_lines = d.log
+	game_over = d.get("game_over", false)
+	for k in d.stats:
+		stats[k] = d.stats[k]
+	for i in provinces.size():
+		var e: Array = d.provinces[i]
+		var p: Province = provinces[i]
+		p.owner = e[0]
+		p.controller = e[1]
+		p.dev = int(e[2])
+		p.core_months = int(e[3])
+		p.siege = float(e[4])
+		p.fort = int(e[5])
+	for tag in d.nations:
+		var e: Dictionary = d.nations[tag]
+		var n: Nation = nations[tag]
+		n.alive = e.alive
+		n.capital = int(e.capital)
+		for k in ["gold", "adm", "dip", "mil", "ae", "prestige", "manpower"]:
+			n.set(k, float(e[k]))
+		for k in e.tech:
+			n.tech[k] = int(e.tech[k])
+		n.ruler = {}
+		for k in e.ruler:
+			n.ruler[k] = int(e.ruler[k])
+		n.mods = e.mods
+		n.relations = e.relations
+		n.allies = e.allies
+		n.truces = {}
+		for k in e.truces:
+			n.truces[k] = int(e.truces[k])
+		n.claims = {}
+		for pid in e.claims:
+			n.claims[int(pid)] = true
+		n.flags = e.flags
+		n.missions_done = e.missions_done
+		n.coalition = e.coalition
+	armies.clear()
+	for e in d.armies:
+		var a := Army.new()
+		a.id = int(e.id)
+		a.owner = e.owner
+		a.pid = int(e.pid)
+		a.regs = float(e.regs)
+		a.full = float(e.full)
+		a.target = int(e.target)
+		a.auto = e.auto
+		armies.append(a)
+	wars.clear()
+	for e in d.wars:
+		var w := War.new()
+		w.id = int(e.id)
+		w.name = e.name
+		w.attackers = e.attackers
+		w.defenders = e.defenders
+		w.start = int(e.start)
+		w.battle_score = float(e.battle_score)
+		w.coalition = e.coalition
+		w.goal = int(e.goal)
+		wars.append(w)
+	_rebuild_owned()
+	for tag in order:
+		_update_cached(nations[tag])
