@@ -29,6 +29,13 @@ func _spend_power(g, n) -> void:
 		var best := _cheapest_province(g, n.tag)
 		if best >= 0:
 			g.develop(n.tag, best)
+	# keep the realm calm: suppress provinces about to revolt, calm the people when exhausted
+	var thr: float = float(g.bal.revolt_threshold)
+	for pid in g.provinces_of(n.tag):
+		if g.provinces[pid].suppress_months == 0 and g.unrest(pid) >= thr and n.mil >= g.suppress_cost(pid) + 20.0:
+			g.suppress_unrest(n.tag, pid)
+	if n.we >= 6.0 and n.dip >= float(g.bal.we_reduce_cost) + 40.0:
+		g.reduce_we(n.tag)
 	# integrate vassals diplomatically once allowed (peace time only)
 	for v in g.vassals_of(n.tag):
 		# rare decision (about ai_annex_chance per year) so vassals often outlive their waiting period
@@ -161,6 +168,8 @@ func _consider_war(g, n) -> void:
 	var tag: String = n.tag
 	var ae_cap: float = float(g.bal.ae_coalition_threshold) * float(g.bal.ai_ae_limit)
 	if (n.ae > ae_cap and not n.flags.has("bot_ignore_ae")) or n.gold < 0.0 or n.overlord != "":
+		return
+	if n.we > float(g.bal.we_max) * 0.4:
 		return
 	if n.adm < float(g.bal.core_cost_per_dev) * 8.0:
 		return

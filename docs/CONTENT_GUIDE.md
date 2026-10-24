@@ -39,7 +39,7 @@ fehlt ein Effekt oder eine Bedingung, bitte im Feature-Thread anfragen.
 `regs`, `major` (nur die 7 Großmächte).
 
 ## Effekte (`effects`, `reward`)
-`gold`, `adm`, `dip`, `mil`, `ae`, `prestige`, `manpower`, `regs`, `dev_capital`, `dev_random` (±n),
+`gold`, `adm`, `dip`, `mil`, `ae`, `we` (Kriegsmüdigkeit ±, 0–20), `prestige`, `manpower`, `regs`, `dev_capital`, `dev_random` (±n),
 `relations` {TAG: x}, `claim` [keys], `flag` "name", `mods` {income, combat, manpower, adm, dip, mil, ae_decay},
 `ruler` {adm, dip, mil}, `alliance` TAG, `inherit` TAG (schluckt TAG komplett, nie den Spieler), `vassal` TAG
 (macht einen freien Kleinstaat zum Vasallen), `province` key, `war` TAG.

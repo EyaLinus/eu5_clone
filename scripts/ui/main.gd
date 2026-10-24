@@ -10,6 +10,12 @@ const SAVE_PATH := "user://save.json"
 const SETTINGS_PATH := "user://settings.json"
 const UI_SCALES := [0.85, 1.0, 1.2, 1.4]
 const SPEEDS := [0.0, 1.2, 0.6, 0.3, 0.12, 0.04]
+const HUD_TIPS := {
+	"nation": "Deine Nation (antippen für Details)", "gold": "Gold (Monatsbilanz inkl. Tribut)",
+	"adm": "Verwaltung: Technologie, Entwickeln, Integration", "dip": "Diplomatie: Bündnisse, Ansprüche, Annexion",
+	"mil": "Militär: Technologie, Unruhe unterdrücken", "manpower": "Mannschaften für neue Regimenter",
+	"army": "Regimenter / Truppenlimit", "ae": "Aggressive Expansion: ab der Koalitionsgrenze drohen Koalitionen",
+}
 const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP"]
 
 var data: Dictionary
@@ -23,6 +29,8 @@ var peace_selection := {}
 var last_log_count := 0
 var known_wars := {}
 var known_coalition := 0
+var last_speed := 2
+var tab_badges := {}
 
 var map: MapView
 var top_labels := {}
@@ -150,6 +158,7 @@ func _build_hud() -> void:
 			hb.add_child(_icon_rect(tex, 32))
 		var l := Label.new()
 		l.mouse_filter = Control.MOUSE_FILTER_STOP
+		l.tooltip_text = HUD_TIPS.get(k, "")
 		hb.add_child(l)
 		top_labels[k] = l
 	top_labels.nation.gui_input.connect(func(e): if _is_click(e): _open_panel("nation"))
@@ -172,7 +181,17 @@ func _build_hud() -> void:
 	for e in [["nation", "Nation"], ["diplomacy", "Diplomatie"], ["wars", "Kriege"],
 			["missions", "Missionen"], ["log", "Chronik"], ["mapmode", "Kartenmodus"]]:
 		var cb: Callable = _cycle_map_mode if e[0] == "mapmode" else _open_panel.bind(e[0])
-		left.add_child(_tab_button("tab_" + e[0], cb, e[1]))
+		var tb := _tab_button("tab_" + e[0], cb, e[1])
+		var badge := Label.new()
+		badge.text = "●"
+		badge.add_theme_color_override("font_color", Color(1.0, 0.75, 0.2))
+		badge.add_theme_font_size_override("font_size", 18)
+		badge.position = Vector2(42, -6)
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge.visible = false
+		tb.add_child(badge)
+		tab_badges[e[0]] = badge
+		left.add_child(tb)
 
 	var zoom := VBoxContainer.new()
 	zoom.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -342,9 +361,9 @@ func nname(tag: String) -> String:
 
 
 ## Button for a nation: pixel flag as icon when available, emoji otherwise.
-func _nation_btn(tag: String, extra: String, cb: Callable) -> Button:
+func _nation_btn(tag: String, extra: String, cb: Callable, pre: String = "") -> Button:
 	var flag := Icons.flag(tag)
-	var b := _btn((game.nations[tag].name if flag != null else nname(tag)) + extra, cb)
+	var b := _btn(pre + (game.nations[tag].name if flag != null else nname(tag)) + extra, cb)
 	if flag != null:
 		b.icon = flag
 	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -422,7 +441,7 @@ func _show_intro() -> void:
 	_open_modal()
 	modal_box.add_child(_lbl("%s %s, %s" % [n.emoji, n.name, game.date_string()], 30))
 	modal_box.add_child(_lbl(n.idea, 18, Color(0.8, 0.85, 0.7)))
-	modal_box.add_child(_lbl("So spielst du:\n• Zeit läuft mit ▶/➕ oben rechts, ⏸ pausiert.\n• Tippe auf eine Provinz für Infos und Aktionen (Entwickeln, Rekrutieren, Krieg).\n• Tippe auf eine Armee (Kreis mit Zahl) und dann auf ein Ziel, um sie zu bewegen. 🤖 lässt sie automatisch kämpfen.\n• 📜 Admin, 🕊️ Diplomatie und ⚔️ Militär sammeln sich monatlich: für Technologie, Entwicklung, Bündnisse und Kriegsgründe.\n• 😠 Aggressive Expansion steigt bei Eroberungen. Ab %d bilden Nachbarn Koalitionen gegen dich." % int(game.bal.ae_coalition_threshold), 17))
+	modal_box.add_child(_lbl("So spielst du:\n• Zeit läuft mit ▶/➕ oben rechts, ⏸ pausiert.\n• Tippe auf eine Provinz für Infos und Aktionen (Entwickeln, Rekrutieren, Krieg).\n• Tippe auf eine Armee (Kreis mit Zahl) und dann auf ein Ziel, um sie zu bewegen. 🤖 lässt sie automatisch kämpfen.\n• 📜 Admin, 🕊️ Diplomatie und ⚔️ Militär sammeln sich monatlich: für Technologie, Entwicklung, Bündnisse und Kriegsgründe.\n• 😠 Aggressive Expansion steigt bei Eroberungen. Ab %d bilden Nachbarn Koalitionen gegen dich.\n• ✊ Frisch eroberte Provinzen sind unruhig, Kriegsmüdigkeit verstärkt das. Garnisonen und Unterdrückung helfen.\n• Am PC: Leertaste = Pause, 1–5 = Tempo, Esc = Panel schließen." % int(game.bal.ae_coalition_threshold), 17))
 	modal_box.add_child(_btn("Los geht's ▶", func(): _close_modal(); _set_speed(2)))
 
 
@@ -478,6 +497,8 @@ func _cycle_map_mode() -> void:
 		legend = " (🟩 du, 🟦 Verbündete, 🟥 Feinde, 🟧 Ansprüche, 🟪 Koalition)"
 	elif map.map_mode == 2:
 		legend = " (dunkel = arm, gelb = reich)"
+	elif map.map_mode == 3:
+		legend = " (eigene Provinzen: grün = ruhig, rot = Aufstand droht)"
 	_toast("🗺️ Kartenmodus: " + map.MODE_NAMES[map.map_mode] + legend)
 
 
@@ -540,6 +561,64 @@ func _update_top() -> void:
 	top_labels.gold.add_theme_color_override("font_color", Color.TOMATO if n.gold < 0 else Color.WHITE)
 	top_labels.date.text = Icons.prefix("date") + game.date_string()
 	speed_label.text = "⏸" if speed == 0 else "▶".repeat(speed)
+	_update_badges()
+
+
+## Small dots on the left tabs when something can be done there.
+func _update_badges() -> void:
+	if tab_badges.is_empty():
+		return
+	var me: String = game.player
+	var n = game.nations[me]
+	var tech := false
+	for k in game.POWERS:
+		if n.get(k) >= game.tech_cost(me, k):
+			tech = true
+	var unrest := false
+	for pid in game.provinces_of(me):
+		if game.unrest(pid) >= float(game.bal.revolt_threshold) and game.provinces[pid].suppress_months == 0:
+			unrest = true
+			break
+	tab_badges.nation.visible = tech or unrest
+	var mission := false
+	for m in game.available_missions(me):
+		if game.mission_ready(me, m):
+			mission = true
+	tab_badges.missions.visible = mission
+	var annex := false
+	for v in game.vassals_of(me):
+		if game.annex_months_left(v) == 0:
+			annex = true
+	tab_badges.diplomacy.visible = annex
+	var peace := false
+	for w in game.wars_of(me):
+		var att: bool = game.is_attacker(w, me)
+		if game.side_tags(w, att)[0] == me and game.warscore(w) * (1.0 if att else -1.0) >= 25.0:
+			peace = true
+	tab_badges.wars.visible = peace
+
+
+## Desktop shortcuts: Space pauses/resumes, 1-5 set the speed, Esc closes panels.
+func _unhandled_input(event: InputEvent) -> void:
+	if game == null or not (event is InputEventKey) or not event.pressed or event.echo:
+		return
+	var k: int = event.keycode
+	if k == KEY_SPACE and not modal.visible:
+		if speed == 0:
+			_set_speed(last_speed)
+		else:
+			last_speed = speed
+			_set_speed(0)
+	elif k >= KEY_1 and k <= KEY_5 and not modal.visible:
+		_set_speed(k - KEY_0)
+	elif k == KEY_ESCAPE:
+		if side_panel.visible:
+			_close_panel()
+		elif not modal.visible:
+			_show_menu()
+	else:
+		return
+	get_viewport().set_input_as_handled()
 
 
 func _notification(what: int) -> void:
@@ -712,6 +791,8 @@ func _refresh() -> void:
 			_panel_missions()
 		"log":
 			_panel_log()
+		"ranking":
+			_panel_ranking()
 	side_scroll.set_deferred("scroll_vertical", scroll)
 
 
@@ -763,8 +844,24 @@ func _panel_province(pid: int) -> void:
 		info += "\n🔥 Belagerung: %d%%" % int(p.siege)
 	if n.claims.has(pid):
 		info += "\n📜 Du hast einen Anspruch (Kriegsgrund)"
+	if p.owner == me:
+		var u: Dictionary = game.unrest_parts(pid)
+		var why := []
+		if u.uncored > 0:
+			why.append("nicht integriert +%.0f" % u.uncored)
+		if u.war > 0.05:
+			why.append("Kriegsmüdigkeit +%.1f" % u.war)
+		if u.garrison < 0:
+			why.append("Garnison %.0f" % u.garrison)
+		if u.suppressed < 0:
+			why.append("unterdrückt %.0f (%d Mon.)" % [u.suppressed, p.suppress_months])
+		info += "\n✊ Unruhe %.1f / %d%s" % [u.total, int(game.bal.revolt_threshold), (" (" + ", ".join(why) + ")") if not why.is_empty() else ""]
+		if p.prev_owner != "" and p.core_months > 0 and game.nations[p.prev_owner].alive:
+			info += "\n⚠️ Bei einem Aufstand fällt die Provinz an %s zurück." % game.nations[p.prev_owner].name
 	side_box.add_child(_lbl(info))
 	if p.owner == me:
+		if game.unrest(pid) > 0.0 and p.suppress_months == 0:
+			side_box.add_child(_btn("✊ Unruhe unterdrücken (%d ⚔️)" % int(game.suppress_cost(pid)), func(): _act(game.suppress_unrest(me, pid), "✊ Ruhe wiederhergestellt")))
 		side_box.add_child(_btn("📜 Entwickeln (%d Admin)" % game.develop_cost(pid), func(): _act(game.develop(me, pid), "🏘️ Entwicklung erhöht")))
 		side_box.add_child(_btn("💰 Bauen (%d Gold)" % game.build_cost(pid), func(): _act(game.build(me, pid), "🏗️ Gebaut")))
 		var c := int(game.bal.regiment_cost)
@@ -819,6 +916,9 @@ func _panel_nation() -> void:
 	side_box.add_child(_lbl("Monatlich: 📜+%.0f 🕊️+%.0f ⚔️+%.0f" % [game.monthly_power(n, "adm"), game.monthly_power(n, "dip"), game.monthly_power(n, "mil")]))
 	side_box.add_child(_lbl("💰 Einnahmen %.1f · Ausgaben %.1f\n🏘️ Entwicklung %d · %d Provinzen\n🛡️ Truppenlimit %.0f · 👥 %.0f/%.0f\n⭐ Prestige %d · 🏆 Punkte %d" % [
 			n.income, n.expenses, n.dev_total, game.provinces_of(me).size(), game.force_limit(me), n.manpower, n.max_manpower, n.prestige, game.score(me)]))
+	side_box.add_child(_lbl("😩 Kriegsmüdigkeit %.1f / %d (erhöht Unruhe, Gegner nehmen Frieden leichter an)" % [n.we, int(game.bal.we_max)], 16))
+	if n.we >= 0.5:
+		side_box.add_child(_btn("🕊️ Volk beruhigen: −2 Kriegsmüdigkeit (%d 🕊️)" % int(game.bal.we_reduce_cost), func(): _act(game.reduce_we(me), "🕊️ Das Volk ist beruhigt")))
 	var vs: Array = game.vassals_of(me)
 	if not vs.is_empty():
 		side_box.add_child(_lbl(Icons.prefix("vassal") + "Vasallen (Tribut %+.1f 💰/Monat)" % game.tribute_income(me), 22))
@@ -840,6 +940,7 @@ func _panel_nation() -> void:
 func _panel_diplomacy() -> void:
 	var me: String = game.player
 	side_title.text = "🤝 Diplomatie"
+	side_box.add_child(_btn("🏆 Rangliste der Mächte", _open_panel.bind("ranking")))
 	var groups := [["Vasallen", []], ["Verbündete", []], ["Feinde", []], ["Nachbarn", []], ["Andere", []]]
 	var nbs: Array = game.neighbors_of(me)
 	for tag in game.order:
@@ -1064,6 +1165,28 @@ func _panel_missions() -> void:
 		side_box.add_child(_btn("🎯 Abschließen", func(): _act(game.complete_mission(me, m.id), "🎯 Mission erfüllt!"), "", not ready))
 
 
+func _panel_ranking() -> void:
+	side_title.text = "🏆 Rangliste"
+	var tags := []
+	for t in game.order:
+		if game.nations[t].alive:
+			tags.append(t)
+	tags.sort_custom(func(a, b): return game.score(a) > game.score(b))
+	for i in mini(20, tags.size()):
+		var t: String = tags[i]
+		var o = game.nations[t]
+		var txt := "  🏘️%d  🛡️%.0f" % [o.dev_total, game.army_regs(t)]
+		if o.overlord != "":
+			txt += "  ⛓️"
+		var b := _nation_btn(t, txt, _open_panel.bind("other", t) if t != game.player else _open_panel.bind("nation"), "%d. " % (i + 1))
+		if t == game.player:
+			b.modulate = Color(1.0, 0.95, 0.6)
+		side_box.add_child(b)
+	var mine: int = tags.find(game.player)
+	if mine >= 20:
+		side_box.add_child(_lbl("Du: Platz %d" % (mine + 1), 16))
+
+
 func _panel_log() -> void:
 	side_title.text = "📜 Chronik"
 	var lines: Array = game.log_lines.duplicate()
@@ -1107,6 +1230,8 @@ func effects_text(e: Dictionary) -> String:
 			parts.append("🤝 Bündnis mit " + game.nations[v].name)
 		elif k == "inherit":
 			parts.append("👑 Erbe: " + game.nations[v].name)
+		elif k == "we":
+			parts.append("😩 Kriegsmüdigkeit %+.0f" % float(v))
 		elif k == "vassal":
 			parts.append("⛓️ Vasall: " + game.nations[v].name)
 		elif k == "province":

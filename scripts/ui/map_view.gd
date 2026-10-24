@@ -22,7 +22,7 @@ var selected_army := -1
 var font: Font
 ## 0 = political, 1 = diplomatic (player view), 2 = development
 var map_mode := 0
-const MODE_NAMES := ["Politisch", "Diplomatisch", "Entwicklung"]
+const MODE_NAMES := ["Politisch", "Diplomatisch", "Entwicklung", "Unruhe"]
 
 var _touches := {}
 var _pinch_dist := 0.0
@@ -165,6 +165,11 @@ func province_color(p) -> Color:
 		2:
 			var t := clampf((p.dev - 3.0) / 22.0, 0.0, 1.0)
 			return Color("2d1b4e").lerp(Color("f4d35e"), t)
+		3:
+			if p.owner != game.player:
+				return Color("4a4a44")
+			var u := clampf(game.unrest(p.id) / float(game.bal.revolt_threshold), 0.0, 1.0)
+			return Color("3a9d4a").lerp(Color("d03a2a"), u)
 	var c: Color = game.nations[p.owner].color
 	if p.owner == game.player:
 		c = c.lightened(0.1)

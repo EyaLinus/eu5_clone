@@ -27,7 +27,7 @@ Kein `class_name`: alles wird per `preload()` verbunden, damit Headless-Skripte 
 ## Bedingungen und Effekte (Events/Missionen)
 Bedingungen (`Game.check_conditions`): `year_min/max, owns, owns_any, not_owns, at_war, at_peace, flag, not_flag,
 min_dev, alive, not_alive, ae_min, gold_min, allied, allies, tech{adm,dip,mil}, regs, major`.
-Effekte (`Game.apply_effects`): `gold, adm, dip, mil, ae, prestige, manpower, regs, dev_capital, dev_random,
+Effekte (`Game.apply_effects`): `gold, adm, dip, mil, ae, we, prestige, manpower, regs, dev_capital, dev_random,
 relations{TAG:x}, claim[keys], flag, mods{income,combat,manpower,adm,dip,mil,ae_decay}, ruler{adm,dip,mil},
 alliance, inherit, vassal, province, war`. Neue Schlüssel immer in beiden UI-Textfunktionen
 (`effects_text`, `conditions_text` in `main.gd`) und in `test_data_references` ergänzen.
@@ -49,6 +49,12 @@ alliance, inherit, vassal, province, war`. Neue Schlüssel immer in beiden UI-Te
   zahlen `vassal_tribute` ihres Einkommens, ziehen mit dem Lehnsherrn in Angriffskriege (`_subject_bloc`) und
   werden von ihm verteidigt (`defenders_for`). Nach `vassal_annex_years` diplomatische Annexion
   (`annex_vassal`: Dip + Admin + etwas AE). Stirbt der Lehnsherr, werden Vasallen frei. Der Spieler wird nie Vasall.
+  Starke oder verfeindete Vasallen (`liberty` ≥ `vassal_liberty_threshold`) sagen sich jährlich mit 25 % los.
+- Kriegsmüdigkeit `Nation.we` (v0.4): steigt im Krieg und bei verlorenen Schlachten, sinkt im Frieden. Sie macht
+  KI-Gegner friedensbereiter (`offer_peace`, `we_peace_factor`) und erhöht Unruhe.
+- Unruhe (`unrest_parts`): nicht integriert + Kriegsmüdigkeit − Garnison − Unterdrückung. Ab `revolt_threshold`
+  monatliche Aufstandschance (`_revolt`): Eine nicht integrierte Provinz fällt an `Province.prev_owner` zurück, wenn
+  dieser lebt und angrenzt, sonst Plünderung (−1 Entwicklung, Gold) und 2 Jahre Ruhe.
 
 ## Werkzeuge
 - `tools/sim.gd` Batch-Simulation, `tools/metrics.gd` Kennzahlen, `tools/trace.gd` 20-Jahres-Verlauf einer Partie.

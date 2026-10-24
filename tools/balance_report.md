@@ -6,21 +6,21 @@ Targets: eliminated 15–26, top_share 0.1–0.22, major_survival 0.8–1.0, coa
 
 ## Iteration 0 (32 runs) ✅ in range
 
-- eliminated: 24.438
-- top_share: 0.156
-- max_top_share: 0.196
-- major_survival: 0.911
-- coalition_wars: 4.875
-- wars: 62.094
-- timeout_share: 0.066
-- bankrupt_months: 1179.219
-- battles: 1081.344
-- events: 2089.719
-- missions: 23.562
-- vassalized: 25.062
-- annexed: 19.812
-- provinces_changed: 23.594
-- major_dev: {'FRA': 512.7, 'ENG': 512.3, 'SPA': 516.2, 'BOH': 108.8, 'HAB': 479.8, 'RUS': 271.8, 'NAP': 166.8}
-- major_alive: {'FRA': 1.0, 'ENG': 1.0, 'SPA': 1.0, 'BOH': 0.38, 'HAB': 1.0, 'RUS': 1.0, 'NAP': 1.0}
-- top_tags: {'FRA': 12, 'HAB': 5, 'SPA': 10, 'ENG': 5}
+- eliminated: 23.062
+- top_share: 0.166
+- max_top_share: 0.216
+- major_survival: 0.929
+- coalition_wars: 5.656
+- wars: 68.062
+- timeout_share: 0.051
+- bankrupt_months: 1388.844
+- battles: 1068.094
+- events: 2136.812
+- missions: 22.125
+- vassalized: 28.625
+- annexed: 18.719
+- provinces_changed: 26.219
+- major_dev: {'FRA': 486.2, 'ENG': 503.9, 'SPA': 466.7, 'BOH': 144.9, 'HAB': 476.8, 'RUS': 272.9, 'NAP': 149.8}
+- major_alive: {'FRA': 1.0, 'ENG': 1.0, 'SPA': 1.0, 'BOH': 0.5, 'HAB': 1.0, 'RUS': 1.0, 'NAP': 1.0}
+- top_tags: {'FRA': 12, 'SPA': 9, 'HAB': 8, 'ENG': 3}
 

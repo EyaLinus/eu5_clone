@@ -69,5 +69,18 @@
   "ai_vassal_max_provinces": 2,
   "annex_ae_mult": 0.4,
   "annex_adm_mult": 1.0,
-  "ai_annex_chance": 0.08
+  "ai_annex_chance": 0.08,
+  "we_monthly": 0.06,
+  "we_decay": 0.1,
+  "we_max": 20.0,
+  "we_per_reg_lost": 0.3,
+  "we_peace_factor": 1.5,
+  "we_reduce_cost": 30.0,
+  "unrest_uncored": 3.0,
+  "unrest_per_we": 0.4,
+  "unrest_garrison": 2.0,
+  "unrest_suppress": 5.0,
+  "revolt_threshold": 5.0,
+  "revolt_chance": 0.01,
+  "vassal_liberty_threshold": 1.0
 }

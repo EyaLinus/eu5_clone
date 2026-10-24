@@ -20,6 +20,8 @@ class Province:
 	var core_months: int = 0
 	var siege: float = 0.0
 	var fort: int = 0
+	var prev_owner: String = ""  # conquered from; an unruly uncored province may defect back
+	var suppress_months: int = 0
 
 
 class Nation:
@@ -54,6 +56,7 @@ class Nation:
 	var coalition: Array = []
 	var overlord: String = ""
 	var vassal_since: int = 0
+	var we: float = 0.0  # war exhaustion 0..we_max
 	# cached per month
 	var dev_total: int = 0
 	var income: float = 0.0
@@ -104,7 +107,8 @@ var next_army_id: int = 1
 var next_war_id: int = 1
 var game_over: bool = false
 var stats := {"wars": 0, "battles": 0, "peace_deals": 0, "provinces_changed": 0, "coalition_wars": 0,
-		"events": 0, "missions": 0, "eliminated": 0, "white_peace": 0, "timeouts": 0, "bankrupt_months": 0}
+		"events": 0, "missions": 0, "eliminated": 0, "white_peace": 0, "timeouts": 0, "bankrupt_months": 0,
+		"revolts": 0, "defections": 0, "independence": 0}
 var ai
 var hre: Array = []
 var emperor: String = ""
@@ -494,8 +498,11 @@ func _economy(n: Nation) -> void:
 		inc += v
 	n.income = inc * (1.0 + n.tech.adm * float(bal.adm_tech_income) + n.mods.income)
 	var maint: float = army_regs(n.tag) * float(bal.regiment_maintenance)
-	if not is_at_war(n.tag):
+	var war := is_at_war(n.tag)
+	if not war:
 		maint *= float(bal.peace_maintenance_mult)
+	n.we = clampf(n.we + (float(bal.we_monthly) if war else -float(bal.we_decay)), 0.0, float(bal.we_max))
+	_unrest_tick(n)
 	n.expenses = maint
 	if n.overlord != "":
 		var tribute: float = maxf(0.0, n.income * float(bal.vassal_tribute))
@@ -528,6 +535,108 @@ func _economy(n: Nation) -> void:
 			n.gold = -100.0
 
 
+## Province unrest: uncored land and war exhaustion raise it, a garrison or suppression lowers it.
+func unrest(pid: int) -> float:
+	return unrest_parts(pid).total
+
+
+func unrest_parts(pid: int) -> Dictionary:
+	var p: Province = provinces[pid]
+	var n: Nation = nations[p.owner]
+	var r := {"uncored": 0.0, "war": n.we * float(bal.unrest_per_we), "garrison": 0.0, "suppressed": 0.0}
+	if p.core_months > 0:
+		r.uncored = float(bal.unrest_uncored)
+	for a in armies:
+		if a.pid == pid and a.owner == p.owner:
+			r.garrison = -float(bal.unrest_garrison)
+			break
+	if p.suppress_months > 0:
+		r.suppressed = -float(bal.unrest_suppress)
+	r.total = maxf(0.0, r.uncored + r.war + r.garrison + r.suppressed)
+	return r
+
+
+func _unrest_tick(n: Nation) -> void:
+	var thr := float(bal.revolt_threshold)
+	for pid in provinces_of(n.tag).duplicate():
+		var p: Province = provinces[pid]
+		if p.suppress_months > 0:
+			p.suppress_months -= 1
+		if p.controller != n.tag:
+			continue
+		var u := unrest(pid)
+		if u < thr or rng.randf() > (u - thr + 1.0) * float(bal.revolt_chance):
+			continue
+		_revolt(p)
+
+
+func _revolt(p: Province) -> void:
+	var owner: String = p.owner
+	var back: String = p.prev_owner
+	var can_defect: bool = back != "" and nations.has(back) and nations[back].alive and back != owner \
+			and p.core_months > 0 and not at_war(owner, back) and nations[owner].overlord != back
+	if can_defect:
+		var borders := false
+		for a in p.adj:
+			if provinces[a].owner == back:
+				borders = true
+		can_defect = borders
+	if can_defect:
+		p.owner = back
+		p.controller = back
+		p.prev_owner = ""
+		p.core_months = 0
+		p.siege = 0.0
+		stats.defections += 1
+		_rebuild_owned()
+		add_rel(owner, back, -20.0)
+		for a in armies:
+			if a.owner == owner and a.pid == p.id:
+				a.pid = nations[owner].capital
+		log_msg("🔥 %s erhebt sich gegen %s und kehrt zu %s zurück!" % [p.name, nations[owner].name, nations[back].name], [owner, back])
+		_check_alive(owner)
+		if not nations[owner].alive:
+			stats.died_revolt = stats.get("died_revolt", 0) + 1
+		return
+	stats.revolts += 1
+	p.dev = maxi(1, p.dev - 1)
+	nations[owner].gold -= p.dev * 2.0
+	p.suppress_months = 24
+	log_msg("🔥 Aufstand in %s! Plünderungen kosten Entwicklung und Gold." % p.name, [owner])
+
+
+## Player/AI action: troops restore order for two years.
+func suppress_cost(pid: int) -> float:
+	return 10.0 + provinces[pid].dev * 2.0
+
+
+func suppress_unrest(tag: String, pid: int) -> String:
+	var p: Province = provinces[pid]
+	if p.owner != tag:
+		return "Nicht deine Provinz."
+	if p.suppress_months > 0:
+		return "Bereits unterdrückt."
+	var c := suppress_cost(pid)
+	if nations[tag].mil < c:
+		return "Zu wenig Militär (%d)." % int(c)
+	nations[tag].mil -= c
+	p.suppress_months = 24
+	return ""
+
+
+## Diplomatic effort to calm the people: lowers war exhaustion.
+func reduce_we(tag: String) -> String:
+	var n: Nation = nations[tag]
+	var c := float(bal.we_reduce_cost)
+	if n.we < 0.5:
+		return "Keine Kriegsmüdigkeit."
+	if n.dip < c:
+		return "Zu wenig Diplomatie (%d)." % int(c)
+	n.dip -= c
+	n.we = maxf(0.0, n.we - 2.0)
+	return ""
+
+
 func _yearly() -> void:
 	for tag in order:
 		var n: Nation = nations[tag]
@@ -544,6 +653,32 @@ func _yearly() -> void:
 				if mission_ready(tag, m):
 					complete_mission(tag, m.id)
 	_coalitions_yearly()
+	_liberty_yearly()
+
+
+## Vassals that grow strong (or hate their overlord) break free.
+func liberty(tag: String) -> float:
+	var v: Nation = nations[tag]
+	if v.overlord == "":
+		return 0.0
+	var l := strength(tag) / maxf(strength(v.overlord), 1.0)
+	l += float(v.dev_total) / maxf(float(nations[v.overlord].dev_total), 1.0)
+	if get_rel(tag, v.overlord) < 0.0:
+		l += 0.3
+	return l
+
+
+func _liberty_yearly() -> void:
+	for tag in order:
+		var v: Nation = nations[tag]
+		if not v.alive or v.overlord == "" or is_at_war(tag):
+			continue
+		if liberty(tag) >= float(bal.vassal_liberty_threshold) and rng.randf() < 0.25:
+			var lord: String = v.overlord
+			v.overlord = ""
+			add_rel(tag, lord, -40.0)
+			stats.independence += 1
+			log_msg("🗽 %s sagt sich von %s los und ist wieder unabhängig!" % [v.name, nations[lord].name], [tag, lord])
 
 
 # ---------------------------------------------------------------- armies
@@ -647,6 +782,9 @@ func _battle(war: War, att: Array, def: Array, pid: int) -> void:
 	for a in lose:
 		lost += a.regs * lose_frac
 		a.regs *= 1.0 - lose_frac
+	for a in lose:
+		var ln: Nation = nations[a.owner]
+		ln.we = minf(float(bal.we_max), ln.we + lost * float(bal.we_per_reg_lost) / lose.size())
 	var ws: float = lost * float(bal.battle_ws_per_reg)
 	var cap := float(bal.battle_ws_cap)
 	war.battle_score = clampf(war.battle_score + (ws if att_wins else -ws), -cap, cap)
@@ -970,6 +1108,7 @@ func make_peace(w: War, winner_att: bool, pids: Array, vassalize: bool = false) 
 		var old := p.owner
 		p.owner = to
 		p.controller = to
+		p.prev_owner = old
 		p.core_months = int(bal.core_months)
 		p.siege = 0.0
 		if nations[old].capital == pid:
@@ -1084,6 +1223,7 @@ func annex_vassal(lord: String, tag: String) -> String:
 		var p: Province = provinces[pid]
 		p.owner = lord
 		p.controller = lord
+		p.prev_owner = ""
 		p.core_months = int(bal.core_months)
 		l.claims.erase(pid)
 	_rebuild_owned()
@@ -1152,7 +1292,9 @@ func offer_peace(from: String, w: War, pids: Array, from_receives: bool = true, 
 				return false
 		pending_peace.append({"war": w.id, "from": from, "pids": pids, "from_receives": from_receives, "vassal": vassalize})
 		return false
-	if ai.accepts_peace(self, w, pids, ws, from_receives, vassal_cost(w, from_att) if vassalize else 0.0):
+	# an exhausted receiver gives in sooner
+	var ws_eff: float = ws + nations[other].we * float(bal.we_peace_factor) * (1.0 if from_receives else -1.0)
+	if ai.accepts_peace(self, w, pids, ws_eff, from_receives, vassal_cost(w, from_att) if vassalize else 0.0):
 		make_peace(w, from_att == from_receives, pids, vassalize)
 		return true
 	return false
@@ -1409,6 +1551,8 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 				n.set(k, clampf(n.get(k) + float(v), 0.0, float(bal.power_cap)))
 			"ae":
 				n.ae = maxf(0.0, n.ae + float(v))
+			"we":
+				n.we = clampf(n.we + float(v), 0.0, float(bal.we_max))
 			"prestige":
 				n.prestige += float(v)
 			"manpower":
@@ -1460,6 +1604,7 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 				var pid: int = key_to_pid.get(v, -1)
 				if pid >= 0 and provinces[pid].owner != tag and not is_at_war(provinces[pid].owner):
 					var old: String = provinces[pid].owner
+					provinces[pid].prev_owner = ""
 					provinces[pid].owner = tag
 					provinces[pid].controller = tag
 					provinces[pid].core_months = int(bal.core_months)
@@ -1648,7 +1793,7 @@ func to_dict() -> Dictionary:
 			"pending_peace": pending_peace, "log": log_lines, "stats": stats, "game_over": game_over}
 	var ps := []
 	for p in provinces:
-		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort])
+		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort, p.prev_owner, p.suppress_months])
 	d.provinces = ps
 	var ns := {}
 	for tag in order:
@@ -1660,7 +1805,7 @@ func to_dict() -> Dictionary:
 				"mil": n.mil, "ae": n.ae, "prestige": n.prestige, "manpower": n.manpower, "tech": n.tech,
 				"ruler": n.ruler, "ruler_name": n.ruler_name, "name_counts": n.name_counts, "mods": n.mods, "relations": n.relations, "allies": n.allies,
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
-				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since}
+				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we}
 	d.nations = ns
 	var ar := []
 	for a in armies:
@@ -1703,6 +1848,8 @@ func from_dict(d: Dictionary) -> void:
 		p.core_months = int(e[3])
 		p.siege = float(e[4])
 		p.fort = int(e[5])
+		p.prev_owner = e[6] if e.size() > 6 else ""
+		p.suppress_months = int(e[7]) if e.size() > 7 else 0
 	for tag in d.nations:
 		var e: Dictionary = d.nations[tag]
 		var n: Nation = nations[tag]
@@ -1733,6 +1880,7 @@ func from_dict(d: Dictionary) -> void:
 		n.coalition = e.coalition
 		n.overlord = e.get("overlord", "")
 		n.vassal_since = int(e.get("vassal_since", 0))
+		n.we = float(e.get("we", 0.0))
 	armies.clear()
 	for e in d.armies:
 		var a := Army.new()

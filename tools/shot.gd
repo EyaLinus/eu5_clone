@@ -59,4 +59,15 @@ func _run(m) -> void:
 	await _shot("10_vassal_panel")
 	m._open_panel("diplomacy")
 	await _shot("11_diplomacy_vassal")
+	m._open_panel("ranking")
+	await _shot("12_ranking")
+	var rennes: int = g.key_to_pid["rennes"]
+	g.provinces[rennes].owner = "FRA"
+	g.provinces[rennes].prev_owner = "BRI"
+	g.provinces[rennes].core_months = 40
+	g._rebuild_owned()
+	g.nations.FRA.we = 6.0
+	m.map.map_mode = 3
+	m._on_province_tapped(rennes)
+	await _shot("13_unrest")
 	quit()

@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.4.0 – 2026-10-24
+- **Kriegsmüdigkeit:** steigt im Krieg und mit jeder verlorenen Schlacht, sinkt im Frieden. Erschöpfte KI-Gegner
+  nehmen Frieden leichter an, erschöpfte KI erklärt keine neuen Kriege. "Volk beruhigen" senkt sie (🕊️).
+- **Unruhe light:** Frisch eroberte, nicht integrierte Provinzen sind unruhig, Kriegsmüdigkeit verstärkt das.
+  Ab 5 droht ein Aufstand: Die Provinz fällt an ihren früheren Besitzer zurück (wenn er angrenzt) oder wird
+  geplündert. Gegenmittel: Garnison, "Unruhe unterdrücken" (⚔️), Zeit. Neuer Kartenmodus "Unruhe".
+- **Vasallen sagen sich los,** wenn sie stark werden oder ihren Lehnsherrn hassen.
+- **Komfort:** Hinweis-Punkte an den Tabs (Technologie leistbar, Aufstand droht, Mission erfüllt, Annexion
+  möglich, Frieden mit Gewinn möglich), Rangliste der Mächte, Tooltips an der Ressourcenleiste,
+  Tastenkürzel am PC (Leertaste, 1–5, Esc).
+- Content-Leitfaden `docs/CONTENT_GUIDE.md`, neuer Event-Effekt `we`.
+- Balance (2 × 32 Partien): Ø 23–24 Nationen ausgelöscht, größte Nation Ø 16 %, Großmächte überleben zu 92–93 %,
+  Ø 68–70 Kriege, ~30 Aufstände und ~6 Unabhängigkeitserklärungen pro Partie.
+
 ## v0.3.0 – 2026-10-24
 - **Vasallen:** Neue Friedensoption "⛓️ Vasallisieren" gegen den gegnerischen Kriegsführer (kostet 60 % des Preises
   seines gesamten Landes, halbe AE, keine Admin-Kosten). Vasallen zahlen 20 % ihres Einkommens als Tribut,

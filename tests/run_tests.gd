@@ -14,7 +14,7 @@ func _init() -> void:
 	data = Data.load_all()
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
-		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_alliance_joins_war", "test_protector_defends_small_state",
+		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_long_run_no_softlock",
 	]:
@@ -232,6 +232,55 @@ func test_vassal_and_annex() -> void:
 	g2._rebuild_owned()
 	g2._check_alive("FRA")
 	check(g2.nations.BRI.overlord == "", "vassal freed when overlord dies")
+
+
+func test_unrest_and_revolt() -> void:
+	var g = new_game("FRA")
+	var rennes: int = g.key_to_pid["rennes"]
+	var p = g.provinces[rennes]
+	# conquered, uncored, exhausted: high unrest
+	p.owner = "FRA"
+	p.controller = "FRA"
+	p.prev_owner = "BRI"
+	p.core_months = 60
+	g._rebuild_owned()
+	g.nations.FRA.we = 10.0
+	for a in g.armies.duplicate():
+		if a.pid == rennes:
+			g.armies.erase(a)
+	check(g.unrest(rennes) >= float(g.bal.revolt_threshold), "uncored + war exhaustion = unrest %.1f" % g.unrest(rennes))
+	g._revolt(p)
+	check(p.owner == "BRI", "unruly conquest defects back to its former owner")
+	# suppression lowers unrest
+	var paris: int = g.key_to_pid["paris"]
+	var u0: float = g.unrest(paris)
+	g.nations.FRA.mil = 999.0
+	check(g.suppress_unrest("FRA", paris) == "", "suppress works")
+	check(g.unrest(paris) <= u0, "suppression does not raise unrest")
+	# plain revolt without a former owner costs development
+	var orl: int = g.key_to_pid["orleans"]
+	var dev0: int = g.provinces[orl].dev
+	g._revolt(g.provinces[orl])
+	check(g.provinces[orl].dev == maxi(1, dev0 - 1) and g.provinces[orl].owner == "FRA", "revolt loots, province stays")
+	# war exhaustion makes the AI accept peace more easily and can be reduced
+	g.nations.FRA.dip = 999.0
+	check(g.reduce_we("FRA") == "" and g.nations.FRA.we < 10.0, "reduce war exhaustion")
+	# a strong vassal breaks free
+	var g2 = new_game("FRA")
+	g2.nations.BRI.overlord = "ENG"
+	g2.add_rel("BRI", "ENG", -50.0)
+	for a in g2.armies.duplicate():
+		if a.owner == "ENG":
+			g2.armies.erase(a)
+	check(g2.liberty("BRI") >= float(g2.bal.vassal_liberty_threshold), "liberty high when overlord is weak")
+	for i in 40:
+		g2._liberty_yearly()
+	check(g2.nations.BRI.overlord == "", "vassal declares independence")
+	# save roundtrip keeps the new fields
+	var d: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	var g3 = new_game("FRA")
+	g3.from_dict(d)
+	check(absf(g3.nations.FRA.we - g.nations.FRA.we) < 0.01 and g3.provinces[paris].suppress_months == 24, "unrest state saved")
 
 
 func test_alliance_joins_war() -> void:

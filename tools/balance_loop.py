@@ -68,6 +68,9 @@ def measure(results):
         "vassalized": avg(lambda r: r["stats"].get("vassalized", 0)),
         "annexed": avg(lambda r: r["stats"].get("annexed", 0)),
         "provinces_changed": avg(lambda r: r["stats"]["provinces_changed"]),
+        "revolts": avg(lambda r: r["stats"].get("revolts", 0)),
+        "defections": avg(lambda r: r["stats"].get("defections", 0)),
+        "independence": avg(lambda r: r["stats"].get("independence", 0)),
         "major_dev": {t: round(avg(lambda r: r["majors"][t]["dev"]), 1) for t in MAJORS},
         "major_alive": {t: round(avg(lambda r: 1.0 if r["majors"][t]["alive"] else 0.0), 2) for t in MAJORS},
         "top_tags": {},
@@ -145,7 +148,7 @@ def main():
             f.write(f"## Iteration {e['iter']} ({mm['runs']} runs) {'✅ in range' if e['ok'] else ''}\n\n")
             for k in ["eliminated", "top_share", "max_top_share", "major_survival", "coalition_wars", "wars",
                       "timeout_share", "bankrupt_months", "battles", "events", "missions", "vassalized", "annexed",
-                      "provinces_changed"]:
+                      "provinces_changed", "revolts", "defections", "independence"]:
                 f.write(f"- {k}: {round(mm[k], 3)}\n")
             f.write(f"- major_dev: {mm['major_dev']}\n- major_alive: {mm['major_alive']}\n- top_tags: {mm['top_tags']}\n")
             if e["changes"]:
