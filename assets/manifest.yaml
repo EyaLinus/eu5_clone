@@ -17,6 +17,15 @@ assets:
     source: assets/src/pixel/icons/ae.txt
     status: done
     updated: '2026-10-24'
+  annex:
+    created: '2026-10-24'
+    kind: icon
+    note: 'annex – annexation: small shield set into a larger one'
+    outputs:
+    - assets/art/icons/annex.png
+    source: assets/src/pixel/icons/annex.txt
+    status: done
+    updated: '2026-10-24'
   army:
     created: '2026-10-24'
     kind: icon
@@ -666,6 +675,15 @@ assets:
     outputs:
     - assets/art/icons/tab_wars.png
     source: assets/src/pixel/icons/tab_wars.txt
+    status: done
+    updated: '2026-10-24'
+  vassal:
+    created: '2026-10-24'
+    kind: icon
+    note: 'vassal – subject state: small shield under a gold crown'
+    outputs:
+    - assets/art/icons/vassal.png
+    source: assets/src/pixel/icons/vassal.txt
     status: done
     updated: '2026-10-24'
   war:
