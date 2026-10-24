@@ -14,7 +14,7 @@ func _init() -> void:
 	data = Data.load_all()
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
-		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_alliance_joins_war", "test_protector_defends_small_state",
+		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_long_run_no_softlock",
 	]:
@@ -169,6 +169,69 @@ func test_war_and_peace() -> void:
 	check(not g.at_war("FRA", "BRI"), "war ended")
 	check(g.has_truce("FRA", "BRI"), "truce after peace")
 	check(g.declare_war("FRA", "BRI") != "", "cannot attack during truce")
+
+
+func test_vassal_and_annex() -> void:
+	var g = new_game("FRA")
+	for t in g.order:
+		g.nations[t].allies.clear()
+	g.nations.FRA.claims.clear()
+	g.declare_war("FRA", "BRI")
+	var w = g.war_between("FRA", "BRI")
+	# keep the war two-sided so the vassal test does not depend on protectors
+	w.defenders = ["BRI"]
+	check(g.vassal_block_reason(w, true) == "", "Brittany can be vassalized: " + g.vassal_block_reason(w, true))
+	check(g.vassal_block_reason(w, false) != "", "player can never become a vassal")
+	g.provinces[g.key_to_pid["rennes"]].controller = "FRA"
+	check(not g.offer_peace("FRA", w, [], true, true) or g.nations.BRI.overlord == "FRA", "offer consistent")
+	if g.wars.has(w):
+		g.make_peace(w, true, [], true)
+	var bri = g.nations.BRI
+	check(bri.overlord == "FRA" and bri.alive, "BRI is a living vassal of FRA")
+	check(g.is_allied("FRA", "BRI") and g.vassals_of("FRA") == ["BRI"], "vassal counts as same side")
+	check(g.declare_war("BRI", "ENG") != "", "vassal cannot declare war")
+	check(g.propose_alliance("BRI", "ENG") != "", "vassal cannot make alliances")
+	# vassal joins the overlord's wars and the overlord defends the vassal
+	g.nations.ENG.truces.clear()
+	g.nations.FRA.truces.clear()
+	g.nations.BRI.truces.clear()
+	g.declare_war("ENG", "BRI")
+	var w2 = g.war_between("ENG", "BRI")
+	check(w2 != null and w2.defenders.has("FRA"), "overlord defends its vassal")
+	g.wars.erase(w2)
+	# tribute flows to the overlord
+	var gold_before: float = g.nations.FRA.gold
+	g._economy(bri)
+	check(g.nations.FRA.gold > gold_before, "vassal pays tribute")
+	check(g.tribute_income("FRA") > 0.0, "tribute shown")
+	# annexation is gated by time, then moves all land
+	check(g.annex_vassal("FRA", "BRI") != "", "annex blocked during waiting period")
+	g.month += int(g.bal.vassal_annex_years) * 12
+	g.nations.FRA.dip = 999.0
+	g.nations.FRA.adm = 999.0
+	var bri_provs: Array = g.provinces_of("BRI").duplicate()
+	check(g.annex_vassal("FRA", "BRI") == "", "annexation succeeds")
+	check(not bri.alive, "annexed vassal is gone")
+	for pid in bri_provs:
+		check(g.provinces[pid].owner == "FRA" and g.provinces[pid].core_months > 0, "annexed land owned and integrating")
+	# save/load keeps vassal links
+	var g2 = new_game("FRA")
+	var war3 = null
+	for t in g2.order:
+		g2.nations[t].allies.clear()
+	g2.declare_war("FRA", "BRI")
+	war3 = g2.war_between("FRA", "BRI")
+	g2.make_peace(war3, true, [], true)
+	var d: Dictionary = JSON.parse_string(JSON.stringify(g2.to_dict()))
+	var g3 = new_game("FRA")
+	g3.from_dict(d)
+	check(g3.nations.BRI.overlord == "FRA" and g3.nations.BRI.vassal_since == g2.nations.BRI.vassal_since, "vassal survives save/load")
+	# overlord death frees the vassal
+	for pid in g2.provinces_of("FRA").duplicate():
+		g2.provinces[pid].owner = "ENG"
+	g2._rebuild_owned()
+	g2._check_alive("FRA")
+	check(g2.nations.BRI.overlord == "", "vassal freed when overlord dies")
 
 
 func test_alliance_joins_war() -> void:

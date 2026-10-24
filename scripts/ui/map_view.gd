@@ -149,6 +149,8 @@ func province_color(p) -> Color:
 			var n = game.nations[me]
 			if p.owner == me:
 				return Color("3a9d4a")
+			if game.nations[p.owner].overlord == me:
+				return Color("7fc98a")
 			if game.is_allied(me, p.owner):
 				return Color("4a7fd0")
 			if game.at_war(me, p.owner):

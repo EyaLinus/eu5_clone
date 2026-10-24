@@ -17,13 +17,14 @@ Events und Missionen für 7 Nationen, Save/Load, Tests, Headless-Balance, APK + 
 6. ⏳ Balance für den Spieler: Testläufe mit "Spieler-Bot", der aggressiv expandiert, um AE/Koalitionen zu prüfen.
 
 ## v0.3 – Tiefe
-- ⏳ Vasallen / diplomatische Annexion (wichtig für Frankreich/Bretagne, Österreich).
+- ✅ Vasallen / diplomatische Annexion (Friedensoption, Tribut, gemeinsame Kriege, Annexion nach 15 Jahren).
+- ⏳ Unabhängigkeitsbestreben von Vasallen (aktuell bleiben sie loyal, bis sie annektiert werden oder der Lehnsherr fällt).
 - ⏳ Kaiserwahl im HRE, Reichsreformen light.
 - ⏳ Mehr Events (Ziel: 10 pro Großmacht), Ketten-Events.
 - ⏳ Rebellen/Unruhen light bei hoher Kriegsmüdigkeit.
 
 ## v0.4 – Präsentation
-- ⏳ Pixel-Art-Wappen statt Emoji, Einheitensymbole, einfache Sounds.
+- 🔨 Pixel-Art: Icons, Armee-Marker und 51 Flaggen fertig (PR #1), Sounds offen.
 - ⏳ Release-Keystore für Android (stabile Updates), signierte Windows-EXE (kostenpflichtiges Zertifikat nötig).
 
 ## Bewusst gestrichen

@@ -43,6 +43,12 @@ alliance, inherit, province, war`. Neue Schlüssel immer in beiden UI-Textfunkti
 - Gleichgewicht der Mächte: Bei Angriff auf einen Staat mit ≤ `protect_max_provinces` Provinzen verteidigt der
   stärkste nicht befreundete Nachbar (≥ `protector_min_strength` × Angreiferstärke) mit (`defenders_for`).
 - Eroberte Hauptstädte kosten `capital_peace_mult`-fach Kriegspunkte und AE.
+- Vasallen (`Nation.overlord`, seit v0.3): Friedensoption für den siegreichen Kriegsführer gegen den unterlegenen
+  Kriegsführer (`vassal_block_reason`, Kosten `vassal_cost`). `is_allied` gilt auch für Lehnsherr↔Vasall
+  (Durchzug, kein Krieg gegeneinander, keine Koalition). Vasallen erklären keine Kriege, schließen keine Bündnisse,
+  zahlen `vassal_tribute` ihres Einkommens, ziehen mit dem Lehnsherrn in Angriffskriege (`_subject_bloc`) und
+  werden von ihm verteidigt (`defenders_for`). Nach `vassal_annex_years` diplomatische Annexion
+  (`annex_vassal`: Dip + Admin + etwas AE). Stirbt der Lehnsherr, werden Vasallen frei. Der Spieler wird nie Vasall.
 
 ## Werkzeuge
 - `tools/sim.gd` Batch-Simulation, `tools/metrics.gd` Kennzahlen, `tools/trace.gd` 20-Jahres-Verlauf einer Partie.

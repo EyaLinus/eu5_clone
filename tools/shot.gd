@@ -45,4 +45,18 @@ func _run(m) -> void:
 	m.map.map_mode = 1
 	m.map.queue_redraw()
 	await _shot("08_diplomatic")
+	# vassal UI: make Brittany a vassal of the player
+	var g = m.game
+	g.nations.FRA.truces.erase("BRI")
+	g.nations.BRI.truces.erase("FRA")
+	if g.declare_war("FRA", "BRI") == "":
+		var w = g.war_between("FRA", "BRI")
+		m._open_panel("peace", w.id)
+		await _shot("09_peace_vassal")
+		g.make_peace(w, true, [], true)
+	m.map.map_mode = 0
+	m._open_panel("other", "BRI")
+	await _shot("10_vassal_panel")
+	m._open_panel("diplomacy")
+	await _shot("11_diplomacy_vassal")
 	quit()

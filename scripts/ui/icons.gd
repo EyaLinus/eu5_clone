@@ -10,6 +10,7 @@ const EMOJI := {
 	"prestige": "⭐", "dev": "🏘️", "fort": "🏰", "date": "📅", "siege": "🔥", "claim": "📜",
 	"tab_nation": "🏛️", "tab_diplomacy": "🤝", "tab_wars": "⚔️", "tab_missions": "🎯", "tab_log": "📜",
 	"tab_mapmode": "🗺️", "event": "📯", "peace": "🕊️", "war": "🔥", "coalition": "⚠️",
+	"vassal": "⛓️", "annex": "📜",
 }
 
 static var _cache := {}

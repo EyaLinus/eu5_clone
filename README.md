@@ -36,6 +36,8 @@ aus echten Küstenlinien (Natural Earth, Public Domain).
   oder Kapitulation. Nach 12 Jahren endet jeder Krieg automatisch (keine Endloskriege).
 - **Aggressive Expansion (😠 AE):** Eroberung kostet AE pro Entwicklung (weniger mit Anspruch). Ab der
   Koalitionsgrenze treten Nachbarn einer Koalition bei, die bei ausreichender Stärke den Krieg erklärt.
+- **Vasallen:** Statt Land zu fordern, kannst du den besiegten Kriegsführer zum Vasallen machen. Vasallen zahlen
+  Tribut, kämpfen mit dir und lassen sich nach 15 Jahren diplomatisch annektieren.
 - **Inhalte:** pro großer Nation 6 Missionen und 5–7 historische Events mit je 3 Entscheidungen,
   plus allgemeine Events (Pest, Buchdruck, Reformation, …).
 
@@ -66,7 +68,7 @@ Siehe [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/ROADMAP.md](docs/ROADM
 ## Ehrliche Grenzen dieser Version
 
 - Platzhaltergrafik (Emoji), keine Musik/Sounds, keine Seefahrt/Flotten, keine Religion, kein Handel,
-  keine Vasallen. Nur eine einzige AE-Zahl statt Meinung pro Land.
+  Nur eine einzige AE-Zahl statt Meinung pro Land.
 - Die APK ist mit einem Debug-Schlüssel signiert (Installation per Sideload, nicht Play-Store-tauglich).
 - Die Windows-EXE ist nicht code-signiert: Windows SmartScreen warnt beim ersten Start.
 - Die KI ist regelbasiert und einfach; Balance ist auf KI-gegen-KI-Partien abgestimmt, nicht auf Spieler.

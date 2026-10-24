@@ -1040,6 +1040,14 @@ func _vassalize(lord: String, tag: String, coalition_war: bool) -> void:
 	stats.vassalized = stats.get("vassalized", 0) + 1
 
 
+## Monthly gold the overlord receives from its vassals (display; paid in the vassals' _economy).
+func tribute_income(tag: String) -> float:
+	var s := 0.0
+	for v in vassals_of(tag):
+		s += maxf(0.0, nations[v].income * float(bal.vassal_tribute))
+	return s
+
+
 func annex_cost(tag: String) -> float:
 	return nations[tag].dev_total * float(bal.annex_dip_per_dev)
 

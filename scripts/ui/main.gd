@@ -200,6 +200,7 @@ func _build_hud() -> void:
 	side_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	side_title.add_theme_font_size_override("font_size", 24)
 	side_title.clip_text = true
+	side_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	head.add_child(side_title)
 	head.add_child(_btn("✖", _close_panel))
 	side_scroll = ScrollContainer.new()
@@ -262,6 +263,9 @@ func _btn(text: String, cb: Callable, tip: String = "", disabled: bool = false) 
 	b.disabled = disabled
 	b.custom_minimum_size = Vector2(52, 52)
 	b.focus_mode = Control.FOCUS_NONE
+	# long labels are trimmed instead of widening the side panel past the screen edge
+	b.clip_text = true
+	b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	b.pressed.connect(cb)
 	return b
 
@@ -335,6 +339,16 @@ func _act(err: String, ok_text: String = "") -> void:
 func nname(tag: String) -> String:
 	var n = game.nations[tag]
 	return "%s %s" % [n.emoji, n.name]
+
+
+## Button for a nation: pixel flag as icon when available, emoji otherwise.
+func _nation_btn(tag: String, extra: String, cb: Callable) -> Button:
+	var flag := Icons.flag(tag)
+	var b := _btn((game.nations[tag].name if flag != null else nname(tag)) + extra, cb)
+	if flag != null:
+		b.icon = flag
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	return b
 
 
 # ---------------------------------------------------------------- game flow
@@ -513,7 +527,7 @@ func _update_top() -> void:
 	if game == null:
 		return
 	var n = game.nations[game.player]
-	var net: float = n.income - n.expenses
+	var net: float = n.income - n.expenses + game.tribute_income(game.player)
 	top_labels.nation.text = nname(game.player)
 	top_labels.gold.text = Icons.prefix("gold") + "%d (%+.1f)" % [n.gold, net]
 	top_labels.adm.text = Icons.prefix("adm") + "%d" % n.adm
@@ -805,6 +819,11 @@ func _panel_nation() -> void:
 	side_box.add_child(_lbl("Monatlich: 📜+%.0f 🕊️+%.0f ⚔️+%.0f" % [game.monthly_power(n, "adm"), game.monthly_power(n, "dip"), game.monthly_power(n, "mil")]))
 	side_box.add_child(_lbl("💰 Einnahmen %.1f · Ausgaben %.1f\n🏘️ Entwicklung %d · %d Provinzen\n🛡️ Truppenlimit %.0f · 👥 %.0f/%.0f\n⭐ Prestige %d · 🏆 Punkte %d" % [
 			n.income, n.expenses, n.dev_total, game.provinces_of(me).size(), game.force_limit(me), n.manpower, n.max_manpower, n.prestige, game.score(me)]))
+	var vs: Array = game.vassals_of(me)
+	if not vs.is_empty():
+		side_box.add_child(_lbl(Icons.prefix("vassal") + "Vasallen (Tribut %+.1f 💰/Monat)" % game.tribute_income(me), 22))
+		for v in vs:
+			side_box.add_child(_nation_btn(v, "  🏘️%d" % game.nations[v].dev_total, _open_panel.bind("other", v)))
 	side_box.add_child(_lbl("Technologie", 22))
 	var names := {"adm": "📜 Verwaltung (+4% Einkommen)", "dip": "🕊️ Diplomatie (schnellerer AE-Abbau)", "mil": "⚔️ Militär (+6% Kampfkraft, +½ Truppenlimit)"}
 	for k in game.POWERS:
@@ -821,31 +840,33 @@ func _panel_nation() -> void:
 func _panel_diplomacy() -> void:
 	var me: String = game.player
 	side_title.text = "🤝 Diplomatie"
-	var groups := [["Verbündete", []], ["Feinde", []], ["Nachbarn", []], ["Andere", []]]
+	var groups := [["Vasallen", []], ["Verbündete", []], ["Feinde", []], ["Nachbarn", []], ["Andere", []]]
 	var nbs: Array = game.neighbors_of(me)
 	for tag in game.order:
 		if tag == me or not game.nations[tag].alive:
 			continue
-		if game.is_allied(me, tag):
+		if game.nations[tag].overlord == me:
 			groups[0][1].append(tag)
-		elif game.at_war(me, tag):
+		elif game.is_allied(me, tag):
 			groups[1][1].append(tag)
-		elif nbs.has(tag):
+		elif game.at_war(me, tag):
 			groups[2][1].append(tag)
-		else:
+		elif nbs.has(tag):
 			groups[3][1].append(tag)
+		else:
+			groups[4][1].append(tag)
 	for g in groups:
 		if g[1].is_empty():
 			continue
 		side_box.add_child(_lbl(g[0], 20, Color(0.7, 0.8, 0.9)))
 		for tag in g[1]:
 			var o = game.nations[tag]
-			var txt := "%s  ❤️%d  🏘️%d" % [nname(tag), int(game.get_rel(me, tag)), o.dev_total]
+			var txt := "  ❤️%d  🏘️%d" % [int(game.get_rel(me, tag)), o.dev_total]
 			if o.ae >= float(game.bal.ae_coalition_threshold):
 				txt += "  😠"
-			var b := _btn(txt, _open_panel.bind("other", tag))
-			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			side_box.add_child(b)
+			if o.overlord != "" and o.overlord != me:
+				txt += "  ⛓️"
+			side_box.add_child(_nation_btn(tag, txt, _open_panel.bind("other", tag)))
 
 
 func _panel_other(tag: String) -> void:
@@ -862,12 +883,27 @@ func _panel_other(tag: String) -> void:
 		info += "\n🕊️ Waffenstillstand bis %s" % game.date_string(o.truces.get(me, 0))
 	if game.has_claim_on(me, tag):
 		info += "\n📜 Du hast Ansprüche (Kriegsgrund)"
+	if o.overlord != "":
+		info += "\n⛓️ Vasall von %s" % game.nations[o.overlord].name
+	var ovs := []
+	for v in game.vassals_of(tag):
+		ovs.append(game.nations[v].name)
+	if not ovs.is_empty():
+		info += "\n⛓️ Vasallen: %s" % ", ".join(ovs)
 	side_box.add_child(_lbl(info))
 	side_box.add_child(_btn("🗺️ Auf Karte zeigen", func(): map.focus(game.provinces[o.capital].center)))
 	if not o.alive:
 		return
 	var b: Dictionary = game.bal
 	side_box.add_child(_btn("❤️ Beziehungen verbessern (%d 🕊️)" % int(b.improve_relation_cost), func(): _act(game.improve_relations(me, tag), "❤️ Beziehungen verbessert")))
+	if o.overlord == me:
+		var left: int = game.annex_months_left(tag)
+		var t := "📜 Annektieren (%d 🕊️, %d 📜)" % [int(game.annex_cost(tag)), int(game.annex_adm_cost(tag))]
+		if left > 0:
+			side_box.add_child(_lbl("Annexion möglich ab %s." % game.date_string(game.month + left), 15, Color(0.7, 0.7, 0.7)))
+		side_box.add_child(_btn(t, func(): _act(game.annex_vassal(me, tag), "📜 %s annektiert!" % o.name), "", left > 0))
+		side_box.add_child(_lbl("Vasallen zahlen %d%% ihres Einkommens als Tribut und kämpfen in deinen Kriegen." % int(float(b.vassal_tribute) * 100), 15, Color(0.7, 0.7, 0.7)))
+		return
 	if game.is_allied(me, tag):
 		side_box.add_child(_btn("💔 Bündnis auflösen", func(): game.break_alliance(me, tag); _act("", "💔 Bündnis aufgelöst")))
 	else:
@@ -884,11 +920,12 @@ func _confirm_war(tag: String) -> void:
 	_open_modal()
 	modal_box.add_child(_lbl("🔥 Krieg gegen %s?" % nname(tag), 28))
 	var joins := [o.name]
-	for ally in o.allies:
-		if not game.is_allied(me, ally) and not game.has_truce(me, ally):
-			joins.append(game.nations[ally].name)
+	var their_str: float = game.strength(tag)
+	for t in game.defenders_for(me, tag):
+		joins.append(game.nations[t].name)
+		their_str += game.strength(t)
 	var cb: bool = game.has_claim_on(me, tag)
-	var text := "Gegner: %s\nDeren Stärke: %.0f · Deine Stärke: %.0f" % [", ".join(joins), game.strength(tag), game.strength(me)]
+	var text := "Gegner: %s\nDeren Stärke: %.0f · Deine Stärke: %.0f" % [", ".join(joins), their_str, game.strength(me)]
 	if cb:
 		text += "\n✅ Kriegsgrund vorhanden (Anspruch)."
 	else:
@@ -965,6 +1002,14 @@ func _panel_peace(war_id: int) -> void:
 	side_box.add_child(_btn("📜 Forderung stellen", func():
 		var ok: bool = game.offer_peace(me, w, peace_selection.keys(), true)
 		_after_peace(ok)))
+	var target: String = game.side_tags(w, not att)[0]
+	var why: String = game.vassal_block_reason(w, att)
+	if why == "":
+		side_box.add_child(_btn("⛓️ Vasallisieren (%d Punkte)" % int(game.vassal_cost(w, att)), func():
+			var ok: bool = game.offer_peace(me, w, [], true, true)
+			_after_peace(ok)))
+	elif target != me:
+		side_box.add_child(_lbl("⛓️ Vasallisieren nicht möglich: " + why, 15, Color(0.7, 0.7, 0.7)))
 	side_box.add_child(_btn("🏳️ Weißer Frieden anbieten", func():
 		var ok: bool = game.offer_peace(me, w, [], true)
 		_after_peace(ok)))
