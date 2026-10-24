@@ -50,10 +50,13 @@ jobs:
           mkdir -p build/windows
           godot --headless --path . --export-release "Windows Desktop" build/windows/EU5Lite.exe
           ls -la build/windows
-      - name: Export Android (debug-signed APK)
+      - name: Export Android and sign (uber-apk-signer, debug key)
         run: |
           mkdir -p build/android
-          godot --headless --path . --export-debug "Android" build/android/EU5Lite.apk
+          godot --headless --path . --export-release "Android" build/android/EU5Lite-unsigned.apk
+          curl -sSL -o signer.jar https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar
+          java -jar signer.jar --apks build/android/EU5Lite-unsigned.apk --out build/android
+          mv build/android/EU5Lite-aligned-debugSigned.apk build/android/EU5Lite.apk
           ls -la build/android
       - uses: actions/upload-artifact@v4
         with:

@@ -101,6 +101,8 @@ var game_over: bool = false
 var stats := {"wars": 0, "battles": 0, "peace_deals": 0, "provinces_changed": 0, "coalition_wars": 0,
 		"events": 0, "missions": 0, "eliminated": 0, "white_peace": 0, "timeouts": 0, "bankrupt_months": 0}
 var ai
+var hre: Array = []
+var emperor: String = ""
 
 
 func _init() -> void:
@@ -135,7 +137,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		n.emoji = nd.get("emoji", "🏳️")
 		n.playable = nd.get("playable", false)
 		n.idea = nd.get("idea", "")
-		n.aggression = float(nd.get("aggression", 0.8))
+		n.aggression = float(nd.get("aggression", 0.6))
 		n.capital = key_to_pid[nd.capital]
 		var bonus: Dictionary = nd.get("bonus", {})
 		for k in bonus:
@@ -172,6 +174,8 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 
 
 func _apply_start_diplomacy(d: Dictionary) -> void:
+	hre = d.get("hre", [])
+	emperor = d.get("emperor", "")
 	for pair in d.get("alliances", []):
 		_ally(pair[0], pair[1])
 		add_rel(pair[0], pair[1], 60)
@@ -785,8 +789,8 @@ func declare_war(att: String, def: String, coalition_members: Array = []) -> Str
 		w.attackers = [att]
 		w.name = "%s-%s-Krieg" % [nations[att].name, nations[def].name]
 	w.defenders = [def]
-	for ally in nations[def].allies:
-		if not w.attackers.has(ally) and not is_allied(ally, att) and nations[ally].alive and not has_truce(ally, att):
+	for ally in defenders_for(att, def):
+		if not w.attackers.has(ally) and not w.defenders.has(ally):
 			w.defenders.append(ally)
 	if not w.coalition:
 		for ally in nations[att].allies:
@@ -806,6 +810,36 @@ func declare_war(att: String, def: String, coalition_members: Array = []) -> Str
 	return ""
 
 
+## Nations that would join `def` against `att`: allies, and the emperor for Holy Roman Empire members.
+func defenders_for(att: String, def: String) -> Array:
+	var r := []
+	for ally in nations[def].allies:
+		if not is_allied(ally, att) and nations[ally].alive and not has_truce(ally, att):
+			r.append(ally)
+	if emperor != "" and nations[emperor].alive and hre.has(def) and not hre.has(att) and emperor != def \
+			and emperor != att and not r.has(emperor) and not is_allied(emperor, att) and not has_truce(emperor, att):
+		r.append(emperor)
+	return r
+
+
+## Who receives a ceded province: the occupier if it borders the province, otherwise a bordering winner.
+func receiver_of(pid: int, winners: Array) -> String:
+	var p: Province = provinces[pid]
+	var bordering := []
+	for t in winners:
+		if not nations[t].alive:
+			continue
+		for a in p.adj:
+			if provinces[a].owner == t:
+				bordering.append(t)
+				break
+	if bordering.has(p.controller):
+		return p.controller
+	if not bordering.is_empty():
+		return bordering[0]
+	return p.controller if winners.has(p.controller) and nations[p.controller].alive else winners[0]
+
+
 func has_claim_on(tag: String, target: String) -> bool:
 	for pid in nations[tag].claims:
 		if provinces[pid].owner == target:
@@ -820,9 +854,7 @@ func make_peace(w: War, winner_att: bool, pids: Array) -> void:
 	var lead: String = winners[0]
 	for pid in pids:
 		var p: Province = provinces[pid]
-		var to: String = p.controller if winners.has(p.controller) else lead
-		if not nations[to].alive:
-			to = lead
+		var to: String = receiver_of(pid, winners)
 		var n: Nation = nations[to]
 		var ae: float = p.dev * float(bal.ae_per_dev)
 		if n.claims.has(pid):
@@ -830,6 +862,7 @@ func make_peace(w: War, winner_att: bool, pids: Array) -> void:
 		if w.coalition:
 			ae *= 0.3
 		n.ae += ae
+		n.adm -= p.dev * float(bal.core_cost_per_dev)
 		n.prestige += p.dev * float(bal.prestige_per_dev_taken)
 		n.claims.erase(pid)
 		var old := p.owner

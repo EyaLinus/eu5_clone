@@ -1,6 +1,7 @@
 extends SceneTree
 ## Headless batch simulation: godot --headless -s res://tools/sim.gd -- --runs 20 --years 200 --seed 1
-## Prints one JSON line per run plus an aggregate summary.
+## Prints one line per run (RUN + json) plus an aggregate summary.
+## --balance file.json overrides values from data/balance.json.
 
 const Game = preload("res://scripts/core/game.gd")
 const Data = preload("res://scripts/core/data.gd")
@@ -13,6 +14,10 @@ func _init() -> void:
 	var years := int(args.get("years", "200"))
 	var seed0 := int(args.get("seed", "1"))
 	var data := Data.load_all()
+	if args.has("balance"):
+		var override = Data.load_json(args.balance)
+		for k in override:
+			data.balance[k] = override[k]
 	var results := []
 	var t0 := Time.get_ticks_msec()
 	for i in runs:
@@ -22,8 +27,7 @@ func _init() -> void:
 			g.tick()
 		var r: Dictionary = Metrics.collect(g)
 		results.append(r)
-		if args.has("verbose"):
-			print(JSON.stringify(r))
+		print("RUN " + JSON.stringify(r))
 	var summary: Dictionary = Metrics.aggregate(results)
 	summary["ms_per_run"] = (Time.get_ticks_msec() - t0) / maxi(runs, 1)
 	print("SUMMARY " + JSON.stringify(summary, "  "))

@@ -1,1 +1,75 @@
-# eu5_clone
+# EU5 Lite
+
+Ein stark vereinfachtes Grand-Strategy-Spiel im Stil von Europa Universalis, 1444 bis 1644 (200 Jahre),
+für **Android (APK)** und **Windows (EXE)**. Einzelspieler, Emoji-Grafik als Platzhalter.
+
+Download: siehe [Releases](../../releases) (`EU5Lite.apk`, `EU5Lite.exe`).
+
+## Spielbare Nationen
+
+| Nation | Bonus |
+|---|---|
+| ⚜️ Frankreich | +25 % Mannschaften, +1 Admin/Monat |
+| 🦁 England | +10 % Einkommen, +5 % Kampfkraft |
+| 🏰 Spanien | +10 % Kampfkraft, +5 % Einkommen |
+| 👑 Böhmen | +10 % Einkommen, +1 Diplomatie/Monat |
+| 🦅 Österreich | +2 Diplomatie/Monat, schnellerer AE-Abbau |
+| 🐻 Russland | +30 % Mannschaften, +1 Militär/Monat |
+| 🌋 Neapel | +15 % Einkommen, +1 Admin/Monat |
+
+Dazu 43 KI-Nationen (Burgund, Osmanen, Polen, Venedig, …), 161 Provinzen auf einer Europakarte
+aus echten Küstenlinien (Natural Earth, Public Domain).
+
+## Mechaniken (bewusst minimal)
+
+- **Zeit:** 1 Tick = 1 Monat, 2400 Ticks. Pause und 5 Geschwindigkeiten.
+- **Währungen:** 💰 Gold aus Provinzentwicklung; 📜 Admin, 🕊️ Diplomatie, ⚔️ Militär
+  (2 + Herrscherwert + Boni pro Monat, Obergrenze 999).
+- **Ausgaben:** Technologie (3 Zweige), Entwickeln (Admin) oder Bauen (Gold), Rekrutieren (Gold + Mannschaften),
+  Beziehungen/Bündnisse/Ansprüche (Diplomatie), Integration eroberter Provinzen (Admin).
+- **Krieg:** Armeen ziehen eine Provinz pro Monat, Schlachten bei Kontakt, Belagerung besetzt Provinzen.
+  Kriegspunkte aus Besetzung, Schlachten und Hauptstadt. Frieden: besetzte Provinzen fordern, weißer Frieden
+  oder Kapitulation. Nach 12 Jahren endet jeder Krieg automatisch (keine Endloskriege).
+- **Aggressive Expansion (😠 AE):** Eroberung kostet AE pro Entwicklung (weniger mit Anspruch). Ab der
+  Koalitionsgrenze treten Nachbarn einer Koalition bei, die bei ausreichender Stärke den Krieg erklärt.
+- **Inhalte:** pro großer Nation 6 Missionen und 5–7 historische Events mit je 3 Entscheidungen,
+  plus allgemeine Events (Pest, Buchdruck, Reformation, …).
+
+## Steuerung (Ein-Daumen-tauglich)
+
+- Karte ziehen = verschieben, zwei Finger / Mausrad = Zoom, 🔍+/🔍- als Knöpfe.
+- Provinz antippen → Infos und Aktionen.
+- Armee (Kreis mit Zahl) antippen, dann Zielprovinz antippen → Marschbefehl. 🤖 = KI steuert die Armee.
+- Links: 🏛️ Nation, 🤝 Diplomatie, ⚔️ Kriege/Frieden, 🎯 Missionen, 📜 Chronik.
+- Automatisches Speichern jedes Jahr und beim Verlassen der App.
+
+## Entwicklung
+
+Siehe [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/ROADMAP.md](docs/ROADMAP.md) und [CHANGELOG.md](CHANGELOG.md).
+
+- Engine: **Godot 4.3**, nur GDScript. Die Simulation (`scripts/core/`) hat keine Node-Abhängigkeiten
+  und läuft headless identisch zur UI.
+- `tools/gen_map.py` erzeugt `data/map.json` (Voronoi-Zellen auf Natural-Earth-Landmasse, Nachbarschaften).
+- Tests: `godot --headless --path . -s res://tests/run_tests.gd`
+- Headless-Simulation: `godot --headless --path . -s res://tools/sim.gd -- --runs 10 --years 200`
+- **Auto-Balance:** `python3 tools/balance_loop.py --godot <godot-binary> --runs 16 --iters 10`
+  spielt parallele KI-Partien über 200 Jahre, misst Auslöschungen, Größe der stärksten Nation,
+  Überleben der Großmächte, Koalitionskriege, Kriegs-Timeouts und Bankrotte und passt
+  `data/balance.json` an. Ergebnis: `tools/balance_report.md`.
+- Build: `tools/build.sh` (lokal) oder GitHub Actions (`.github/workflows/build.yml`: Tests → EXE/APK →
+  Release bei Tag `v*`).
+
+## Ehrliche Grenzen dieser Version
+
+- Platzhaltergrafik (Emoji), keine Musik/Sounds, keine Seefahrt/Flotten, keine Religion, kein Handel,
+  keine Vasallen. Nur eine einzige AE-Zahl statt Meinung pro Land.
+- Die APK ist mit einem Debug-Schlüssel signiert (Installation per Sideload, nicht Play-Store-tauglich).
+- Die Windows-EXE ist nicht code-signiert: Windows SmartScreen warnt beim ersten Start.
+- Die KI ist regelbasiert und einfach; Balance ist auf KI-gegen-KI-Partien abgestimmt, nicht auf Spieler.
+- Getestet: Simulation, Tests und Desktop-Rendering (Linux). Auf echten Android-Geräten und unter Windows
+  wurde der Build vor dem Release nicht ausgeführt.
+
+## Lizenzen
+
+Code: siehe Repository. Kartendaten: Natural Earth (Public Domain). Emoji-Font: Noto Color Emoji (SIL OFL 1.1),
+siehe `assets/fonts/LICENSE-NotoColorEmoji.txt`.

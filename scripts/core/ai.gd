@@ -70,10 +70,13 @@ func _spend_gold(g, n) -> void:
 		if where >= 0:
 			g.recruit(tag, where, k)
 		return
-	if not war and regs >= want - 1.0:
+	# surplus gold becomes development (several buildings per month when rich)
+	var margin: float = 40.0 if (not war and regs >= want - 1.0) else 150.0
+	for i in 3:
 		var best := _cheapest_province(g, tag)
-		if best >= 0 and n.gold > g.build_cost(best) + reserve + 40.0:
-			g.build(tag, best)
+		if best < 0 or n.gold <= g.build_cost(best) + reserve + margin:
+			break
+		g.build(tag, best)
 
 
 # ---------------------------------------------------------------- diplomacy
@@ -144,6 +147,8 @@ func _consider_war(g, n) -> void:
 	var tag: String = n.tag
 	if n.ae > float(g.bal.ae_coalition_threshold) * float(g.bal.ai_ae_limit) or n.gold < 0.0:
 		return
+	if n.adm < float(g.bal.core_cost_per_dev) * 8.0:
+		return
 	if g.rng.randf() > float(g.bal.ai_war_chance) * n.aggression:
 		return
 	var mine: float = g.strength(tag)
@@ -159,9 +164,8 @@ func _consider_war(g, n) -> void:
 		if not claim and n.dip < float(g.bal.nocb_war_dip) + 10.0:
 			continue
 		var theirs: float = g.strength(t)
-		for ally in o.allies:
-			if not g.is_allied(tag, ally) and not g.has_truce(tag, ally):
-				theirs += g.strength(ally)
+		for ally in g.defenders_for(tag, t):
+			theirs += g.strength(ally)
 		var ratio: float = mine / maxf(theirs, 0.5)
 		var need: float = float(g.bal.ai_war_ratio) / n.aggression * (0.85 if claim else 1.0)
 		if ratio < need:
@@ -206,8 +210,12 @@ func pick_demands(g, w, for_att: bool, budget: float) -> Array:
 	var scored := []
 	for pid in cands:
 		var p = g.provinces[pid]
+		# plausibility rule: the AI never annexes the capital of a playable great power
+		var owner_n = g.nations[p.owner]
+		if owner_n.playable and owner_n.capital == pid and lead != g.player:
+			continue
 		var s: float = p.dev
-		var to: String = p.controller if winners.has(p.controller) else lead
+		var to: String = g.receiver_of(pid, winners)
 		if g.nations[to].claims.has(pid):
 			s += 15.0
 		for a in p.adj:
@@ -216,13 +224,22 @@ func pick_demands(g, w, for_att: bool, budget: float) -> Array:
 				break
 		scored.append([s, pid])
 	scored.sort_custom(func(x, y): return x[0] > y[0])
+	# taking land costs admin power (integration); never demand more than the receiver can digest
+	var adm_left := {}
+	var core_cost := float(g.bal.core_cost_per_dev)
 	var r := []
 	var spent := 0.0
 	for e in scored:
+		var p = g.provinces[e[1]]
+		var to: String = g.receiver_of(e[1], winners)
+		if not adm_left.has(to):
+			adm_left[to] = g.nations[to].adm + 60.0
 		var c: float = g.peace_cost([e[1]])
-		if spent + c <= budget:
+		var ac: float = p.dev * core_cost
+		if spent + c <= budget and (ac <= adm_left[to] or to == g.player):
 			r.append(e[1])
 			spent += c
+			adm_left[to] -= ac
 	return r
 
 

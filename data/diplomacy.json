@@ -1,7 +1,129 @@
 {
-  "alliances": [["FRA", "SCO"], ["POL", "HUN"], ["POL", "LIT"], ["NAP", "ARA"], ["ENG", "POR"], ["HAB", "BAV"], ["VEN", "TUS"]],
-  "rivals": [["ENG", "FRA"], ["FRA", "BUR"], ["SPA", "GRA"], ["RUS", "NOV"], ["RUS", "KAZ"], ["TUR", "BYZ"], ["TUR", "HUN"],
-             ["POL", "TEU"], ["HAB", "HUN"], ["BOH", "SAX"], ["NAP", "PAP"], ["DAN", "HSA"], ["MLO", "VEN"]],
-  "claims": {"ENG": ["paris", "orleans"], "FRA": ["normandy", "bordeaux", "calais"], "SPA": ["granada"],
-             "TUR": ["constantinople"], "RUS": ["novgorod"], "POL": ["marienburg"]}
+  "alliances": [
+    [
+      "FRA",
+      "SCO"
+    ],
+    [
+      "POL",
+      "HUN"
+    ],
+    [
+      "POL",
+      "LIT"
+    ],
+    [
+      "NAP",
+      "ARA"
+    ],
+    [
+      "ENG",
+      "POR"
+    ],
+    [
+      "HAB",
+      "BAV"
+    ],
+    [
+      "VEN",
+      "TUS"
+    ]
+  ],
+  "rivals": [
+    [
+      "ENG",
+      "FRA"
+    ],
+    [
+      "FRA",
+      "BUR"
+    ],
+    [
+      "SPA",
+      "GRA"
+    ],
+    [
+      "RUS",
+      "NOV"
+    ],
+    [
+      "RUS",
+      "KAZ"
+    ],
+    [
+      "TUR",
+      "BYZ"
+    ],
+    [
+      "TUR",
+      "HUN"
+    ],
+    [
+      "POL",
+      "TEU"
+    ],
+    [
+      "HAB",
+      "HUN"
+    ],
+    [
+      "BOH",
+      "SAX"
+    ],
+    [
+      "NAP",
+      "PAP"
+    ],
+    [
+      "DAN",
+      "HSA"
+    ],
+    [
+      "MLO",
+      "VEN"
+    ]
+  ],
+  "claims": {
+    "ENG": [
+      "paris",
+      "orleans"
+    ],
+    "FRA": [
+      "normandy",
+      "bordeaux",
+      "calais"
+    ],
+    "SPA": [
+      "granada"
+    ],
+    "TUR": [
+      "constantinople"
+    ],
+    "RUS": [
+      "novgorod"
+    ],
+    "POL": [
+      "marienburg"
+    ]
+  },
+  "emperor": "HAB",
+  "hre": [
+    "HAB",
+    "BOH",
+    "BAV",
+    "SAX",
+    "BRA",
+    "KOL",
+    "PAL",
+    "WUR",
+    "NUR",
+    "HES",
+    "LUN",
+    "HSA",
+    "POM",
+    "SAV",
+    "MLO",
+    "TUS",
+    "GEN"
+  ]
 }

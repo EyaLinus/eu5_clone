@@ -825,7 +825,11 @@ func _panel_peace(war_id: int) -> void:
 	var ws: float = game.warscore(w) * (1.0 if att else -1.0)
 	side_title.text = "🕊️ Frieden: " + w.name
 	var cost: float = game.peace_cost(peace_selection.keys())
-	side_box.add_child(_lbl("Kriegspunkte: %+d · Forderung kostet: %d" % [int(ws), int(cost)], 18))
+	var dev_sel := 0
+	for pid in peace_selection:
+		dev_sel += game.provinces[pid].dev
+	side_box.add_child(_lbl("Kriegspunkte: %+d · Forderung kostet: %d\nIntegration kostet %d 📜 Admin (du hast %d)" % [
+			int(ws), int(cost), int(dev_sel * float(game.bal.core_cost_per_dev)), int(game.nations[me].adm)], 18))
 	var cands: Array = game.demandable(w, att)
 	if cands.is_empty():
 		side_box.add_child(_lbl("Keine besetzten Feindprovinzen. Besetze Provinzen, um sie fordern zu können.", 16))
