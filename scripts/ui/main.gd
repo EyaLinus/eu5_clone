@@ -5,6 +5,7 @@ extends Control
 const Game = preload("res://scripts/core/game.gd")
 const Data = preload("res://scripts/core/data.gd")
 const MapView = preload("res://scripts/ui/map_view.gd")
+const Icons = preload("res://scripts/ui/icons.gd")
 const SAVE_PATH := "user://save.json"
 const SPEEDS := [0.0, 1.2, 0.6, 0.3, 0.12, 0.04]
 const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP"]
@@ -108,6 +109,9 @@ func _build_hud() -> void:
 	hb.add_theme_constant_override("separation", 14)
 	top.add_child(hb)
 	for k in ["nation", "gold", "adm", "dip", "mil", "manpower", "army", "ae"]:
+		var tex := Icons.texture(k)
+		if tex != null:
+			hb.add_child(_icon_rect(tex, 28))
 		var l := Label.new()
 		l.mouse_filter = Control.MOUSE_FILTER_STOP
 		hb.add_child(l)
@@ -129,16 +133,10 @@ func _build_hud() -> void:
 	left.position = Vector2(8, 68)
 	left.add_theme_constant_override("separation", 8)
 	hud.add_child(left)
-	for e in [["🏛️", "nation", "Nation"], ["🤝", "diplomacy", "Diplomatie"], ["⚔️", "wars", "Kriege"],
-			["🎯", "missions", "Missionen"], ["📜", "log", "Chronik"]]:
-		var b := _btn(e[0], _open_panel.bind(e[1]), e[2])
-		b.custom_minimum_size = Vector2(60, 60)
-		b.add_theme_font_size_override("font_size", 28)
-		left.add_child(b)
-	var mm := _btn("🗺️", _cycle_map_mode, "Kartenmodus")
-	mm.custom_minimum_size = Vector2(60, 60)
-	mm.add_theme_font_size_override("font_size", 28)
-	left.add_child(mm)
+	for e in [["nation", "Nation"], ["diplomacy", "Diplomatie"], ["wars", "Kriege"],
+			["missions", "Missionen"], ["log", "Chronik"], ["mapmode", "Kartenmodus"]]:
+		var cb: Callable = _cycle_map_mode if e[0] == "mapmode" else _open_panel.bind(e[0])
+		left.add_child(_tab_button("tab_" + e[0], cb, e[1]))
 
 	var zoom := VBoxContainer.new()
 	zoom.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -229,6 +227,28 @@ func _btn(text: String, cb: Callable, tip: String = "", disabled: bool = false) 
 	b.custom_minimum_size = Vector2(52, 52)
 	b.focus_mode = Control.FOCUS_NONE
 	b.pressed.connect(cb)
+	return b
+
+
+func _icon_rect(tex: Texture2D, px: int) -> TextureRect:
+	var r := TextureRect.new()
+	r.texture = tex
+	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	r.custom_minimum_size = Vector2(px, px)
+	return r
+
+
+func _tab_button(key: String, cb: Callable, tip: String) -> Button:
+	var tex := Icons.texture(key)
+	var b := _btn("" if tex != null else Icons.emoji(key), cb, tip)
+	if tex != null:
+		b.icon = tex
+		b.expand_icon = true
+		b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	b.custom_minimum_size = Vector2(60, 60)
+	b.add_theme_font_size_override("font_size", 28)
 	return b
 
 
@@ -458,16 +478,16 @@ func _update_top() -> void:
 	var n = game.nations[game.player]
 	var net: float = n.income - n.expenses
 	top_labels.nation.text = nname(game.player)
-	top_labels.gold.text = "💰 %d (%+.1f)" % [n.gold, net]
-	top_labels.adm.text = "📜 %d" % n.adm
-	top_labels.dip.text = "🕊️ %d" % n.dip
-	top_labels.mil.text = "⚔️ %d" % n.mil
-	top_labels.manpower.text = "👥 %.0f" % n.manpower
-	top_labels.army.text = "🛡️ %.0f/%.0f" % [game.army_regs(game.player), game.force_limit(game.player)]
-	top_labels.ae.text = "😠 %d" % n.ae
+	top_labels.gold.text = Icons.prefix("gold") + "%d (%+.1f)" % [n.gold, net]
+	top_labels.adm.text = Icons.prefix("adm") + "%d" % n.adm
+	top_labels.dip.text = Icons.prefix("dip") + "%d" % n.dip
+	top_labels.mil.text = Icons.prefix("mil") + "%d" % n.mil
+	top_labels.manpower.text = Icons.prefix("manpower") + "%.0f" % n.manpower
+	top_labels.army.text = Icons.prefix("army") + "%.0f/%.0f" % [game.army_regs(game.player), game.force_limit(game.player)]
+	top_labels.ae.text = Icons.prefix("ae") + "%d" % n.ae
 	top_labels.ae.add_theme_color_override("font_color", Color.TOMATO if n.ae >= game.bal.ae_coalition_threshold * 0.7 else Color.WHITE)
 	top_labels.gold.add_theme_color_override("font_color", Color.TOMATO if n.gold < 0 else Color.WHITE)
-	top_labels.date.text = "📅 " + game.date_string()
+	top_labels.date.text = Icons.prefix("date") + game.date_string()
 	speed_label.text = "⏸" if speed == 0 else "▶".repeat(speed)
 
 
@@ -743,7 +763,7 @@ func _panel_nation() -> void:
 	var n = game.nations[me]
 	side_title.text = nname(me)
 	side_box.add_child(_lbl(n.idea, 16, Color(0.8, 0.85, 0.7)))
-	side_box.add_child(_lbl("👑 Herrscher: 📜%d 🕊️%d ⚔️%d" % [n.ruler.adm, n.ruler.dip, n.ruler.mil]))
+	side_box.add_child(_lbl("👑 %s: 📜%d 🕊️%d ⚔️%d" % [n.ruler_name if n.ruler_name != "" else "Herrscher", n.ruler.adm, n.ruler.dip, n.ruler.mil]))
 	side_box.add_child(_lbl("Monatlich: 📜+%.0f 🕊️+%.0f ⚔️+%.0f" % [game.monthly_power(n, "adm"), game.monthly_power(n, "dip"), game.monthly_power(n, "mil")]))
 	side_box.add_child(_lbl("💰 Einnahmen %.1f · Ausgaben %.1f\n🏘️ Entwicklung %d · %d Provinzen\n🛡️ Truppenlimit %.0f · 👥 %.0f/%.0f\n⭐ Prestige %d · 🏆 Punkte %d" % [
 			n.income, n.expenses, n.dev_total, game.provinces_of(me).size(), game.force_limit(me), n.manpower, n.max_manpower, n.prestige, game.score(me)]))

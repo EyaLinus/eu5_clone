@@ -41,6 +41,9 @@ class Nation:
 	var aggression: float = 1.0
 	var tech := {"adm": 0, "dip": 0, "mil": 0}
 	var ruler := {"adm": 2, "dip": 2, "mil": 2, "years": 20}
+	var ruler_name: String = ""
+	var ruler_names: Array = []
+	var name_counts := {}
 	var mods := {"income": 0.0, "combat": 0.0, "manpower": 0.0, "adm": 0.0, "dip": 0.0, "mil": 0.0, "ae_decay": 0.0}
 	var relations := {}
 	var allies: Array = []
@@ -138,6 +141,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		n.playable = nd.get("playable", false)
 		n.idea = nd.get("idea", "")
 		n.aggression = float(nd.get("aggression", 0.6))
+		n.ruler_names = nd.get("rulers", [])
 		n.capital = key_to_pid[nd.capital]
 		var bonus: Dictionary = nd.get("bonus", {})
 		for k in bonus:
@@ -192,6 +196,22 @@ func _new_ruler(n: Nation) -> void:
 	var hi := int(bal.ruler_max)
 	n.ruler = {"adm": rng.randi_range(lo, hi), "dip": rng.randi_range(lo, hi), "mil": rng.randi_range(lo, hi),
 			"years": rng.randi_range(8, 35)}
+	n.ruler_name = ""
+	if not n.ruler_names.is_empty():
+		var base: String = n.ruler_names[rng.randi_range(0, n.ruler_names.size() - 1)]
+		var num: int = n.name_counts.get(base, 0) + 1
+		n.name_counts[base] = num
+		n.ruler_name = "%s %s" % [base, _roman(num)]
+
+
+static func _roman(v: int) -> String:
+	var vals := [[10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]]
+	var r := ""
+	for e in vals:
+		while v >= e[0]:
+			r += e[1]
+			v -= e[0]
+	return r
 
 
 # ---------------------------------------------------------------- queries
@@ -495,7 +515,8 @@ func _yearly() -> void:
 		n.ruler.years -= 1
 		if n.ruler.years <= 0:
 			_new_ruler(n)
-			log_msg("👑 Ein neuer Herrscher besteigt den Thron (%d/%d/%d)." % [n.ruler.adm, n.ruler.dip, n.ruler.mil], [tag])
+			var who: String = n.ruler_name if n.ruler_name != "" else "Ein neuer Herrscher"
+			log_msg("👑 %s besteigt den Thron (📜%d 🕊️%d ⚔️%d)." % [who, n.ruler.adm, n.ruler.dip, n.ruler.mil], [tag])
 		_check_events(n)
 		if tag != player:
 			for m in available_missions(tag):
@@ -1457,7 +1478,7 @@ func to_dict() -> Dictionary:
 			cl.append(pid)
 		ns[tag] = {"alive": n.alive, "capital": n.capital, "gold": n.gold, "adm": n.adm, "dip": n.dip,
 				"mil": n.mil, "ae": n.ae, "prestige": n.prestige, "manpower": n.manpower, "tech": n.tech,
-				"ruler": n.ruler, "mods": n.mods, "relations": n.relations, "allies": n.allies,
+				"ruler": n.ruler, "ruler_name": n.ruler_name, "name_counts": n.name_counts, "mods": n.mods, "relations": n.relations, "allies": n.allies,
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition}
 	d.nations = ns
@@ -1513,6 +1534,10 @@ func from_dict(d: Dictionary) -> void:
 		n.ruler = {}
 		for k in e.ruler:
 			n.ruler[k] = int(e.ruler[k])
+		n.ruler_name = e.get("ruler_name", "")
+		n.name_counts = {}
+		for k in e.get("name_counts", {}):
+			n.name_counts[k] = int(e.name_counts[k])
 		n.mods = e.mods
 		n.relations = e.relations
 		n.allies = e.allies

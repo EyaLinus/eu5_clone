@@ -15,6 +15,7 @@ Kein `class_name`: alles wird per `preload()` verbunden, damit Headless-Skripte 
 | `scripts/core/ai.gd` | KI: Wirtschaft, Diplomatie, Kriegserklärung, Frieden, Armeeführung, Event-Wahl |
 | `scripts/core/data.gd` | Lädt `data/*.json` |
 | `scripts/ui/main.gd` | Gesamte UI in Code gebaut (HUD, Seitenpanel, Popups), Zeitsteuerung, Autosave |
+| `scripts/ui/icons.gd` | Icon-Registry: Emoji-Fallback, PNG aus `assets/art/icons/<key>.png` falls vorhanden |
 | `scripts/ui/map_view.gd` | Karte: Zeichnen (Polygone, Schraffur bei Besetzung, Armeen) und Touch/Maus-Eingabe |
 | `data/map.json` | Generiert von `tools/gen_map.py`: Polygone, Zentren, Nachbarschaften, Startbesitzer |
 | `data/nations.json` | Nationen: Farbe, Emoji, Hauptstadt, Boni (`mods`), Aggressivität, spielbar ja/nein |

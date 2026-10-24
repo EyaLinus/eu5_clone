@@ -8,6 +8,7 @@ const SEA := Color("1d3a5c")
 const WASTE := Color("55574d")
 const BORDER := Color(0, 0, 0, 0.55)
 const ARMY_R := 15.0
+const Icons = preload("res://scripts/ui/icons.gd")
 
 var game
 var polys: Array = []
@@ -203,6 +204,10 @@ func _draw_labels() -> void:
 			var txt: String = n.name
 			var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 			var pos := s + Vector2(-w / 2, -ARMY_R - 4)
+			var flag := Icons.flag(tag)
+			if flag != null:
+				var fsz := Vector2(fs * 1.5, fs)
+				draw_texture_rect(flag, Rect2(pos + Vector2(-fsz.x - 4, -fs * 0.85), fsz), false)
 			draw_string_outline(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color(0, 0, 0, 0.8))
 			draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
 
@@ -235,6 +240,9 @@ func _draw_armies() -> void:
 		var ring := Color.WHITE if a.id == selected_army else Color(0, 0, 0, 0.9)
 		draw_circle(s, ARMY_R + 2, ring)
 		draw_circle(s, ARMY_R, c.darkened(0.15))
+		var marker := Icons.texture("army_marker")
+		if marker != null:
+			draw_texture_rect(marker, Rect2(s - Vector2(ARMY_R, ARMY_R) * 1.4, Vector2(ARMY_R, ARMY_R) * 2.8), false, c.lightened(0.4))
 		var txt := str(int(round(a.regs)))
 		var fs := 15
 		var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x

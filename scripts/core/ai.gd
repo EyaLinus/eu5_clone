@@ -149,7 +149,8 @@ func accepts_alliance(g, target: String, from: String) -> bool:
 
 func _consider_war(g, n) -> void:
 	var tag: String = n.tag
-	if n.ae > float(g.bal.ae_coalition_threshold) * float(g.bal.ai_ae_limit) or n.gold < 0.0:
+	var ae_cap: float = float(g.bal.ae_coalition_threshold) * float(g.bal.ai_ae_limit)
+	if (n.ae > ae_cap and not n.flags.has("bot_ignore_ae")) or n.gold < 0.0:
 		return
 	if n.adm < float(g.bal.core_cost_per_dev) * 8.0:
 		return

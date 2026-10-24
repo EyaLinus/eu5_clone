@@ -1,5 +1,11 @@
 # Changelog
 
+## Unveröffentlicht
+- Herrschernamen mit Ordnungszahl für die 7 Großmächte.
+- Icon-Registry: Pixel-Art-PNGs ersetzen Emojis automatisch (`assets/art/icons/`).
+- `tools/sim.gd --bot TAG`: aggressiver Stand-in-Spieler zum Testen von AE/Koalitionen.
+- CI bricht überholte Läufe ab.
+
 ## v0.1.0 – 2026-10-24
 - Erste spielbare Version: 7 Großmächte, 43 KI-Nationen, 161 Provinzen, 1444–1644.
 - Gold + Admin/Dip/Mil, Technologie, Entwickeln/Bauen, Rekrutieren, Bündnisse, Ansprüche.
