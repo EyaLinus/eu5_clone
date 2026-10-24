@@ -1,0 +1,121 @@
+# art_profile.yaml — single source of truth for EU5 Lite art.
+# Skill: .claude/skills/game-assets-2d (field docs: references/profile.md)
+
+schema_version: 2
+
+project:
+  name: "EU5 Lite"
+  description: >
+    Simplified Europa-Universalis-style grand strategy, Europe 1444-1644, single player.
+    Serious historical tone (heraldry, coins, parchment), readable on a phone in landscape.
+    Dark slate UI panels, flat-coloured political map.
+  platform: [android, desktop]
+  tech_stack: "Godot 4.3 (GDScript), stretch mode canvas_items, base viewport 1280x720"
+  orientation: landscape
+
+style:
+  summary: >
+    Chunky 16-px pixel art in the spirit of late-medieval heraldry: bold silhouettes,
+    a 1-px ink outline, three-step colour ramps lit from the top-left.
+  rules:
+    - "design grid 16x16 px (flags 24x16); one grid pixel = one art pixel, no sub-pixels"
+    - "closed 1-px outline in ink around every silhouette; no outline on interior details"
+    - "shading: max 3 ramp steps per material (dark / base / light) + optional 1-2 px highlight"
+    - "light from top-left: light step on top/left edges, dark step on bottom/right edges"
+    - "no anti-aliasing, no dithering, no single stray pixels, no gradients"
+    - "keep >= 1 px transparent margin inside the canvas (icons), flags fill the full canvas"
+    - "no text or numbers in art; the engine draws text"
+    - "tintable assets (army_marker) use only the grey ramp + ink so modulate gives the nation colour"
+  references:
+    - assets/src/pixel/icons/gold.txt
+    - assets/src/pixel/flags/flag_FRA.txt
+    - assets/src/pixel/icons/army_marker.txt
+  font:
+    file: null
+    family: null
+
+palette:
+  ink: "#1b1622"            # outlines
+  paper: "#efe4c8"          # parchment, light review background
+  paper_dark: "#c9b185"     # parchment shade, text lines
+  slate: "#2b3445"          # UI panel colour (review background only)
+  white: "#f4f1e8"
+  grey_light: "#c9ccd1"
+  grey: "#8d929b"
+  grey_dark: "#555a66"
+  gold_light: "#f8de7e"
+  gold: "#e2a72e"
+  gold_dark: "#9a6416"
+  red_light: "#e0624f"
+  red: "#b8322f"
+  red_dark: "#701c22"
+  blue_light: "#6f93ea"
+  blue: "#2e5bd4"
+  blue_dark: "#1b2f72"
+  green_light: "#7cc46a"
+  green: "#3f8f4a"
+  green_dark: "#22502e"
+  wood_light: "#b5844f"
+  wood: "#7d5130"
+  wood_dark: "#4a2d1b"
+  purple_light: "#b07cd0"
+  purple: "#8e44ad"
+  purple_dark: "#4f2463"
+
+ramps:
+  gold: [gold_dark, gold, gold_light]
+  grey: [grey_dark, grey, grey_light, white]
+  paper: [paper_dark, paper]
+  red: [red_dark, red, red_light]
+  blue: [blue_dark, blue, blue_light]
+  green: [green_dark, green, green_light]
+  wood: [wood_dark, wood, wood_light]
+  purple: [purple_dark, purple, purple_light]
+
+# Flags may additionally use heraldic tinctures from the ramps above only; nation map colours
+# from data/nations.json are NOT used in art (the map draws those itself).
+
+grid:
+  design_size_px: 16
+  pixel_art:
+    enabled: true
+    tile_px: 16
+    scale: 2                 # 16 -> 32 px PNG (flags 24x16 -> 48x32)
+
+methods:
+  icon: pixel
+  ui: pixel
+  sprite: pixel
+  flag: pixel
+  texture: procedural
+  map: geodata               # tools/gen_map.py, not this pipeline
+
+outputs:
+  root: "assets/art/icons"
+  default:
+    format: png
+    densities: [2]           # single PNG at integer x2; Godot filters nearest
+    naming: "{name}.{ext}"   # flat folder, key = file name (scripts/ui/icons.gd)
+  atlas:
+    enabled: false
+  build_integration: false   # run tools/build_art.sh after editing sources; PNGs are committed
+  generators:                # grids written by scripts (edit these, not the .txt):
+    - tools/art/hud_icons.py   # HUD resource icons
+    - tools/art/ui_icons.py    # tabs + popups
+    - tools/art/flags.py       # all flag_<TAG> except the hand-made anchor flag_FRA
+
+asset_kinds:
+  icon: { display_px: 32, grid: 16 }          # HUD row (main.gd _icon_rect), integer x2
+  tab_icon: { display_px: 36, grid: 16 }      # 60x60 buttons with expand_icon
+  flag: { display_px: [48, 32], grid: [24, 16] }
+  army_marker: { display_px: 42, grid: 16 }   # map_view.gd: ARMY_R * 2.8
+
+notes:
+  - >
+    Pixel art only looks crisp at integer scales. HUD icons are shown at 32 px (x2), but
+    canvas_items stretch adds a non-integer factor on phones, so pixels can be slightly uneven.
+    army_marker is tinted with the plain nation colour; the map skips its circle when the texture exists.
+
+naming:
+  case: snake
+  prefixes: { flag: "flag_" }   # flag_<TAG>, TAG uppercase as in data/nations.json

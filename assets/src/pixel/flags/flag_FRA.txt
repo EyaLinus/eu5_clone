@@ -1,0 +1,27 @@
+# flag_FRA – France (azure, three fleurs-de-lis or), anchor 2/3. 24x16 grid, export x2 = 48x32
+legend:
+. = transparent
+k = ink
+b = blue
+l = blue_light
+d = blue_dark
+G = gold
+L = gold_light
+D = gold_dark
+---
+kkkkkkkkkkkkkkkkkkkkkkkk
+klllllllllllllllllllllbk
+klbbbbLbbbbbbbbbbbLbbbdk
+klbbbLGGbbbbbbbbbLGGbbdk
+klbLbLGDbGbbbbbLbLGDbGdk
+klbGGbGbGDbbbbbGGbGbGDdk
+klbbGGGGDbbbbbbbGGGGDbdk
+klbbbGbDbbbbLbbbbGbDbbdk
+klbbbbbbbbbLGGbbbbbbbbdk
+klbbbbbbbLbLGDbGbbbbbbdk
+klbbbbbbbGGbGbGDbbbbbbdk
+klbbbbbbbbGGGGDbbbbbbbdk
+klbbbbbbbbbGbDbbbbbbbbdk
+klbbbbbbbbbbbbbbbbbbbbdk
+kbdddddddddddddddddddddk
+kkkkkkkkkkkkkkkkkkkkkkkk

@@ -1,0 +1,73 @@
+# art_profile.yaml — single source of truth for a project's art.
+# Shared schema for 2D and 3D pipelines. Sections a project doesn't need can be omitted.
+# Field documentation: references/profile.md of the game-assets-2d skill.
+
+schema_version: 2
+
+project:
+  name: "<Game name>"
+  description: "<one paragraph: genre, setting, tone>"
+  platform: [android]            # android | ios | web | desktop | console
+  tech_stack: "<e.g. Kotlin + Compose Canvas | Flutter + Flame | Godot 4 | Phaser | Unity>"
+  orientation: landscape         # landscape | portrait | both
+
+style:
+  summary: "<one sentence a stranger could paint from>"
+  rules:                         # concrete, checkable rules – the anti-drift mechanism
+    - "flat colors, no gradients except on UI panels"
+    - "dark outline: 2px at 64px design size, color ink"
+    - "corner radius 4 at 64px design size"
+    - "light from top-left; shadow = one palette step darker, offset down-right"
+  references: []                 # anchor assets, paths in repo (filled after bootstrap)
+  font:
+    file: null                   # path to a shipped .ttf/.otf (OFL fonts only), or null = no text in art
+    family: null
+
+palette:                         # name -> hex. Assets may use ONLY these.
+  ink: "#1d1a24"
+  paper: "#efe4c8"
+  # ...
+  # Optional ramps make shading consistent:
+ramps: {}                        # e.g. gold: [gold_dark, gold, gold_light]
+
+grid:
+  design_size_px: 64             # icon viewBox / design grid
+  pixel_art:
+    enabled: false
+    tile_px: 16
+    scale: 4                     # integer upscale for output
+
+methods:                         # override skill defaults per asset kind
+  icon: svg
+  ui: svg
+  sprite: svg                    # svg | pixel
+  texture: procedural
+  map: geodata                   # geodata | procedural | svg
+  portrait: svg_modular
+
+outputs:                         # what the tech stack consumes
+  root: "app/src/main/assets/gfx"
+  default:
+    format: png                  # png | webp | svg | vectordrawable
+    densities: [1, 1.5, 2, 3, 4] # multipliers of display size; [1] for single-res
+    naming: "{kind}/{name}_{density}x.{ext}"
+  overrides:
+    texture: { densities: [1], format: png }
+  atlas:
+    enabled: false
+    max_size: 2048
+    padding: 2
+    format: json-hash            # json-hash | json-array | libgdx | css
+  build_integration: false       # true = export runs as part of the build/CI
+
+asset_kinds:                     # display sizes on screen (dp/pt/px at density 1)
+  icon: { display_px: 24 }
+  icon_large: { display_px: 48 }
+  ui_button: { display_px: [160, 48] }
+
+naming:
+  case: snake                    # snake | kebab | pascal
+  prefixes: {}                   # e.g. icon: "ic_", texture: "tx_"
+
+# ---- 3D section (used by the Blender/3D pipeline, ignored by game-assets-2d) ----
+# units, grid, budgets, pivot, export … see the 3D profile.
