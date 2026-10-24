@@ -147,7 +147,7 @@ func _build_hud() -> void:
 	for k in ["nation", "gold", "adm", "dip", "mil", "manpower", "army", "ae"]:
 		var tex := Icons.texture(k)
 		if tex != null:
-			hb.add_child(_icon_rect(tex, 28))
+			hb.add_child(_icon_rect(tex, 32))
 		var l := Label.new()
 		l.mouse_filter = Control.MOUSE_FILTER_STOP
 		hb.add_child(l)

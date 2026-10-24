@@ -33,6 +33,7 @@ var _mouse_down := false
 
 func setup(g, map_data: Dictionary) -> void:
 	game = g
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	font = get_theme_default_font()
 	polys.clear()
 	bboxes.clear()
@@ -238,11 +239,15 @@ func _draw_armies() -> void:
 			continue
 		var c: Color = game.nations[a.owner].color
 		var ring := Color.WHITE if a.id == selected_army else Color(0, 0, 0, 0.9)
-		draw_circle(s, ARMY_R + 2, ring)
-		draw_circle(s, ARMY_R, c.darkened(0.15))
 		var marker := Icons.texture("army_marker")
 		if marker != null:
-			draw_texture_rect(marker, Rect2(s - Vector2(ARMY_R, ARMY_R) * 1.4, Vector2(ARMY_R, ARMY_R) * 2.8), false, c.lightened(0.4))
+			# pixel-art shield already has an outline: no circle, tint with the nation colour
+			if a.id == selected_army:
+				draw_circle(s, ARMY_R + 4, Color(1, 1, 1, 0.5))
+			draw_texture_rect(marker, Rect2(s - Vector2(ARMY_R, ARMY_R) * 1.4, Vector2(ARMY_R, ARMY_R) * 2.8), false, c)
+		else:
+			draw_circle(s, ARMY_R + 2, ring)
+			draw_circle(s, ARMY_R, c.darkened(0.15))
 		var txt := str(int(round(a.regs)))
 		var fs := 15
 		var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
