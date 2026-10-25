@@ -1066,5 +1066,71 @@
    "options": [
      {"text": "Für Habsburg stimmen.", "effects": {"relations": {"HAB": 40}, "gold": 50}, "ai": 40},
      {"text": "Die eigene Kandidatur betreiben.", "effects": {"prestige": 10, "dip": -30, "relations": {"HAB": -20}}, "ai": 30},
-     {"text": "Mit den Kurfürsten verhandeln.", "effects": {"relations": {"SAX": 30, "PAL": 30, "BRA": 30}}, "ai": 30}]}
+     {"text": "Mit den Kurfürsten verhandeln.", "effects": {"relations": {"SAX": 30, "PAL": 30, "BRA": 30}}, "ai": 30}]},
+  {"id": "tur_mohacs", "tag": "TUR", "title": "Mohács", "text": "Der junge König von Ungarn hat das Bündnis mit dem Sultan verschmäht. Die Ebene von Mohács wartet.",
+   "trigger": {"year_min": 1515, "year_max": 1545, "alive": "HUN", "at_peace": true},
+   "options": [
+     {"text": "Nach Ungarn!", "effects": {"war": "HUN", "mil": 30}, "ai": 60},
+     {"text": "Einen Vasallen auf den Thron setzen.", "effects": {"claim": ["buda"], "dip": -30}},
+     {"text": "Erst Persien.", "effects": {"mil": 40}}]},
+  {"id": "tur_lepanto", "tag": "TUR", "title": "Lepanto", "text": "Die Flotte der Heiligen Liga hat die osmanische Flotte vernichtet. Europa feiert.",
+   "trigger": {"year_min": 1565, "year_max": 1585, "alive": "SPA"},
+   "options": [
+     {"text": "Eine neue Flotte in einem Winter.", "effects": {"gold": -80, "prestige": 10}, "ai": 50},
+     {"text": "Venedig einen Separatfrieden anbieten.", "effects": {"relations": {"VEN": 50}, "prestige": -10}},
+     {"text": "Der Bart wächst nach.", "effects": {"prestige": -5, "mil": 30}}]},
+  {"id": "pol_henrician", "tag": "POL", "title": "Die Henricianischen Artikel", "text": "Der Adel wählt einen französischen Prinzen zum König, aber nur gegen weitreichende Zugeständnisse.",
+   "trigger": {"year_min": 1570, "year_max": 1590},
+   "options": [
+     {"text": "Die Artikel annehmen.", "effects": {"dip": 40, "prestige": -5}, "ai": 50},
+     {"text": "Einen starken König wählen.", "effects": {"ruler": {"mil": 1}, "relations": {"FRA": -20}}},
+     {"text": "Den Habsburger Kandidaten nehmen.", "effects": {"relations": {"HAB": 40}, "gold": 40}}]},
+  {"id": "pol_vienna_relief", "tag": "POL", "title": "Entsatz für Wien", "text": "Der Kaiser bittet um Hilfe: Die Türken stehen vor Wien.",
+   "trigger": {"year_min": 1520, "alive": "TUR", "at_peace": true},
+   "options": [
+     {"text": "Die Husaren reiten!", "effects": {"prestige": 20, "manpower": -2, "relations": {"HAB": 40, "TUR": -40}}, "ai": 50},
+     {"text": "Gold statt Reiter.", "effects": {"gold": -50, "relations": {"HAB": 30}}},
+     {"text": "Das ist nicht unser Krieg.", "effects": {"mil": 30}}]},
+  {"id": "bur_nancy", "tag": "BUR", "title": "Vor Nancy", "text": "Im Schnee vor Nancy liegt Karl der Kühne tot. Seine Tochter Maria erbt ein Reich ohne Heer.",
+   "trigger": {"year_min": 1470, "year_max": 1490, "flag": "ev_bur_charles_bold"},
+   "options": [
+     {"text": "Maria heiratet Maximilian von Habsburg.", "effects": {"alliance": "HAB", "prestige": -5}, "ai": 50},
+     {"text": "Die Stände retten das Erbe.", "effects": {"adm": 40, "dip": -20}},
+     {"text": "Ein französischer Dauphin.", "effects": {"relations": {"FRA": 50}, "prestige": -10}}]},
+  {"id": "bur_golden_fleece", "tag": "BUR", "title": "Der Orden vom Goldenen Vlies", "text": "Der glänzendste Ritterorden Europas tagt in Brügge. Fürsten aus ganz Europa wollen aufgenommen werden.",
+   "trigger": {"year_max": 1500},
+   "options": [
+     {"text": "Ein prächtiges Ordenskapitel.", "effects": {"prestige": 10, "gold": -40}, "ai": 50},
+     {"text": "Ausländische Fürsten aufnehmen.", "effects": {"dip": 40}},
+     {"text": "Die Ritter sollen kämpfen, nicht feiern.", "effects": {"mil": 30}}]},
+  {"id": "gen_hre_reichstag", "once": false, "tag": "*", "title": "Der Reichstag", "text": "Die Reichsstände versammeln sich. Der Kaiser will Geld für den Türkenkrieg, die Fürsten wollen Rechte.",
+   "trigger": {"hre": true, "emperor": false, "year_min": 1450},
+   "options": [
+     {"text": "Die Türkenhilfe bewilligen.", "effects": {"gold": -30, "prestige": 5}, "ai": 30},
+     {"text": "Gegen den Kaiser stimmen.", "effects": {"dip": 20, "relations": {"HAB": -10}}, "ai": 40},
+     {"text": "Einen Gesandten schicken und schweigen.", "effects": {"adm": 15}, "ai": 30}]},
+  {"id": "gen_hre_landfriede", "tag": "*", "title": "Der Ewige Landfriede", "text": "Fehden sind im Reich verboten. Streit soll vor das Reichskammergericht.",
+   "trigger": {"hre": true, "year_min": 1495, "year_max": 1530},
+   "options": [
+     {"text": "Den Landfrieden achten.", "effects": {"prestige": 5, "dip": 15}, "ai": 50},
+     {"text": "Einen Prozess am Kammergericht führen.", "effects": {"adm": 25, "gold": -20}},
+     {"text": "Fehde ist Fürstenrecht.", "effects": {"mil": 30, "ae": 2}}]},
+  {"id": "gen_hre_reichskreis", "tag": "*", "title": "Der Reichskreis", "text": "Die Stände des Kreises sollen gemeinsam Truppen gegen Landfriedensbrecher stellen.",
+   "trigger": {"hre": true, "year_min": 1512, "at_peace": true},
+   "options": [
+     {"text": "Ein Kontingent stellen.", "effects": {"regs": 2, "mil": -20}, "ai": 50},
+     {"text": "Geld statt Soldaten.", "effects": {"gold": -30, "dip": 20}},
+     {"text": "Die Kreisordnung ignorieren.", "effects": {"prestige": -5, "mil": 20}}]},
+  {"id": "gen_emperor_coronation", "once": false, "tag": "*", "title": "Die Kaiserkrönung", "text": "Der neue Kaiser soll gekrönt werden. Eine Romfahrt ist teuer, Aachen ist nah.",
+   "trigger": {"emperor": true},
+   "options": [
+     {"text": "In Rom, aus der Hand des Papstes.", "effects": {"gold": -60, "prestige": 15, "relations": {"PAP": 30}}, "ai": 40},
+     {"text": "In Aachen, wie Karl der Große.", "effects": {"prestige": 10, "gold": -20}, "ai": 40},
+     {"text": "Ein erwählter Kaiser braucht keine Krönung.", "effects": {"adm": 30, "prestige": -5}, "ai": 20}]},
+  {"id": "gen_emperor_reform", "tag": "*", "title": "Reichsreform", "text": "Als Kaiser könnten wir das Reich stärken, auf Kosten der Fürsten und unserer Hausmacht.",
+   "trigger": {"emperor": true, "year_min": 1480},
+   "options": [
+     {"text": "Ein Reichsregiment mit den Fürsten.", "effects": {"dip": 40, "prestige": 5}, "ai": 40},
+     {"text": "Die Hausmacht zuerst.", "effects": {"adm": 30, "gold": 40}, "ai": 40},
+     {"text": "Den Gemeinen Pfennig erheben.", "effects": {"gold": 70, "dip": -30}, "ai": 20}]}
 ]
