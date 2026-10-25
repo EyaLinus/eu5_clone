@@ -1049,6 +1049,13 @@ func _on_army_tapped(id: int) -> void:
 	if selected_army == id:
 		_close_panel()
 		return
+	# with an own army selected, tapping a foreign army means: march there (attack)
+	var tapped = game.army_by_id(id)
+	if selected_army >= 0 and tapped != null and tapped.owner != game.player:
+		var mine = game.army_by_id(selected_army)
+		if mine != null and mine.owner == game.player:
+			_on_province_tapped(tapped.pid)
+			return
 	if side_panel.visible and panel_mode != "" and panel_mode != "army":
 		panel_history.append([panel_mode, panel_arg])
 	side_back.visible = not panel_history.is_empty()
@@ -1128,6 +1135,8 @@ func _panel_province(pid: int) -> void:
 			side_box.add_child(_btn("📜 Anspruch fabrizieren (%d 🕊️)" % int(game.bal.claim_cost), func(): _act(game.fabricate_claim(me, pid), "📜 Anspruch erhoben")))
 		if not game.at_war(me, p.owner):
 			side_box.add_child(_btn("🔥 Krieg gegen %s…" % game.nations[p.owner].name, _confirm_war.bind(p.owner)))
+	if not game.armies_of(me).is_empty():
+		side_box.add_child(_btn("🚩 Alle meine Armeen hierher", _all_armies_to.bind(pid), "Schickt jede eigene Armee in diese Provinz (danach manuell)."))
 	var here: Array = game.armies_in(pid)
 	if not here.is_empty():
 		side_box.add_child(_lbl("Armeen hier:", 18, Color(0.7, 0.8, 0.9)))
@@ -1268,8 +1277,23 @@ func _panel_army(id: int) -> void:
 		side_box.add_child(_lbl("👉 Tippe auf eine Provinz, um die Armee dorthin zu schicken. Lange drücken zeigt nur Infos.", 16, Color(0.8, 0.85, 0.6)))
 	else:
 		side_box.add_child(_btn("🎯 Neues Ziel wählen", func(): selected_army = a.id; map.selected_army = a.id; _refresh(); map.queue_redraw()))
-	var auto_btn := _btn("🤖 Automatisch: AN" if a.auto else "🤖 Automatisch: AUS", func(): a.auto = not a.auto; _refresh())
-	side_box.add_child(auto_btn)
+	side_box.add_child(_lbl("Modus: " + _stance_name(a), 17, Color(0.8, 0.85, 0.7)))
+	side_box.add_child(_row([
+		_btn("⚔️ Angriff", func(): _set_stance(a, "attack"), "KI führt die Armee: sucht Schlachten und belagert."),
+		_btn("🛡️ Verteidigen", func(): _set_stance(a, "defend"), "KI führt die Armee nur im eigenen und verbündeten Land."),
+		_btn("✋ Manuell", func(): _set_stance(a, ""), "Du gibst die Befehle.")]))
+	var orders := []
+	var ai = game.ai
+	for o in [["🎯 Belagern", ai.nearest_siege(game, a), "Nächste feindliche Provinz belagern"],
+			["⚔️ Angreifen", ai.nearest_enemy_army(game, a), "Nächste schlagbare feindliche Armee angreifen"],
+			["🏳️ Befreien", ai.nearest_lost_province(game, a), "Nächste eigene besetzte Provinz befreien"]]:
+		if o[1] >= 0:
+			var target: int = o[1]
+			orders.append(_btn(o[0], func(): _quick_order(a, target), "%s: %s" % [o[2], game.provinces[target].name]))
+	if not orders.is_empty():
+		side_box.add_child(_row(orders))
+	if a.pid != game.nations[a.owner].capital:
+		side_box.add_child(_btn("🏰 Zur Hauptstadt", func(): _quick_order(a, game.nations[a.owner].capital)))
 	side_box.add_child(_row([
 		_btn("✂️ Teilen", func(): var b = game.split_army(a); _act("" if b != null else "Zu klein zum Teilen.")),
 		_btn("🔗 Vereinen", func(): game.merge_armies(a.owner, a.pid); _act(""); map.queue_redraw())]))
@@ -1420,10 +1444,22 @@ func _panel_wars() -> void:
 	var ws_list: Array = game.wars_of(me)
 	if ws_list.is_empty():
 		side_box.add_child(_lbl("Du bist im Frieden. 🕊️"))
-	else:
-		side_box.add_child(_row([
-			_btn("🤖 Alle Armeen: KI", func(): _set_all_auto(true)),
-			_btn("✋ Alle: manuell", func(): _set_all_auto(false))]))
+	var st: String = game.nations[me].army_stance
+	side_box.add_child(_lbl("🛡️ Armeeführung (gilt auch für neue Armeen): " + {"attack": "⚔️ Angriff", "defend": "🛡️ Verteidigen", "": "✋ Manuell"}[st], 17))
+	side_box.add_child(_row([
+		_btn("⚔️ Angriff", func(): _set_all_stance("attack"), "Alle Armeen kämpfen selbstständig: Schlachten suchen, belagern."),
+		_btn("🛡️ Verteidigen", func(): _set_all_stance("defend"), "Alle Armeen schützen selbstständig dein und verbündetes Land."),
+		_btn("✋ Manuell", func(): _set_all_stance(""), "Du gibst alle Befehle selbst.")]))
+	var arms: Array = game.armies_of(me)
+	if not arms.is_empty():
+		side_box.add_child(_lbl("Deine Armeen (antippen = auswählen)", 17, Color(0.7, 0.8, 0.9)))
+		for a in arms:
+			var where: String = game.provinces[a.pid].name
+			if a.target >= 0:
+				where += " → " + game.provinces[a.target].name
+			var b := _btn("%s %.1f Reg. · %s · %s" % [Icons.prefix("army"), a.regs, where, _stance_name(a)], _select_army.bind(a.id))
+			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			side_box.add_child(b)
 	for w in ws_list:
 		var att: bool = game.is_attacker(w, me)
 		var ws: float = game.warscore(w) * (1.0 if att else -1.0)
@@ -1504,10 +1540,60 @@ func _panel_peace(war_id: int) -> void:
 
 
 func _set_all_auto(on: bool) -> void:
-	for a in game.armies_of(game.player):
-		a.auto = on
-	_toast("🤖 Alle Armeen werden von der KI geführt." if on else "✋ Du führst alle Armeen selbst.")
+	_set_all_stance("attack" if on else "")
+
+
+func _stance_name(a) -> String:
+	if not a.auto:
+		return "✋ Manuell"
+	return "🛡️ Verteidigen (KI)" if a.stance == "defend" else "⚔️ Angriff (KI)"
+
+
+func _set_stance(a, stance: String) -> void:
+	a.auto = stance != ""
+	if stance != "":
+		a.stance = stance
 	_refresh()
+
+
+## Every army of the player, and new armies from now on.
+func _set_all_stance(stance: String) -> void:
+	game.nations[game.player].army_stance = stance
+	for a in game.armies_of(game.player):
+		a.auto = stance != ""
+		if stance != "":
+			a.stance = stance
+	_toast({"attack": "⚔️ Alle Armeen greifen selbstständig an.", "defend": "🛡️ Alle Armeen verteidigen selbstständig.",
+			"": "✋ Du führst alle Armeen selbst."}[stance])
+	_refresh()
+
+
+func _quick_order(a, pid: int) -> void:
+	a.auto = false
+	var err: String = game.move_army(a, pid)
+	_act(err, "🚶 Marschbefehl nach %s" % game.provinces[pid].name if err == "" else "")
+	map.queue_redraw()
+
+
+## Province panel: send every own army here (they switch to manual).
+func _all_armies_to(pid: int) -> void:
+	var sent := 0
+	for a in game.armies_of(game.player):
+		if a.pid != pid:
+			a.auto = false
+			if game.move_army(a, pid) == "":
+				sent += 1
+	_toast("🚩 %d Armeen marschieren nach %s." % [sent, game.provinces[pid].name] if sent > 0 else "Keine Armee kann dorthin.")
+	map.queue_redraw()
+
+
+## Select an army from a list and center the map on it.
+func _select_army(id: int) -> void:
+	var a = game.army_by_id(id)
+	if a == null:
+		return
+	map.focus(game.provinces[a.pid].center)
+	_on_army_tapped(id)
 
 
 func _toggle_peace(on: bool, pid: int) -> void:

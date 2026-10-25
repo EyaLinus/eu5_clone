@@ -77,6 +77,7 @@ class Nation:
 	var trade_income: float = 0.0
 	var merchants: Array = []  # market center pids
 	var merchant_auto: bool = true
+	var army_stance: String = ""  # player's default for new armies: "" manual, "attack" or "defend"
 
 
 class Army:
@@ -87,6 +88,7 @@ class Army:
 	var full: float
 	var target: int = -1
 	var auto: bool = true
+	var stance: String = "attack"  # when auto: "attack" (seek battles and sieges) or "defend" (own and allied land)
 	var path: Array = []
 
 
@@ -849,7 +851,9 @@ func spawn_army(tag: String, pid: int, regs: float) -> Army:
 	a.pid = pid
 	a.regs = regs
 	a.full = regs
-	a.auto = tag != player
+	a.auto = tag != player or nations[tag].army_stance != ""
+	if tag == player and nations[tag].army_stance != "":
+		a.stance = nations[tag].army_stance
 	armies.append(a)
 	return a
 
@@ -1623,6 +1627,7 @@ func split_army(army: Army) -> Army:
 	army.full = maxf(army.regs, army.full - half)
 	var b := spawn_army(army.owner, army.pid, half)
 	b.auto = army.auto
+	b.stance = army.stance
 	return b
 
 
@@ -1990,12 +1995,12 @@ func to_dict() -> Dictionary:
 				"ruler": n.ruler, "ruler_name": n.ruler_name, "name_counts": n.name_counts, "mods": n.mods, "relations": n.relations, "allies": n.allies,
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
-				"merchants": n.merchants, "merchant_auto": n.merchant_auto}
+				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance}
 	d.nations = ns
 	var ar := []
 	for a in armies:
 		ar.append({"id": a.id, "owner": a.owner, "pid": a.pid, "regs": a.regs, "full": a.full,
-				"target": a.target, "auto": a.auto})
+				"target": a.target, "auto": a.auto, "stance": a.stance})
 	d.armies = ar
 	var ws := []
 	for w in wars:
@@ -2086,6 +2091,7 @@ func from_dict(d: Dictionary) -> void:
 		for m in e.get("merchants", []):
 			n.merchants.append(int(m))
 		n.merchant_auto = e.get("merchant_auto", true)
+		n.army_stance = e.get("army_stance", "")
 	armies.clear()
 	for e in d.armies:
 		var a := Army.new()
@@ -2096,6 +2102,7 @@ func from_dict(d: Dictionary) -> void:
 		a.full = float(e.full)
 		a.target = int(e.target)
 		a.auto = e.auto
+		a.stance = e.get("stance", "attack")
 		armies.append(a)
 	wars.clear()
 	for e in d.wars:

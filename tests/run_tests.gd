@@ -15,7 +15,7 @@ func _init() -> void:
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
-		"test_economy_goods_and_trade", "test_buildings", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_economy_goods_and_trade", "test_buildings", "test_army_stances", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_long_run_no_softlock",
 	]:
 		var before := failures
@@ -460,6 +460,32 @@ func test_buildings() -> void:
 	g2.from_dict(JSON.parse_string(text))
 	check(JSON.stringify(g2.to_dict()) == text, "economy state survives save/load")
 	check(g2.provinces[q.id].loc.get("unrest", 0.0) < 0.0, "building cache is rebuilt on load")
+
+
+func test_army_stances() -> void:
+	var g = new_game("BOH", 11)
+	var n = g.nations.BOH
+	n.army_stance = "defend"
+	var a = g.spawn_army("BOH", n.capital, 6.0)
+	check(a.auto and a.stance == "defend", "new armies follow the player's default stance")
+	g.nations.BOH.truces.erase("BAV")
+	g.nations.BAV.truces.erase("BOH")
+	check(g.declare_war("BOH", "BAV") == "", "war declared")
+	var ok := true
+	for i in 36:
+		g.tick()
+		for x in g.armies_of("BOH"):
+			if not x.auto or x.stance != "defend":
+				continue
+			var p = g.provinces[x.pid]
+			var near: bool = g.ai._friendly(g, "BOH", p.owner)
+			for nb in p.adj:
+				near = near or g.ai._friendly(g, "BOH", g.provinces[nb].owner)
+			ok = ok and near
+	check(ok, "defending armies stay in or next to friendly land")
+	var b = g.spawn_army("BOH", n.capital, 2.0)
+	var t: int = g.ai.nearest_siege(g, b)
+	check(t < 0 or g.at_war("BOH", g.provinces[t].controller), "quick order 'siege' points at enemy land")
 
 
 func test_save_roundtrip() -> void:
