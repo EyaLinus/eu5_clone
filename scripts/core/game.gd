@@ -112,6 +112,7 @@ var stats := {"wars": 0, "battles": 0, "peace_deals": 0, "provinces_changed": 0,
 var ai
 var hre: Array = []
 var emperor: String = ""
+var electors: Array = []
 
 
 func _init() -> void:
@@ -186,6 +187,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 func _apply_start_diplomacy(d: Dictionary) -> void:
 	hre = d.get("hre", [])
 	emperor = d.get("emperor", "")
+	electors = d.get("electors", [])
 	for pair in d.get("alliances", []):
 		_ally(pair[0], pair[1])
 		add_rel(pair[0], pair[1], 60)
@@ -419,7 +421,10 @@ func power_of(n: Nation, kind: String) -> float:
 
 
 func monthly_power(n: Nation, kind: String) -> float:
-	return float(bal.base_power) + n.ruler[kind] + n.mods[kind]
+	var v: float = float(bal.base_power) + n.ruler[kind] + n.mods[kind]
+	if n.tag == emperor and kind == "dip":
+		v += float(bal.emperor_dip)
+	return v
 
 
 func tech_cost(tag: String, kind: String) -> float:
@@ -647,6 +652,8 @@ func _yearly() -> void:
 			_new_ruler(n)
 			var who: String = n.ruler_name if n.ruler_name != "" else "Ein neuer Herrscher"
 			log_msg("👑 %s besteigt den Thron (📜%d 🕊️%d ⚔️%d)." % [who, n.ruler.adm, n.ruler.dip, n.ruler.mil], [tag])
+			if tag == emperor:
+				hre_election()
 		_check_events(n)
 		if tag != player:
 			for m in available_missions(tag):
@@ -654,6 +661,82 @@ func _yearly() -> void:
 					complete_mission(tag, m.id)
 	_coalitions_yearly()
 	_liberty_yearly()
+	if emperor == "" or not nations[emperor].alive or nations[emperor].overlord != "":
+		hre_election()
+
+
+# ---------------------------------------------------------------- Holy Roman Empire
+
+func hre_members() -> Array:
+	var r := []
+	for t in hre:
+		if nations.has(t) and nations[t].alive:
+			r.append(t)
+	return r
+
+
+## The seven votes: listed electors while they live, refilled with the largest other members.
+func current_electors() -> Array:
+	var r := []
+	for t in electors:
+		if nations.has(t) and nations[t].alive and hre.has(t):
+			r.append(t)
+	var rest := hre_members().filter(func(t): return not r.has(t))
+	rest.sort_custom(func(a, b): return nations[a].dev_total > nations[b].dev_total)
+	while r.size() < 7 and not rest.is_empty():
+		r.append(rest.pop_front())
+	return r
+
+
+func _vote_score(elector: String, cand: String) -> float:
+	var s: float = get_rel(elector, cand) + nations[cand].dev_total * 0.15 + nations[cand].prestige * 0.3
+	if is_allied(elector, cand):
+		s += 30.0
+	if cand == emperor:
+		s += float(bal.emperor_incumbency)
+	if at_war(elector, cand):
+		s -= 200.0
+	return s
+
+
+## Who each elector would vote for right now: {elector: candidate}.
+func election_votes() -> Dictionary:
+	var cands := hre_members().filter(func(t): return nations[t].overlord == "")
+	var votes := {}
+	for e in current_electors():
+		var best := ""
+		var best_s := -1e9
+		for c in cands:
+			if c == e:
+				continue
+			var s := _vote_score(e, c)
+			if s > best_s:
+				best_s = s
+				best = c
+		if best != "":
+			votes[e] = best
+	return votes
+
+
+func hre_election() -> void:
+	var votes := election_votes()
+	if votes.is_empty():
+		return
+	var count := {}
+	for e in votes:
+		count[votes[e]] = count.get(votes[e], 0) + 1
+	var winner := ""
+	for c in count:
+		if winner == "" or count[c] > count[winner] or (count[c] == count[winner] and nations[c].dev_total > nations[winner].dev_total):
+			winner = c
+	var old := emperor
+	emperor = winner
+	if winner != old:
+		stats.emperor_changes = stats.get("emperor_changes", 0) + 1
+		log_msg("👑 Kaiserwahl: %s wird mit %d von %d Stimmen Kaiser des Heiligen Römischen Reiches!" % [nations[winner].name, count[winner], votes.size()],
+				[winner] + ([old] if old != "" else []))
+	else:
+		log_msg("👑 Kaiserwahl: %s bleibt Kaiser (%d von %d Stimmen)." % [nations[winner].name, count[winner], votes.size()], [winner])
 
 
 ## Vassals that grow strong (or hate their overlord) break free.
@@ -1712,6 +1795,21 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"major":
 				if n.playable != bool(v):
 					return false
+			"we_min":
+				if n.we < float(v):
+					return false
+			"is_vassal":
+				if (n.overlord != "") != bool(v):
+					return false
+			"has_vassal":
+				if vassals_of(tag).is_empty() == bool(v):
+					return false
+			"unrest_min":
+				var top := 0.0
+				for pid in provinces_of(tag):
+					top = maxf(top, unrest(pid))
+				if top < float(v):
+					return false
 	return true
 
 
@@ -1790,7 +1888,7 @@ func complete_mission(tag: String, mission_id: String) -> String:
 func to_dict() -> Dictionary:
 	var d := {"month": month, "player": player, "rng_state": str(rng.state), "rng_seed": str(rng.seed),
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
-			"pending_peace": pending_peace, "log": log_lines, "stats": stats, "game_over": game_over}
+			"pending_peace": pending_peace, "log": log_lines, "stats": stats, "game_over": game_over, "emperor": emperor}
 	var ps := []
 	for p in provinces:
 		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort, p.prev_owner, p.suppress_months])
@@ -1837,6 +1935,7 @@ func from_dict(d: Dictionary) -> void:
 				"vassal": o.get("vassal", false)})
 	log_lines = d.log
 	game_over = d.get("game_over", false)
+	emperor = d.get("emperor", emperor)
 	for k in d.stats:
 		stats[k] = d.stats[k]
 	for i in provinces.size():

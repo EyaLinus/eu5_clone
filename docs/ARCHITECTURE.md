@@ -26,7 +26,7 @@ Kein `class_name`: alles wird per `preload()` verbunden, damit Headless-Skripte 
 
 ## Bedingungen und Effekte (Events/Missionen)
 Bedingungen (`Game.check_conditions`): `year_min/max, owns, owns_any, not_owns, at_war, at_peace, flag, not_flag,
-min_dev, alive, not_alive, ae_min, gold_min, allied, allies, tech{adm,dip,mil}, regs, major`.
+min_dev, alive, not_alive, ae_min, gold_min, allied, allies, tech{adm,dip,mil}, regs, major, we_min, is_vassal, has_vassal, unrest_min`.
 Effekte (`Game.apply_effects`): `gold, adm, dip, mil, ae, we, prestige, manpower, regs, dev_capital, dev_random,
 relations{TAG:x}, claim[keys], flag, mods{income,combat,manpower,adm,dip,mil,ae_decay}, ruler{adm,dip,mil},
 alliance, inherit, vassal, province, war`. Neue Schlüssel immer in beiden UI-Textfunktionen

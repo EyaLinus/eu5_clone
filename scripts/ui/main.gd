@@ -793,6 +793,8 @@ func _refresh() -> void:
 			_panel_log()
 		"ranking":
 			_panel_ranking()
+		"hre":
+			_panel_hre()
 	side_scroll.set_deferred("scroll_vertical", scroll)
 
 
@@ -940,7 +942,7 @@ func _panel_nation() -> void:
 func _panel_diplomacy() -> void:
 	var me: String = game.player
 	side_title.text = "🤝 Diplomatie"
-	side_box.add_child(_btn("🏆 Rangliste der Mächte", _open_panel.bind("ranking")))
+	side_box.add_child(_row([_btn("🏆 Rangliste", _open_panel.bind("ranking")), _btn("👑 Reich", _open_panel.bind("hre"))]))
 	var groups := [["Vasallen", []], ["Verbündete", []], ["Feinde", []], ["Nachbarn", []], ["Andere", []]]
 	var nbs: Array = game.neighbors_of(me)
 	for tag in game.order:
@@ -1165,6 +1167,33 @@ func _panel_missions() -> void:
 		side_box.add_child(_btn("🎯 Abschließen", func(): _act(game.complete_mission(me, m.id), "🎯 Mission erfüllt!"), "", not ready))
 
 
+func _panel_hre() -> void:
+	var me: String = game.player
+	side_title.text = "👑 Heiliges Römisches Reich"
+	var emp: String = game.emperor
+	if emp == "":
+		side_box.add_child(_lbl("Der Kaiserthron ist leer."))
+	else:
+		side_box.add_child(_lbl("Kaiser:", 18, Color(0.7, 0.8, 0.9)))
+		side_box.add_child(_nation_btn(emp, "", _open_panel.bind("other", emp) if emp != me else _open_panel.bind("nation")))
+	side_box.add_child(_lbl("Der Kaiser erhält +%d 🕊️/Monat und verteidigt Reichsmitglieder gegen Angreifer von außen. Gewählt wird, wenn der Herrscher des Kaisers stirbt." % int(game.bal.emperor_dip), 15, Color(0.75, 0.75, 0.75)))
+	var votes: Dictionary = game.election_votes()
+	var count := {}
+	for e in votes:
+		count[votes[e]] = count.get(votes[e], 0) + 1
+	side_box.add_child(_lbl("Kurfürsten (Stimme, wenn jetzt gewählt würde):", 18, Color(0.7, 0.8, 0.9)))
+	for e in game.current_electors():
+		var v: String = votes.get(e, "")
+		var txt := "  → %s  ❤️%d" % [game.nations[v].name if v != "" else "–", int(game.get_rel(me, e)) if e != me else 0]
+		side_box.add_child(_nation_btn(e, txt, _open_panel.bind("other", e) if e != me else _open_panel.bind("nation")))
+	if game.hre.has(me):
+		var mine: int = count.get(me, 0)
+		side_box.add_child(_lbl("Du hättest %d von %d Stimmen. Bessere Beziehungen, Bündnisse und Prestige bringen Stimmen." % [mine, votes.size()], 16, Color(1, 0.9, 0.6)))
+	else:
+		side_box.add_child(_lbl("Du bist kein Reichsmitglied und kannst nicht gewählt werden.", 16))
+	side_box.add_child(_lbl("Mitglieder: %d" % game.hre_members().size(), 15, Color(0.75, 0.75, 0.75)))
+
+
 func _panel_ranking() -> void:
 	side_title.text = "🏆 Rangliste"
 	var tags := []
@@ -1279,6 +1308,14 @@ func conditions_text(c: Dictionary) -> String:
 				lines.append(mark + "Gold ≥ %d" % int(v))
 			"year_min":
 				lines.append(mark + "Ab dem Jahr %d" % int(v))
+			"we_min":
+				lines.append(mark + "Kriegsmüdigkeit ≥ %d" % int(v))
+			"is_vassal":
+				lines.append(mark + ("Ist ein Vasall" if v else "Ist unabhängig"))
+			"has_vassal":
+				lines.append(mark + ("Hat Vasallen" if v else "Hat keine Vasallen"))
+			"unrest_min":
+				lines.append(mark + "Unruhe in einer Provinz ≥ %d" % int(v))
 			_:
 				lines.append(mark + k)
 	return "\n".join(lines)

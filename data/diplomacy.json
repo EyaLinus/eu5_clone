@@ -125,5 +125,14 @@
     "MLO",
     "TUS",
     "GEN"
+  ],
+  "electors": [
+    "BOH",
+    "PAL",
+    "SAX",
+    "BRA",
+    "KOL",
+    "BAV",
+    "HAB"
   ]
 }

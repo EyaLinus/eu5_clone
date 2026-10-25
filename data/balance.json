@@ -82,5 +82,7 @@
   "unrest_suppress": 5.0,
   "revolt_threshold": 5.0,
   "revolt_chance": 0.01,
-  "vassal_liberty_threshold": 1.0
+  "vassal_liberty_threshold": 1.0,
+  "emperor_dip": 1.0,
+  "emperor_incumbency": 25.0
 }

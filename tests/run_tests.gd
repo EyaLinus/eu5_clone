@@ -14,7 +14,7 @@ func _init() -> void:
 	data = Data.load_all()
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
-		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_alliance_joins_war", "test_protector_defends_small_state",
+		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_long_run_no_softlock",
 	]:
@@ -281,6 +281,39 @@ func test_unrest_and_revolt() -> void:
 	var g3 = new_game("FRA")
 	g3.from_dict(d)
 	check(absf(g3.nations.FRA.we - g.nations.FRA.we) < 0.01 and g3.provinces[paris].suppress_months == 24, "unrest state saved")
+
+
+func test_hre_election() -> void:
+	var g = new_game("BOH")
+	check(g.emperor == "HAB", "Habsburg starts as emperor")
+	check(g.current_electors().size() == 7, "seven electors")
+	var votes: Dictionary = g.election_votes()
+	for e in votes:
+		check(votes[e] != e, "electors never vote for themselves")
+	# win over every elector: the player becomes emperor
+	for e in g.current_electors():
+		if e != "BOH":
+			g.add_rel("BOH", e, 200.0)
+	g.nations.BOH.prestige = 200.0
+	g.hre_election()
+	check(g.emperor == "BOH", "favoured candidate wins the election (got %s)" % g.emperor)
+	check(g.monthly_power(g.nations.BOH, "dip") > g.monthly_power(g.nations.BOH, "adm") - 10, "emperor bonus applies")
+	var d: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	var g2 = new_game("BOH")
+	g2.from_dict(d)
+	check(g2.emperor == "BOH", "emperor saved")
+	# new content conditions
+	g2.nations.BOH.we = 5.0
+	check(g2.check_conditions("BOH", {"we_min": 4, "is_vassal": false, "has_vassal": false}), "we_min / is_vassal / has_vassal")
+	check(not g2.check_conditions("BOH", {"we_min": 6}), "we_min fails below")
+	check(g2.check_conditions("BOH", {"unrest_min": 0}) and not g2.check_conditions("BOH", {"unrest_min": 50}), "unrest_min")
+	# a dead emperor triggers a new election at year end
+	for pid in g.provinces_of("BOH").duplicate():
+		g.provinces[pid].owner = "SAX"
+	g._rebuild_owned()
+	g._check_alive("BOH")
+	g._yearly()
+	check(g.emperor != "BOH" and g.emperor != "", "new emperor after the old one died")
 
 
 func test_alliance_joins_war() -> void:
