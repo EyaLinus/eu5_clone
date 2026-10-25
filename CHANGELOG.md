@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.7.3 – 2026-10-25
+- **Provinzfenster in Reitern:** Provinz (Werte mit Erklärungen), Bauen (Gebäude) und Militär (Rekrutieren, Söldner,
+  Armeen). Viel weniger Scrollen auf dem Handy.
+- **Neue Tipps** beim ersten Mal: Gebäude und Autobau, keine Mannschaften (Söldner), Handel und Handelsabkommen.
+  Der Schulden-Tipp nennt jetzt Kredite.
+- **4 neue Meilensteine:** Seefahrernation (5 Hafenstufen), Handelsnetz (2 Abkommen), Handelsimperium (15 Gold
+  Handel/Monat), Baumeister des Reiches (60 Gebäudestufen, −10 % Baukosten).
+- Meldungen unten stehen immer über der Karte und verdecken das Seitenpanel nicht mehr. "Markt beruhigt" erscheint nur
+  noch, wenn du das Gut selbst herstellst.
+
 ## v0.7.2 – 2026-10-25
 - **Handelsabkommen (neu):** Im Länderfenster für 30 🕊️ abschließen. Beide Reiche erhalten +6 % Handelseinnahmen,
   höchstens 3 Abkommen. Die KI nimmt an ab Beziehung 25 oder als Verbündeter, Krieg beendet das Abkommen.

@@ -23,6 +23,10 @@ const MILESTONES := [
 	{"id": "provinces_20", "title": "Großreich", "text": "20 Provinzen besitzen.", "reward": {"mil": 50}},
 	{"id": "vassal", "title": "Lehnsherr", "text": "Einen Vasallen haben.", "reward": {"dip": 30}},
 	{"id": "dev_30", "title": "Metropole", "text": "Eine Provinz mit 30 Entwicklung.", "reward": {"mods": {"production": 0.05}}},
+	{"id": "harbors_5", "title": "Seefahrernation", "text": "5 Hafenstufen im Reich.", "reward": {"mods": {"trade": 0.05}}},
+	{"id": "pacts_2", "title": "Handelsnetz", "text": "Zwei Handelsabkommen gleichzeitig.", "reward": {"dip": 50}},
+	{"id": "trade_15", "title": "Handelsimperium", "text": "15 Gold Handelseinnahmen im Monat.", "reward": {"prestige": 15}},
+	{"id": "buildings_60", "title": "Baumeister des Reiches", "text": "60 Gebäudestufen im Reich.", "reward": {"mods": {"build_cost": -0.1}}},
 ]
 
 
