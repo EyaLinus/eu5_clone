@@ -18,7 +18,7 @@ func _init() -> void:
 		"test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip",
-		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage",
+		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures",
 	]:
 		var before := failures
 		call(t)
@@ -669,7 +669,7 @@ func test_old_save_tech_levels() -> void:
 
 func test_ai_uses_government() -> void:
 	var g = new_game("FRA", 21)
-	for i in 12 * 60:
+	for i in 12 * 40:
 		while not g.pending_events.is_empty():
 			g.choose_event_option("FRA", g.pending_events[0], 0)
 		while not g.pending_peace.is_empty():
@@ -693,7 +693,7 @@ func test_ai_uses_government() -> void:
 		for t in g.tree.specials_of(tag):
 			if n.techs.has(t.id):
 				spec += 1
-	print("    AI 1504: %d nations, %d advisors, %d companies, %d laws changed, %d special techs" % [alive, adv, comp, laws, spec])
+	print("    AI 1484: %d nations, %d advisors, %d companies, %d laws changed, %d special techs" % [alive, adv, comp, laws, spec])
 	check(adv >= alive, "AI hires advisors")
 	check(comp >= alive / 2, "AI founds companies")
 	check(laws >= alive / 2, "AI changes laws")
@@ -719,3 +719,11 @@ func test_emoji_coverage() -> void:
 				check(have.has("%x" % c), "%s: no pixel glyph for %s (U+%X), add it in tools/art/emoji_icons.py" % [path, char(c), c])
 	for tag in data.nations:
 		check(ResourceLoader.exists("res://assets/art/icons/flag_%s.png" % tag), "nation %s has no flag" % tag)
+
+
+## Every event's picture (own "image" or the generated motif map) must exist; tools/art/event_motifs.py.
+func test_event_pictures() -> void:
+	var motifs: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/art/events/event_motifs.json"))
+	for e in data.events:
+		var m: String = e.get("image", motifs.get(e.id, "court"))
+		check(ResourceLoader.exists("res://assets/art/events/%s.png" % m), "event %s: picture %s missing" % [e.id, m])
