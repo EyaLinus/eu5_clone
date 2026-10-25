@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.5.1 – 2026-10-25
+- **Sound:** kurze, prozedural erzeugte Effekte (Klick, Event, Krieg, Schlacht, Frieden, Erfolg), im Menü abschaltbar.
+  Erzeugt von `tools/gen_sfx.py`, keine fremden Assets.
+- **Frieden:** Knopf "✨ Beste Auswahl" wählt die wertvollsten Provinzen für deine Kriegspunkte.
+- **Content (PR #3):** Ideen, Boni und Herrscher für alle 43 Kleinstaaten, historische Kleinstaaten-Events
+  (z. B. Osmanen gegen Byzanz, Union von Lublin) und Events zu Unruhe, Kriegsmüdigkeit, Vasallen und Kaiserwahl.
+- Neue Event-Bedingungen `hre` und `emperor`.
+- Balance (2 × 32 Partien): Ø 19–20 Nationen ausgelöscht, Großmächte überleben zu 97 %.
+
 ## v0.5.0 – 2026-10-25
 - **Kaiserwahl im HRE:** 7 Kurfürsten (Böhmen, Kurpfalz, Sachsen, Brandenburg, Köln, Bayern, Österreich) wählen,
   wenn der Herrscher des Kaisers stirbt. Stimmen folgen Beziehungen, Bündnissen, Prestige und Größe; der Kaiser
