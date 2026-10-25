@@ -25,7 +25,7 @@ REUSE = {
     "💰": "gold", "📜": "adm", "🕊": "dip", "⚔": "mil", "👥": "manpower", "🛡": "army", "😠": "ae",
     "⭐": "prestige", "🏘": "dev", "🏰": "fort", "📅": "date", "🔥": "siege", "🎯": "tab_missions",
     "📯": "event", "👑": "tab_nation", "🤝": "tab_diplomacy", "🗺": "tab_mapmode", "⛓": "vassal",
-    "⚠": "coalition", "📂": "tab_log",
+    "⚠": "coalition", "📂": "tab_log", "🔬": "tab_tech", "⚖": "tab_government",
 }
 
 E = {}  # emoji -> (name, grid)
@@ -71,8 +71,6 @@ add("✊", "fist", layer(["..SSSSSS..", ".SSsSsSsS.", ".SSSSSSSSs", ".SSsSsSsSs"
                          "SSSSSSSSs.", ".SSSSSSSs.", "..ssssss..", "..RRRRRE..", "..RRRRRE.."], 3, 3))
 add("🏳", "white_flag", layer(["Owwwwwwa..", "Owwwwwwwa.", "Owwwwwwwwa", "Owwwwwwwa.", "Owwwwwwa..",
                                "Oaaaaaa...", "O.........", "O.........", "O.........", "H........."], 3, 3))
-add("🔬", "astrolabe", layer(["....GG....", "..GGGGGG..", ".GG.YD.GD.", "GG..YD..GD", "GYYYGGDDDD",
-                              "GD..YD..GD", ".GD.YD.GD.", "..GDDDDD..", "....OO....", "..OOOOHH.."], 3, 3))
 add("🏛", "palace", layer(["....PP....", "..PPPPQQ..", "PPPPPPPPQQ", "QQQQQQQQQQ", ".P.P..P.P.",
                            ".PQPQ.PQPQ", ".PQPQ.PQPQ", ".PQPQ.PQPQ", "PPPPPPPPPQ", "QQQQQQQQQQ"], 3, 3))
 add("💸", "debt", stack(layer([".GGGG.", "GYGGGD", "GYDDGD", "GYGGGD", ".DDDD."], 2, 3), layer(
@@ -104,6 +102,25 @@ add("💔", "heart_broken", layer([".rR...rR.", "rRRR.RRRE", "rRR.RRRRE", "RRRR.
 add("✨", "sparkle", layer(["....Y.....", "...YGD....", "YYYGGGDDD.", "...YGD....", "....D...Y.", ".......YGD", "..Y.....D.", ".YGD......", "..D......."], 3, 3))
 add("🙇", "broken_sword", layer([".........a", "........ag", ".......ag.", "......ag..", "..........", "..........", "...ag.....", "..ag......", "GGGG......", ".OG.......", "O.G......."], 3, 2))
 add("🗽", "torch", layer(["...Y....", "..YGr...", ".rGYGR..", ".RGGGR..", "..RRR...", "..aag...", "...OH...", "...OH...", "...OH...", "...HH..."], 4, 3))
+
+# ---- economy: goods, buildings, trade (requested by the economy update)
+add("🌾", "grain", layer(["..Y..Y..Y...", ".YGDYGDYGD..", "..YD.YD.YD..", ".YGDYGDYGD..", "..GD.GD.GD..", "...GDGDGD...", "....GGGD....", "....OHOH....", "...OOHHOH...", "...O.OH.H...", "....OOHH...."], 2, 2))
+add("🍷", "wine", layer(["..aaaaaa..", ".a......g.", ".aRRRRRRg.", ".arRRRREg.", "..aRRREg..", "...agg....", "....ag....", "....ag....", "..aaaggg..", "..dddddd.."], 3, 3))
+add("🐑", "sheep", layer(["....wwwwww..", "..wwwwwwwwwa", "ddwwwwwwwwwa", "dkdwwwwwwwwa", "dddwwwwwwwwa", ".d.aaaaaaaa.", "...d.d..d.d.", "...d.d..d.d."], 2, 4))
+add("🧵", "spool", layer(["OOOOOOOOOO", ".HOOOOOOH.", "..rRRRRE..", "..RRRRRE..", "..rRRRRE..", "..RRRRRE..", "..rRRRRE..", ".OOOOOOOH.", "OHHHHHHHHH", ".........R", "........R."], 3, 2))
+add("🐟", "fish", layer(["....bbbb....", "..bBBBBBBN.b", ".bBwkBBBBNBN", "bBBBBBBBBNN.", ".NBBBBBBNNBN", "..NNNNNNN..N"], 2, 5))
+add("🧂", "salt", layer(["...aaaa...", "..awwwwg..", "...wwww...", "..wwwwwa..", ".wwwwwwwa.", "wwwwwwwwwa", "wwwwwwwwwa", "awwwwwwwad", ".dddddddd."], 3, 4))
+add("⛏", "pickaxe", layer(["..aaaaaa....", ".aag..gaad..", "ag...OH..gd.", "a....OH...d.", ".....OH.....", ".....OH.....", ".....OH.....", ".....OH.....", ".....OH.....", ".....HH....."], 2, 3))
+add("🟠", "copper_ingot", layer(["...rrrrrr...", "..rorrrrrR..", ".rrrrrrrrRE.", "rRRRRRRRRREE", "RRRRRRRRRRE.", "EEEEEEEEEE.."], 2, 6))
+add("🪙", "silver_coin", layer(["..aaaaaa..", ".awwwwwwg.", "awwaaaawwg", "awaaggawgd", "awaggggwgd", "awaggggwgd", "awwaggwwgd", ".agwwwwgd.", "..dddddd.."], 3, 3))
+add("🪵", "log", layer(["...OOOOOOOOH", "..oOOOOOOOOH", ".oHOooOOOOOH", "oHoHoOOOOOH.", "oHooHOOOOOH.", ".oHHOHHHHH..", "..ooH......."], 2, 5))
+add("🦊", "fox", layer(["O.......O...", "OO.....OO...", "OoOOOOOoO...", "OOkOOOkOO...", ".OwOOOwO..OO", "..wwkww..OOO", "...OOOOOOOwO", "...OOOOOOww.", "...H.H.H.H.."], 2, 3))
+add("🐄", "cow", layer(["a..a........", "OOOOwwOOwwwO", "OkOOwOOOwwwO", "OOOOwwwwwOOO", ".rrwwOOwwwwO", "....wwwwwwO.", "....d.d..d.d", "....d.d..d.d"], 2, 4))
+add("🏪", "market_stall", layer(["rwrwrwrwrwrw", "RwRwRwRwRwRw", "EaEaEaEaEaEa", "O..........O", "O..........O", "O.GD.lL.oO.O", "OOOOOOOOOOOO", "OH........HO", "OH........HO"], 2, 4))
+add("🏭", "manufactory", layer([".........dd.", ".........dd.", "....RR...ad.", "...RRRE..ad.", "..RRRRRE.ad.", ".RRRRRRRRad.", "PPPPPPPPPPPP", "PoPPoPPoPPPQ", "PoPPoPPoPPPQ", "PPPPPHHPPPPQ", "QQQQQHHQQQQQ"], 2, 3))
+add("🏬", "trade_hall", layer(["....YGGD....", "...RRRRRR...", "..RRRRRRRR..", ".RRRRRRRRRRE", "PPPPPPPPPPPP", "PGDPPGDPPGDQ", "PPPPPPPPPPPQ", "PPGDPHHPGDPQ", "PPPPPHHPPPPQ", "QQQQQHHQQQQQ"], 2, 3))
+add("🛒", "handcart", layer(["..lL.GD.ww..", ".lLLGGDwwwa.", "OOOOOOOOOOOH", "OHHHHHHHHHHH", ".O........O.", "HOH......HOH", ".H........H."], 2, 5))
+add("📉", "chart_down", layer(["PPPPPPPPPP", "PQRPPPPPPP", "PQPRPPPPPP", "PQPPRPPPPP", "PQPPPRPRPP", "PQPPPPRPRP", "PQPPPPPPPR", "PQPPPPPPPP", "PQQQQQQQQP", "PPPPPPPPPP"], 3, 3))
 
 if __name__ == "__main__":
     os.makedirs(SRC, exist_ok=True)

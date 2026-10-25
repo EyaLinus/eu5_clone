@@ -414,11 +414,15 @@ func test_long_run_no_softlock() -> void:
 	check(stuck == 0, "no war older than the timeout")
 
 
-## Every emoji in UI code and data needs a pixel glyph (scripts/ui/pixel_emoji.gd); there is no emoji font.
+## Every emoji in UI code and data/*.json needs a pixel glyph (scripts/ui/pixel_emoji.gd); there is no emoji font.
 ## Nation emoji are exempt (nations show their flag) but every nation needs one.
 func test_emoji_coverage() -> void:
 	var have: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/art/emoji/emoji.json"))
-	var files := ["res://data/events.json", "res://data/missions.json"]
+	var files := []
+	for f in DirAccess.get_files_at("res://data"):
+		# nation emoji are replaced by flags; the map has no text
+		if f.ends_with(".json") and f != "nations.json" and f != "map.json":
+			files.append("res://data/" + f)
 	for f in DirAccess.get_files_at("res://scripts/ui"):
 		if f.ends_with(".gd"):
 			files.append("res://scripts/ui/" + f)
