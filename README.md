@@ -61,6 +61,7 @@ Siehe [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/ROADMAP.md](docs/ROADM
   und läuft headless identisch zur UI.
 - `tools/gen_map.py` erzeugt `data/map.json` (Voronoi-Zellen auf Natural-Earth-Landmasse, Nachbarschaften).
 - Tests: `godot --headless --path . -s res://tests/run_tests.gd`
+- UI-Rauchtest (alle 7 Großmächte, alle Panels, 200 Jahre): `godot --headless --path . -s res://tools/ui_smoke.gd`
 - Headless-Simulation: `godot --headless --path . -s res://tools/sim.gd -- --runs 10 --years 200`
 - **Auto-Balance:** `python3 tools/balance_loop.py --godot <godot-binary> --runs 16 --iters 10`
   spielt parallele KI-Partien über 200 Jahre, misst Auslöschungen, Größe der stärksten Nation,
