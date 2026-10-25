@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.5.2 – 2026-10-25
+- **Content (PR #4):** Missionen für Osmanen, Polen und Burgund, Reichsevents für alle HRE-Mitglieder und den Kaiser.
+- Balance: Habsburg erbt Böhmen seltener (Böhmen überlebt jetzt in ~70–90 % der KI-Partien).
+- Bugfix: Rundungsrest bei der AE-Abnahme verfälschte Spielstände minimal.
+- Qualität: neuer UI-Rauchtest (`tools/ui_smoke.gd`) spielt jede Großmacht 200 Jahre und öffnet dabei alle Panels
+  und Popups; läuft in der CI. Ergebnis: 0 Skriptfehler.
+
 ## v0.5.1 – 2026-10-25
 - **Sound:** kurze, prozedural erzeugte Effekte (Klick, Event, Krieg, Schlacht, Frieden, Erfolg), im Menü abschaltbar.
   Erzeugt von `tools/gen_sfx.py`, keine fremden Assets.
