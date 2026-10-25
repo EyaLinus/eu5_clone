@@ -61,6 +61,19 @@ palette:
   purple_light: "#b07cd0"
   purple: "#8e44ad"
   purple_dark: "#4f2463"
+  # event scenes (tools/art/event_scenes.py)
+  sky_light: "#b4d0e2"
+  sky: "#7aa5c9"
+  sky_dark: "#4d7aa6"
+  dusk_light: "#f0b26a"
+  dusk: "#d9774a"
+  dusk_dark: "#8e4a5c"
+  night_light: "#3a4170"
+  night: "#24284a"
+  night_dark: "#15162b"
+  skin_light: "#f0caa0"
+  skin: "#d39c72"
+  skin_dark: "#9a6a4c"
   # map terrain (texture only, see tools/art/map_terrain.py)
   sea_deep: "#132a45"
   sea: "#1c3d61"
@@ -80,6 +93,10 @@ ramps:
   gold: [gold_dark, gold, gold_light]
   grey: [grey_dark, grey, grey_light, white]
   paper: [paper_dark, paper]
+  sky: [sky_dark, sky, sky_light]
+  dusk: [dusk_dark, dusk, dusk_light]
+  night: [night_dark, night, night_light]
+  skin: [skin_dark, skin, skin_light]
   sea: [sea_deep, sea, sea_shallow, foam]
   land: [land_dark, land, land_light]
   rock: [rock_dark, rock, rock_light, snow]
@@ -129,12 +146,29 @@ asset_kinds:
   army_marker: { display_px: 42, grid: 16 }   # legacy shield token, replaced by army_counter
   army_counter: { display_px: [48, 28], grid: [24, 14] }
   map_terrain: { world_px: [1944, 1320], filter: linear }  # painted texture, not pixel art
+  event_scene: { grid: [128, 64], scale: 4, display_px: [512, 256] }  # assets/art/events/<motif>.png
 
 notes:
   - >
     Pixel art only looks crisp at integer scales. HUD icons are shown at 32 px (x2), but
     canvas_items stretch adds a non-integer factor on phones, so pixels can be slightly uneven.
     army_marker is tinted with the plain nation colour; the map skips its circle when the texture exists.
+
+event_scenes:
+  rules:
+    - "128x64 pixel scene, x4 nearest; 2-px gold frame with ink edge drawn into the image"
+    - "flat colour bands for skies (no dithering), max ~12 palette colours per scene"
+    - "figures 3-4 px wide, 7-9 px tall; silhouettes over detail; ink outline only on the frame and key props"
+    - "light from the top-left like the icons; time of day carries the mood (day = neutral, dusk = war/drama, night = danger)"
+    - "original compositions; references only for ideas, never traced"
+
+event_scenes:
+  rules:
+    - "128x64 pixel scene, x4 nearest; 2-px gold frame with ink edge drawn into the image"
+    - "flat colour bands for skies (no dithering), max ~12 palette colours per scene"
+    - "figures 3-4 px wide, 7-9 px tall; silhouettes over detail; ink outline only on the frame and key props"
+    - "light from the top-left like the icons; time of day carries the mood (day = neutral, dusk = war/drama, night = danger)"
+    - "original compositions; references only for ideas, never traced"
 
 naming:
   case: snake
