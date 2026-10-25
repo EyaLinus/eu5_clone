@@ -239,7 +239,8 @@ static func _shocks_yearly(g) -> void:
 		g.shocks[k].years -= 1
 		if g.shocks[k].years <= 0:
 			g.shocks.erase(k)
-			g.log_msg("⚖️ Der Markt für %s %s hat sich beruhigt." % [g.goods_def[k].emoji, g.goods_def[k].name])
+			if g.player != "" and goods_output(g, g.player).has(k):
+				g.log_msg("⚖️ Der Markt für %s %s hat sich beruhigt." % [g.goods_def[k].emoji, g.goods_def[k].name])
 	if g.rng.randf() >= float(g.bal.shock_chance):
 		return
 	var free: Array = []

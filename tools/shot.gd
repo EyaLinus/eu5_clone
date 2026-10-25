@@ -103,8 +103,13 @@ func _run(m) -> void:
 	g.provinces[paris].buildings = {"workshop": 2, "marketplace": 1}
 	g.Economy.refresh_local(g, g.provinces[paris])
 	g.construct("FRA", paris, "manufactory")
+	m.prov_tab = "build"
 	m._on_province_tapped(paris)
 	await _shot("16_province_buildings")
+	m.prov_tab = "army"
+	m._refresh()
+	await _shot("16b_province_army")
+	m.prov_tab = "info"
 	m._open_panel("economy")
 	await _shot("17_economy")
 	m._open_panel("mapmodes")

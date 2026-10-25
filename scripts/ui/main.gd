@@ -29,6 +29,7 @@ var acc := 0.0
 var panel_mode := ""
 var panel_arg = null
 var econ_tab := "overview"  # sub-tab of the economy panel
+var prov_tab := "info"  # sub-tab of an own province: info, build, army
 var selected_army := -1
 var peace_selection := {}
 var last_log_count := 0
@@ -402,11 +403,7 @@ func _row(children: Array) -> HBoxContainer:
 func _toast(text: String) -> void:
 	toast.text = text
 	toast.visible = text != ""
-	# box hugs the text (max 840 px wide, wraps beyond)
-	var f: Font = toast.get_theme_font("font")
-	var w: float = minf(840.0, f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, toast.get_theme_font_size("font_size")).x + 40.0)
-	toast.offset_left = -w / 2.0
-	toast.offset_right = w / 2.0
+	_place_toast()
 	toast_time = 4.0
 
 
@@ -643,9 +640,22 @@ func _check_long_press() -> void:
 		_show_tip(c.tooltip_text, _press_pos)
 
 
+## Box hugs the text (max 840 px, wraps beyond), centered over the free map area
+## (left of an open side panel, right of the tab column).
+func _place_toast() -> void:
+	var f: Font = toast.get_theme_font("font")
+	var panel_w: float = -side_panel.offset_left if side_panel.visible else 0.0
+	var room: float = get_viewport_rect().size.x - panel_w - 200.0
+	var w: float = minf(minf(840.0, room), f.get_string_size(toast.text, HORIZONTAL_ALIGNMENT_LEFT, -1, toast.get_theme_font_size("font_size")).x + 40.0)
+	var shift: float = (200.0 - panel_w) / 2.0
+	toast.offset_left = shift - w / 2.0
+	toast.offset_right = shift + w / 2.0
+
+
 func _process(delta: float) -> void:
 	_check_long_press()
 	if toast_time > 0.0:
+		_place_toast()
 		toast_time -= delta
 		if toast_time <= 0.0:
 			toast.text = ""
@@ -769,7 +779,10 @@ const TIPS := {
 	"ae": ["😠 Aggressive Expansion", "Deine Eroberungen machen die Nachbarn nervös. Ab %d bilden sie Koalitionen und greifen gemeinsam an. Mach Pausen, vasallisiere statt zu annektieren und nutze Ansprüche (weniger AE)."],
 	"tech": ["🔬 Technologie", "Du kannst eine Technologie erforschen (🔬 Technologie). Der Punkt am Tab zeigt das an. Jede Kategorie hat drei Zweige, die du in beliebiger Reihenfolge ausbaust, dazu kommen nationale Spezial-Technologien. Unter ⚖️ Regierung ernennst du Berater, gründest Kompanien und wählst Gesetze."],
 	"mission": ["🎯 Mission erfüllt", "Eine Mission ist erfüllt. Hole dir die Belohnung unter 🎯 Missionen."],
-	"debt": ["💸 Schulden", "Deine Kasse ist leer. Unter −20 Gold desertieren Truppen. Entlasse Regimenter oder schließe Frieden: Im Frieden kosten Armeen weniger."],
+	"debt": ["💸 Schulden", "Deine Kasse ist leer. Unter −20 Gold desertieren Truppen. Nimm unter 💰 Wirtschaft einen Kredit auf, entlasse Regimenter oder schließe Frieden: Im Frieden kosten Armeen weniger."],
+	"build": ["🏗️ Gebäude", "Gold investierst du in Gebäude: Provinz antippen → Gebäude. Jede fertige Stufe bringt +1 Entwicklung. Unter 💰 Wirtschaft kannst du den Autobau einschalten und eine Mindestkasse festlegen."],
+	"manpower": ["👥 Keine Mannschaften", "Dir gehen die Mannschaften aus. Söldner (Provinzfenster) kosten mehr Gold, brauchen aber keine Mannschaften. Gutshöfe und Kasernen erhöhen das Maximum."],
+	"trade": ["🏬 Handel", "Unter 💰 Wirtschaft → Handel schickst du Händler in reiche Märkte. Handelsabkommen mit befreundeten Reichen (Länderfenster) bringen je +6 % Handelseinnahmen."],
 }
 
 
@@ -799,6 +812,12 @@ func _check_tips() -> bool:
 		cand.append("mission")
 	if n.gold < 0.0:
 		cand.append("debt")
+	if game.is_at_war(me) and n.manpower < 1.0:
+		cand.append("manpower")
+	if game.month >= 12 and n.gold >= 120.0 and not n.autobuild:
+		cand.append("build")
+	if game.month >= 48:
+		cand.append("trade")
 	var due := ""
 	for c in cand:
 		if not seen.has(c):
@@ -1295,6 +1314,24 @@ func _panel_province(pid: int) -> void:
 	if p.owner == me:
 		owner_btn.disabled = true
 	side_box.add_child(owner_btn)
+	var own: bool = p.owner == me
+	var tab: String = prov_tab if own else "info"
+	if own:
+		var tabs := []
+		for e in [["info", "📍 Provinz"], ["build", "🏗️ Bauen"], ["army", "⚔️ Militär"]]:
+			var key: String = e[0]
+			var b := _btn(e[1], func(): prov_tab = key; _refresh())
+			if tab == key:
+				b.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
+				b.add_theme_color_override("font_hover_color", Color(1.0, 0.85, 0.4))
+			tabs.append(b)
+		side_box.add_child(_row(tabs))
+	if tab == "build":
+		_province_buildings(p)
+		return
+	if tab == "army":
+		_province_army(p)
+		return
 	var gd: Dictionary = game.goods_def[p.good]
 	var price: float = game.prices[p.good]
 	# one line per fact, each with an explanation (hover / long press)
@@ -1349,15 +1386,12 @@ func _panel_province(pid: int) -> void:
 			side_box.add_child(_btn("✊ Unruhe unterdrücken (%d ⚔️)" % int(game.suppress_cost(pid)), func(): _act(game.suppress_unrest(me, pid), "✊ Ruhe wiederhergestellt")))
 		side_box.add_child(_btn("📜 Entwickeln (%d Admin)" % game.develop_cost(pid), func(): _act(game.develop(me, pid), "🏘️ Entwicklung erhöht"),
 				"+1 Entwicklung: mehr Steuer, Güter, Handelsmacht und Mannschaften. Alle %d Stufen ein Bauplatz mehr." % int(game.bal.dev_per_building_slot)))
-		_province_buildings(p)
-		var c := int(game.bal.regiment_cost)
-		side_box.add_child(_row([
-			_btn("⚔️ +1 Reg. (%d💰)" % c, func(): _act(game.recruit(me, pid, 1), "⚔️ Rekrutiert")),
-			_btn("⚔️ +5 (%d💰)" % (c * 5), func(): _act(game.recruit(me, pid, 5), "⚔️ Rekrutiert"))]))
-		var wait: int = game.merc_ready_in(me)
-		side_box.add_child(_btn("💰 Söldner: %d Reg. (%d💰)%s" % [int(game.bal.merc_regs), int(game.merc_cost(me)), (" · in %d Mon." % wait) if wait > 0 else ""],
-				func(): _act(game.hire_mercs(me, pid), "💰 Söldner angeworben"),
-				"Sofort %d Regimenter ohne Mannschaften, kostet aber das %d-fache Gold. Einmal alle %d Monate." % [int(game.bal.merc_regs), int(game.bal.merc_cost_mult), int(game.bal.merc_cooldown)], wait > 0))
+		var free: int = Eco.slots(game, p) - p.buildings.size()
+		if p.constructing.is_empty():
+			side_box.add_child(_lbl("🏗️ %d Gebäude, %d freie Plätze → Reiter 🏗️ Bauen" % [p.buildings.size(), maxi(0, free)], 16, Color(0.75, 0.8, 0.85)))
+		else:
+			var cd: Dictionary = game.buildings_def[p.constructing.id]
+			side_box.add_child(_lbl("🏗️ Im Bau: %s %s, noch %d Monate" % [cd.emoji, cd.name, p.constructing.months], 16, Color(0.95, 0.8, 0.4)))
 	else:
 		if not p.buildings.is_empty():
 			var bl := []
@@ -1372,6 +1406,28 @@ func _panel_province(pid: int) -> void:
 			side_box.add_child(_btn("📜 Anspruch fabrizieren (%d 🕊️)" % int(game.bal.claim_cost), func(): _act(game.fabricate_claim(me, pid), "📜 Anspruch erhoben")))
 		if not game.at_war(me, p.owner):
 			side_box.add_child(_btn("🔥 Krieg gegen %s…" % game.nations[p.owner].name, _confirm_war.bind(p.owner)))
+	_province_armies(pid)
+
+
+## Military tab of an own province: recruiting, mercenaries and the armies here.
+func _province_army(p) -> void:
+	var me: String = game.player
+	var pid: int = p.id
+	var c := int(game.bal.regiment_cost)
+	var n = game.nations[me]
+	side_box.add_child(_lbl("👥 Mannschaften %.0f · 🛡️ %.0f / %.0f Regimenter" % [n.manpower, game.army_regs(me), game.force_limit(me)], 16, Color(0.75, 0.8, 0.85)))
+	side_box.add_child(_row([
+		_btn("⚔️ +1 Reg. (%d💰)" % c, func(): _act(game.recruit(me, pid, 1), "⚔️ Rekrutiert")),
+		_btn("⚔️ +5 (%d💰)" % (c * 5), func(): _act(game.recruit(me, pid, 5), "⚔️ Rekrutiert"))]))
+	var wait: int = game.merc_ready_in(me)
+	side_box.add_child(_btn("💰 Söldner: %d Reg. (%d💰)%s" % [int(game.bal.merc_regs), int(game.merc_cost(me)), (" · in %d Mon." % wait) if wait > 0 else ""],
+			func(): _act(game.hire_mercs(me, pid), "💰 Söldner angeworben"),
+			"Sofort %d Regimenter ohne Mannschaften, kostet aber das %d-fache Gold. Einmal alle %d Monate." % [int(game.bal.merc_regs), int(game.bal.merc_cost_mult), int(game.bal.merc_cooldown)], wait > 0))
+	_province_armies(pid)
+
+
+func _province_armies(pid: int) -> void:
+	var me: String = game.player
 	if not game.armies_of(me).is_empty():
 		side_box.add_child(_btn("🏁 Alle meine Armeen hierher", _all_armies_to.bind(pid), "Schickt jede eigene Armee in diese Provinz (danach manuell)."))
 	var here: Array = game.armies_in(pid)
