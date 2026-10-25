@@ -13,6 +13,7 @@ LEGEND = {
     "l": "green_light", "L": "green", "F": "green_dark",
     "o": "wood_light", "O": "wood", "H": "wood_dark",
     "u": "purple_light", "U": "purple", "V": "purple_dark",
+    "t": "skin_light", "S": "skin", "s": "skin_dark",
 }
 
 

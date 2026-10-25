@@ -92,5 +92,4 @@ Siehe [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/ROADMAP.md](docs/ROADM
 
 ## Lizenzen
 
-Code: siehe Repository. Kartendaten: Natural Earth (Public Domain). Emoji-Font: Noto Color Emoji (SIL OFL 1.1),
-siehe `assets/fonts/LICENSE-NotoColorEmoji.txt`.
+Code: siehe Repository. Kartendaten: Natural Earth (Public Domain). Alle Icons, Flaggen und Emoji-Glyphen: eigene Pixel-Art (`tools/art/`).
