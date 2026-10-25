@@ -232,5 +232,37 @@
      "require": {"owns_any": ["hamburg", "bremen"]}, "reward": {"dip": 30, "prestige": 10}},
     {"id": "dan_baltic", "after": "dan_kalmar", "title": "Dominium maris Baltici", "desc": "Ein Brückenkopf an der Ostseeküste.",
      "require": {"owns_any": ["riga", "reval", "pomerania", "prussia"]}, "reward": {"mods": {"combat": 0.03}, "prestige": 10}}
+  ],
+  "SCO": [
+    {"id": "sco_highlands", "title": "Die Highlands zähmen", "desc": "Die Clans des Nordens sollen dem König gehorchen.",
+     "require": {"owns": ["lothian", "highlands"], "tech": {"adm": 4}}, "reward": {"mods": {"manpower": 0.05}, "adm": 30}},
+    {"id": "sco_auld_alliance", "title": "Die Auld Alliance", "desc": "Frankreich als Verbündeter gegen England.",
+     "require": {"allied": "FRA"}, "reward": {"prestige": 15, "dip": 30}},
+    {"id": "sco_border", "after": "sco_highlands", "title": "Die Grenzmarken", "desc": "Northumberland oder York für Schottland.",
+     "require": {"owns_any": ["northumberland", "york"]}, "reward": {"prestige": 20}}
+  ],
+  "POR": [
+    {"id": "por_algarve", "title": "Das Königreich Algarve", "desc": "Der Süden ist das Sprungbrett nach Afrika.",
+     "require": {"year_min": 1450, "owns": ["lisbon", "porto", "algarve"]}, "reward": {"mods": {"income": 0.03}, "adm": 30}},
+    {"id": "por_navigation", "title": "Die Schule von Sagres", "desc": "Kartographen, Astronomen und Schiffbauer für die Entdeckungen.",
+     "require": {"tech": {"dip": 6}}, "reward": {"mods": {"income": 0.05}, "prestige": 10}},
+    {"id": "por_independence", "after": "por_algarve", "title": "Gegen Kastilien", "desc": "Portugal bleibt frei.",
+     "require": {"year_min": 1500, "at_peace": true, "min_dev": 30}, "reward": {"prestige": 15, "mods": {"manpower": 0.05}}}
+  ],
+  "HUN": [
+    {"id": "hun_black_army", "title": "Die Schwarze Armee", "desc": "Ein stehendes Söldnerheer, bezahlt aus der Krone.",
+     "require": {"tech": {"mil": 5}, "regs": 15}, "reward": {"mods": {"combat": 0.05}}},
+    {"id": "hun_danube", "title": "Die Donaufestungen", "desc": "Belgrad und Temesvár halten die Türken auf.",
+     "require": {"year_min": 1450, "owns": ["buda", "temes", "croatia"]}, "reward": {"mods": {"manpower": 0.05}, "prestige": 10}},
+    {"id": "hun_vienna", "after": "hun_black_army", "title": "Matthias in Wien", "desc": "Die Residenz der Habsburger als ungarische Hauptstadt.",
+     "require": {"owns_any": ["wien", "steiermark"]}, "reward": {"prestige": 25, "dip": 30}}
+  ],
+  "LIT": [
+    {"id": "lit_rus", "title": "Die Länder der Rus", "desc": "Kiew, Smolensk und Tschernigow bleiben litauisch.",
+     "require": {"year_min": 1450, "owns": ["kiev", "smolensk", "chernigov"]}, "reward": {"mods": {"manpower": 0.05}}},
+    {"id": "lit_sea", "title": "Von Meer zu Meer", "desc": "Ein Hafen an der Ostsee oder am Schwarzen Meer.",
+     "require": {"owns_any": ["riga", "crimea", "zaporozhia"]}, "reward": {"mods": {"income": 0.05}, "prestige": 10}},
+    {"id": "lit_statute", "title": "Das Litauische Statut", "desc": "Ein Gesetzbuch für das ganze Großfürstentum.",
+     "require": {"tech": {"adm": 6}}, "reward": {"adm": 40, "prestige": 10}}
   ]
 }
