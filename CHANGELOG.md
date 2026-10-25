@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.7.2 – 2026-10-25
+- **Handelsabkommen (neu):** Im Länderfenster für 30 🕊️ abschließen. Beide Reiche erhalten +6 % Handelseinnahmen,
+  höchstens 3 Abkommen. Die KI nimmt an ab Beziehung 25 oder als Verbündeter, Krieg beendet das Abkommen.
+- **Söldner (neu):** Im Provinzfenster 3 Regimenter sofort und ohne Mannschaften, für das doppelte Gold, einmal pro
+  Jahr. Die KI wirbt Söldner an, wenn ihr im Krieg die Mannschaften ausgehen.
+- **Wirtschafts-Panel** in drei Reiter geteilt (Kasse, Handel, Güter), deutlich weniger Scrollen.
+- **Hinweis-Punkt** am Wirtschafts-Tab: Kasse im Minus, freier Händler, Kredit tilgbar oder genug Gold für ein Gebäude.
+  Langes Drücken auf den Tab zeigt den Grund.
+- **Flüssiger auf dem Handy:** Die höchste Geschwindigkeit rechnet nur so viele Monate pro Bild, wie das Gerät schafft,
+  statt zu ruckeln. Die KI sucht Bauprojekte nur noch, wenn sie sich überhaupt eins leisten kann.
+
 ## v0.7.1 – 2026-10-25
 - **Touch-Bedienung:** In allen Listen und Fenstern kann man jetzt überall scrollen, auch wenn der Finger auf einem
   Button startet (ab 14 px Bewegung wird gescrollt statt geklickt). Regler bleiben normal ziehbar.
