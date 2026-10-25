@@ -161,7 +161,15 @@
     {"id": "tur_hungary", "after": "tur_balkans", "title": "Die Pforte nach Europa", "desc": "Buda oder das Banat sichern den Weg nach Westen.",
      "require": {"owns_any": ["buda", "temes"]}, "reward": {"mods": {"combat": 0.05}, "prestige": 15}},
     {"id": "tur_vienna", "after": "tur_hungary", "title": "Der Goldene Apfel", "desc": "Wien, die Hauptstadt der Habsburger.",
-     "require": {"owns_any": ["wien"]}, "reward": {"prestige": 30, "mil": 50}}
+     "require": {"owns_any": ["wien"]}, "reward": {"prestige": 30, "mil": 50}},
+    {"id": "tur_fleet", "title": "Die Flotte des Sultans", "desc": "Galeeren aus Gallipoli beherrschen die Ägäis.",
+     "require": {"tech": {"mil": 10}, "regs": 30}, "reward": {"mods": {"combat": 0.05}, "prestige": 10}},
+    {"id": "tur_kanun", "title": "Der Kanun", "desc": "Ein Reichsrecht neben der Scharia, für alle Provinzen gleich.",
+     "require": {"tech": {"adm": 10}, "min_dev": 150}, "reward": {"mods": {"adm": 1}, "prestige": 15}},
+    {"id": "tur_adriatic", "after": "tur_morea", "title": "An der Adria", "desc": "Dalmatien oder Venedig selbst öffnen den Weg nach Italien.",
+     "require": {"owns_any": ["dalmatia", "venice", "friuli"]}, "reward": {"mods": {"income": 0.05}, "prestige": 15}},
+    {"id": "tur_tributaries", "title": "Die Tributstaaten", "desc": "Fürsten, die dem Sultan Tribut zahlen, sind billiger als Provinzen.",
+     "require": {"has_vassal": true}, "reward": {"dip": 50, "prestige": 10}}
   ],
   "POL": [
     {"id": "pol_prussia", "title": "Königlich Preußen", "desc": "Die Städte an der Weichsel gehören zur Krone.",
@@ -175,7 +183,15 @@
     {"id": "pol_sejm", "title": "Der Sejm", "desc": "Ein Reichstag, der das Land zusammenhält statt es zu lähmen.",
      "require": {"tech": {"adm": 8}, "min_dev": 80}, "reward": {"adm": 50, "prestige": 10}},
     {"id": "pol_moscow", "after": "pol_lithuania", "title": "Der Weg nach Osten", "desc": "Smolensk oder gar Moskau für die Jagiellonen.",
-     "require": {"owns_any": ["smolensk", "moscow"]}, "reward": {"prestige": 25}}
+     "require": {"owns_any": ["smolensk", "moscow"]}, "reward": {"prestige": 25}},
+    {"id": "pol_jagiellon_thrones", "title": "Die Throne der Jagiellonen", "desc": "Böhmen oder Ungarn unter einem polnischen Prinzen.",
+     "require": {"owns_any": ["buda", "prague", "pressburg"]}, "reward": {"prestige": 25, "dip": 40}},
+    {"id": "pol_ukraine", "after": "pol_lithuania", "title": "Die Ukraine", "desc": "Kiew und Wolhynien, die Kornkammer der Republik.",
+     "require": {"owns_any": ["kiev", "volhynia"]}, "reward": {"mods": {"manpower": 0.1}}},
+    {"id": "pol_warsaw", "title": "Warschau", "desc": "Die Stadt in der Mitte der Republik wird Sitz von König und Sejm.",
+     "require": {"tech": {"adm": 10}, "min_dev": 120}, "reward": {"dev_capital": 2, "prestige": 15}},
+    {"id": "pol_fiefs", "title": "Lehnsherr des Nordens", "desc": "Preußen, Kurland oder Livland als Lehen der Krone.",
+     "require": {"has_vassal": true}, "reward": {"dip": 50, "mods": {"income": 0.03}}}
   ],
   "BUR": [
     {"id": "bur_lowlands", "title": "Die Niederlande halten", "desc": "Flandern, Brabant, Holland und Luxemburg bleiben burgundisch.",
@@ -187,7 +203,17 @@
     {"id": "bur_somme", "after": "bur_ordonnance", "title": "Die Somme-Städte", "desc": "Die Picardie und die Champagne verbinden Flandern mit dem Herzogtum.",
      "require": {"owns_any": ["picardy", "champagne"]}, "reward": {"prestige": 15, "mods": {"manpower": 0.05}}},
     {"id": "bur_rhine", "title": "Zwischen Rhein und Maas", "desc": "Köln oder die Pfalz als Brücke zum Reich.",
-     "require": {"owns_any": ["cologne", "palatinate"]}, "reward": {"mods": {"manpower": 0.05}, "dip": 30}}
+     "require": {"owns_any": ["cologne", "palatinate"]}, "reward": {"mods": {"manpower": 0.05}, "dip": 30}},
+    {"id": "bur_cloth", "title": "Das flämische Tuch", "desc": "Gent, Brügge und Ypern weben für ganz Europa.",
+     "require": {"tech": {"adm": 6}, "min_dev": 60}, "reward": {"mods": {"income": 0.05}}},
+    {"id": "bur_antwerp", "title": "Antwerpen", "desc": "Der größte Hafen nördlich der Alpen.",
+     "require": {"tech": {"dip": 8}}, "reward": {"mods": {"income": 0.05}, "dev_random": 2}},
+    {"id": "bur_frisia", "title": "Friesland", "desc": "Die Küste nach Osten bis zur Weser.",
+     "require": {"owns_any": ["bremen", "hamburg"]}, "reward": {"dip": 40, "mods": {"manpower": 0.05}}},
+    {"id": "bur_crown", "after": "bur_kingdom", "title": "König von Burgund", "desc": "Ein Reich zwischen Frankreich und dem Reich, so stark wie beide.",
+     "require": {"min_dev": 120, "allies": 2}, "reward": {"mods": {"dip": 1}, "prestige": 25}},
+    {"id": "bur_arelat", "after": "bur_somme", "title": "Das Königreich Arelat", "desc": "Die Provence oder Savoyen, das alte burgundische Königreich im Süden.",
+     "require": {"owns_any": ["provence", "savoy"]}, "reward": {"prestige": 20, "mods": {"combat": 0.03}}}
   ],
   "VEN": [
     {"id": "ven_terraferma", "title": "Die Terraferma", "desc": "Verona und Friaul schützen die Lagune vom Festland her.",
