@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.6.0 – 2026-10-25
+- **Neue spielbare Nationen:** Osmanen, Polen und Burgund (im Startmenü unter "Weitere Nationen"). Sie haben
+  noch weniger Missionen und Events als die 7 Großmächte; das wird nachgezogen. Neues Daten-Flag `major` trennt
+  die Großmacht-Regeln von "spielbar", die KI-Balance bleibt dadurch unverändert.
+- **Karte neu gemalt:** Gelände (Meerestiefe, Küstenlinien, Schummerung, Gebirge), klarere Grenzen zwischen
+  Nationen, neue Armee-Marker in Nationsfarbe mit Regimentszahl und Marschpfeil, kompakt beim Herauszoomen.
+- **Entwicklung ohne harte Grenze bei 30:** Ab 25 steigen die Kosten für Entwickeln und Bauen um 8 % je Stufe,
+  Obergrenze 99.
+- **Mobile Bedienung:** Langes Drücken zeigt Provinz-Infos, Doppeltipp zoomt, Wischen mit Schwung, größere
+  Touch-Flächen (Buttons, Tabs, Armeen), "◀ Zurück" in Panels (auch per Android-Zurück-Taste). Nach einem
+  Marschbefehl ist die Armee abgewählt, damit kein Tipp versehentlich umleitet.
+- **Content (PR #5, #7, #8):** Italien und Skandinavien, Britische Inseln, Iberien, Osteuropa, Balkan, deutsche
+  Kleinstaaten und späte Events. Jetzt 258 Events und 122 Missionen, jede der 50 Nationen hat eigene Events.
+- Balance (2 × 32 Partien): Ø 19,6–20,6 Nationen ausgelöscht, Großmächte überleben zu 96–97 %, Osmanen,
+  Polen und Burgund zu 97–100 %.
+
 ## v0.5.2 – 2026-10-25
 - **Content (PR #4):** Missionen für Osmanen, Polen und Burgund, Reichsevents für alle HRE-Mitglieder und den Kaiser.
 - Balance: Habsburg erbt Böhmen seltener (Böhmen überlebt jetzt in ~70–90 % der KI-Partien).

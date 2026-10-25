@@ -1,6 +1,6 @@
 # Roadmap
 
-> Stand 2026-10-25: v0.5.0 (Kaiserwahl, Statistik, Tipps, Content-PR #2). Content-Thread liefert Kleinstaaten-Flavor.
+> Stand 2026-10-25: v0.6.0 (Kartenkunst, Mobile-Bedienung, Soft-Cap Entwicklung, 10 spielbare Nationen, 258 Events). Offen: Missionen/Events für TUR/POL/BUR auf Großmacht-Niveau.
 
 Priorisiert nach Nutzen für den Spieler pro Aufwand. Status: ✅ fertig, 🔨 in Arbeit, ⏳ geplant.
 

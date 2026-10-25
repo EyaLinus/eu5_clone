@@ -20,8 +20,12 @@ Download: siehe [Releases](../../releases) (`EU5Lite.apk`, `EU5Lite.exe`).
 | 🦅 Österreich | +2 Diplomatie/Monat, schnellerer AE-Abbau |
 | 🐻 Russland | +30 % Mannschaften, +1 Militär/Monat |
 | 🌋 Neapel | +15 % Einkommen, +1 Admin/Monat |
+| ☪️ Osmanisches Reich | +30 % Mannschaften, +5 % Kampfkraft |
+| 🦅 Polen | +10 % Mannschaften |
+| 🍷 Burgund | +5 % Kampfkraft |
 
-Dazu 43 KI-Nationen (Burgund, Osmanen, Polen, Venedig, …), 161 Provinzen auf einer Europakarte
+Osmanen, Polen und Burgund haben (noch) weniger Missionen und Events als die 7 Großmächte.
+Dazu 40 KI-Nationen (Venedig, Mailand, Dänemark, Schottland, …), 161 Provinzen auf einer Europakarte
 aus echten Küstenlinien (Natural Earth, Public Domain).
 
 ## Mechaniken (bewusst minimal)
@@ -40,7 +44,8 @@ aus echten Küstenlinien (Natural Earth, Public Domain).
   zum alten Besitzer zurückfallen. Garnisonen und Unterdrückung helfen.
 - **Vasallen:** Statt Land zu fordern, kannst du den besiegten Kriegsführer zum Vasallen machen. Vasallen zahlen
   Tribut, kämpfen mit dir und lassen sich nach 15 Jahren diplomatisch annektieren.
-- **Inhalte:** pro großer Nation 6 Missionen und 5–7 historische Events mit je 3 Entscheidungen,
+- **Inhalte:** 258 Events mit je 3 Entscheidungen (jede Nation hat eigene) und 122 Missionen
+  (9–10 je Großmacht),
   plus allgemeine Events (Pest, Buchdruck, Reformation, …).
 
 ## Steuerung (Ein-Daumen-tauglich)
@@ -61,7 +66,7 @@ Siehe [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/ROADMAP.md](docs/ROADM
   und läuft headless identisch zur UI.
 - `tools/gen_map.py` erzeugt `data/map.json` (Voronoi-Zellen auf Natural-Earth-Landmasse, Nachbarschaften).
 - Tests: `godot --headless --path . -s res://tests/run_tests.gd`
-- UI-Rauchtest (alle 7 Großmächte, alle Panels, 200 Jahre): `godot --headless --path . -s res://tools/ui_smoke.gd`
+- UI-Rauchtest (alle 10 spielbaren Nationen, alle Panels, 200 Jahre): `godot --headless --path . -s res://tools/ui_smoke.gd`
 - Headless-Simulation: `godot --headless --path . -s res://tools/sim.gd -- --runs 10 --years 200`
 - **Auto-Balance:** `python3 tools/balance_loop.py --godot <godot-binary> --runs 16 --iters 10`
   spielt parallele KI-Partien über 200 Jahre, misst Auslöschungen, Größe der stärksten Nation,
