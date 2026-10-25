@@ -3,6 +3,7 @@ extends Control
 
 signal province_tapped(pid: int)
 signal army_tapped(army_id: int)
+signal province_long_pressed(pid: int)
 
 const SEA := Color("1d3a5c")
 const WASTE := Color("55574d")
@@ -29,6 +30,15 @@ var _pinch_dist := 0.0
 var _press_pos := Vector2.ZERO
 var _moved := false
 var _mouse_down := false
+# touch comfort: long press, double tap, fling
+const LONG_PRESS_S := 0.5
+const DOUBLE_TAP_S := 0.3
+var _press_time := 0.0
+var _long_fired := false
+var _last_tap_time := -10.0
+var _last_tap_pos := Vector2.ZERO
+var _velocity := Vector2.ZERO
+var _touch_used := false
 
 
 func setup(g, map_data: Dictionary) -> void:
@@ -265,16 +275,56 @@ func _draw_armies() -> void:
 
 # ---------------------------------------------------------------- input
 
+func _now() -> float:
+	return Time.get_ticks_msec() / 1000.0
+
+
+func _process(delta: float) -> void:
+	# long press: hold still on a province to open its info (even while an army is selected)
+	var holding: bool = (_touches.size() == 1 or _mouse_down) and not _moved and not _long_fired
+	if holding and _now() - _press_time >= LONG_PRESS_S:
+		_long_fired = true
+		var pid := province_at(_press_pos)
+		if pid >= 0:
+			Input.vibrate_handheld(30)
+			province_long_pressed.emit(pid)
+	# fling: the map keeps gliding after a quick swipe
+	if _velocity.length() > 20.0 and _touches.is_empty() and not _mouse_down:
+		offset += _velocity * delta
+		_velocity *= pow(0.04, delta)
+		_clamp()
+		queue_redraw()
+	elif _touches.is_empty() and not _mouse_down:
+		_velocity = Vector2.ZERO
+
+
+func _release_tap(pos: Vector2) -> void:
+	if _long_fired:
+		return
+	var t := _now()
+	if t - _last_tap_time < DOUBLE_TAP_S and pos.distance_to(_last_tap_pos) < 40.0:
+		_last_tap_time = -10.0
+		zoom_by(1.7, pos)
+		return
+	_last_tap_time = t
+	_last_tap_pos = pos
+	_tap(pos)
+
+
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
+		_touch_used = true
 		if event.pressed:
 			_touches[event.index] = event.position
 			if _touches.size() == 1:
 				_press_pos = event.position
+				_press_time = _now()
 				_moved = false
+				_long_fired = false
+				_velocity = Vector2.ZERO
 		else:
 			if _touches.size() == 1 and not _moved:
-				_tap(event.position)
+				_release_tap(event.position)
 			_touches.erase(event.index)
 			_pinch_dist = 0.0
 		accept_event()
@@ -284,6 +334,7 @@ func _gui_input(event: InputEvent) -> void:
 			if _moved or event.position.distance_to(_press_pos) > 14.0:
 				_moved = true
 				offset += event.relative
+				_velocity = event.velocity
 				_clamp()
 		elif _touches.size() >= 2:
 			_moved = true
@@ -305,11 +356,14 @@ func _gui_input(event: InputEvent) -> void:
 			if event.pressed:
 				_mouse_down = true
 				_press_pos = event.position
+				_press_time = _now()
 				_moved = false
+				_long_fired = false
+				_velocity = Vector2.ZERO
 			else:
 				_mouse_down = false
 				if not _moved:
-					_tap(event.position)
+					_release_tap(event.position)
 		accept_event()
 	elif event is InputEventMouseMotion and _mouse_down and event.device != InputEvent.DEVICE_ID_EMULATION:
 		if _moved or event.position.distance_to(_press_pos) > 6.0:
@@ -328,7 +382,8 @@ func _gui_input(event: InputEvent) -> void:
 func _tap(screen_pos: Vector2) -> void:
 	var pos := army_positions()
 	var best := -1
-	var best_d := ARMY_R + 8.0
+	# fingers are less precise than a mouse pointer
+	var best_d := ARMY_R + (22.0 if _touch_used else 8.0)
 	for id in pos:
 		var d: float = pos[id].distance_to(screen_pos)
 		if d < best_d:
@@ -337,11 +392,19 @@ func _tap(screen_pos: Vector2) -> void:
 	if best >= 0:
 		army_tapped.emit(best)
 		return
+	var pid := province_at(screen_pos)
+	if pid >= 0:
+		province_tapped.emit(pid)
+
+
+func province_at(screen_pos: Vector2) -> int:
+	if game == null:
+		return -1
 	var w := to_world(screen_pos)
 	for p in game.provinces:
 		if not bboxes[p.id].has_point(w):
 			continue
 		for poly in polys[p.id]:
 			if Geometry2D.is_point_in_polygon(w, poly):
-				province_tapped.emit(p.id)
-				return
+				return p.id
+	return -1

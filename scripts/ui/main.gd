@@ -37,6 +37,8 @@ var top_labels := {}
 var speed_label: Label
 var side_panel: PanelContainer
 var side_title: Label
+var side_back: Button
+var panel_history: Array = []
 var side_box: VBoxContainer
 var side_scroll: ScrollContainer
 var modal: Control
@@ -68,6 +70,7 @@ func _ready() -> void:
 	add_child(map)
 	map.province_tapped.connect(_on_province_tapped)
 	map.army_tapped.connect(_on_army_tapped)
+	map.province_long_pressed.connect(_on_province_info)
 	hud = Control.new()
 	hud.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -184,6 +187,12 @@ func _build_hud() -> void:
 	hb.add_child(speed_label)
 	hb.add_child(_btn("➕", func(): _set_speed(mini(SPEEDS.size() - 1, speed + 1)), "Schneller"))
 	hb.add_child(_btn("☰", func(): _show_menu(), "Menü"))
+	# the top bar has a fixed height: keep its buttons compact even with large touch targets
+	for c in hb.get_children():
+		if c is Button:
+			c.custom_minimum_size = Vector2(60, 56) if _big() else Vector2(52, 52)
+	if _big():
+		hb.add_theme_constant_override("separation", 10)
 
 	var left := VBoxContainer.new()
 	left.position = Vector2(8, 68)
@@ -217,7 +226,7 @@ func _build_hud() -> void:
 
 	side_panel = PanelContainer.new()
 	side_panel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
-	side_panel.offset_left = -440
+	side_panel.offset_left = -500 if _big() else -440
 	side_panel.offset_top = 64
 	side_panel.offset_right = -6
 	side_panel.offset_bottom = -6
@@ -226,6 +235,9 @@ func _build_hud() -> void:
 	side_panel.add_child(vb)
 	var head := HBoxContainer.new()
 	vb.add_child(head)
+	side_back = _btn("◀", _panel_back, "Zurück")
+	side_back.visible = false
+	head.add_child(side_back)
 	side_title = Label.new()
 	side_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	side_title.add_theme_font_size_override("font_size", 24)
@@ -291,7 +303,7 @@ func _btn(text: String, cb: Callable, tip: String = "", disabled: bool = false) 
 	b.text = text
 	b.tooltip_text = tip
 	b.disabled = disabled
-	b.custom_minimum_size = Vector2(52, 52)
+	b.custom_minimum_size = Vector2(64, 66) if _big() else Vector2(52, 52)
 	b.focus_mode = Control.FOCUS_NONE
 	# long labels are trimmed instead of widening the side panel past the screen edge
 	b.clip_text = true
@@ -318,7 +330,7 @@ func _tab_button(key: String, cb: Callable, tip: String) -> Button:
 		b.icon = tex
 		b.expand_icon = true
 		b.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	b.custom_minimum_size = Vector2(60, 60)
+	b.custom_minimum_size = Vector2(76, 76) if _big() else Vector2(60, 60)
 	b.add_theme_font_size_override("font_size", 28)
 	return b
 
@@ -720,7 +732,7 @@ func _notification(what: int) -> void:
 		if modal.visible and game != null and game.pending_events.is_empty() and game.pending_peace.is_empty():
 			_close_modal()
 		elif side_panel.visible:
-			_close_panel()
+			_panel_back()
 		else:
 			_show_menu()
 
@@ -747,6 +759,11 @@ func _show_menu() -> void:
 	modal_box.add_child(_btn("💾 Speichern", func(): _save_game(); _toast("💾 Gespeichert."); _close_modal()))
 	modal_box.add_child(_btn("📂 Laden", _load_game))
 	modal_box.add_child(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
+	if not OS.has_feature("mobile"):
+		modal_box.add_child(_btn("👆 Große Bedienelemente: %s (Leisten nach Neustart)" % ("an" if settings.get("big_ui", false) else "aus"), func():
+			settings.big_ui = not settings.get("big_ui", false)
+			_save_settings()
+			_show_menu()))
 	modal_box.add_child(_btn("🔊 Ton: %s" % ("an" if settings.get("sound", true) else "aus"), func():
 		settings.sound = not settings.get("sound", true)
 		_save_settings()
@@ -870,28 +887,43 @@ func _history_chart(height: int) -> Control:
 		if h.size() < 2:
 			return
 		var max_dev := 1.0
+		var min_dev := 1e9
 		for e in h:
 			max_dev = maxf(max_dev, e[1])
+			min_dev = minf(min_dev, e[1])
+		# show the change, not the absolute size: axis from just below the minimum to just above the maximum
+		var lo: float = maxf(0.0, min_dev - maxf(5.0, (max_dev - min_dev) * 0.15))
+		var hi: float = max_dev + maxf(5.0, (max_dev - min_dev) * 0.15)
 		var dev_pts := PackedVector2Array()
 		var rank_pts := PackedVector2Array()
 		var n: int = game.order.size()
 		for i in h.size():
 			var x: float = 8.0 + (sz.x - 16.0) * i / (h.size() - 1)
-			dev_pts.append(Vector2(x, sz.y - 8.0 - (sz.y - 16.0) * h[i][1] / max_dev))
-			rank_pts.append(Vector2(x, 8.0 + (sz.y - 16.0) * (h[i][2] - 1) / maxf(1.0, n - 1)))
+			dev_pts.append(Vector2(x, sz.y - 24.0 - (sz.y - 72.0) * (h[i][1] - lo) / (hi - lo)))
+			rank_pts.append(Vector2(x, 48.0 + (sz.y - 72.0) * (h[i][2] - 1) / maxf(1.0, n - 1)))
 		c.draw_polyline(rank_pts, Color(0.35, 0.6, 1.0, 0.8), 2.0)
 		c.draw_polyline(dev_pts, Color(1.0, 0.8, 0.3), 3.0)
 		var font := c.get_theme_default_font()
-		c.draw_string(font, Vector2(10, 22), "🏘️ Entwicklung (max %d)" % int(max_dev), HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1.0, 0.8, 0.3))
+		c.draw_string(font, Vector2(10, 22), "🏘️ Entwicklung %d–%d" % [int(min_dev), int(max_dev)], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1.0, 0.8, 0.3))
 		c.draw_string(font, Vector2(10, 42), "🏆 Rang (oben = 1.)", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.35, 0.6, 1.0))
 		c.draw_string(font, Vector2(10, sz.y - 12), str(h[0][0]), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.7, 0.7, 0.7))
 		c.draw_string(font, Vector2(sz.x - 50, sz.y - 12), str(h[-1][0]), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.7, 0.7, 0.7)))
 	return c
 
 
-func _open_panel(mode: String, arg = null) -> void:
+## Large touch targets: always on phones, optional on desktop (menu).
+func _big() -> bool:
+	return OS.has_feature("mobile") or settings.get("big_ui", false)
+
+
+func _open_panel(mode: String, arg = null, remember: bool = true) -> void:
 	if game == null:
 		return
+	if remember and side_panel.visible and panel_mode != "" and (panel_mode != mode or panel_arg != arg):
+		panel_history.append([panel_mode, panel_arg])
+		if panel_history.size() > 12:
+			panel_history.pop_front()
+	side_back.visible = not panel_history.is_empty()
 	panel_mode = mode
 	panel_arg = arg
 	side_panel.visible = true
@@ -907,8 +939,22 @@ func _open_panel(mode: String, arg = null) -> void:
 	map.queue_redraw()
 
 
+func _panel_back() -> void:
+	if panel_history.is_empty():
+		_close_panel()
+		return
+	var prev: Array = panel_history.pop_back()
+	if prev[0] == "army":
+		_on_army_tapped(prev[1])
+		side_back.visible = not panel_history.is_empty()
+		return
+	_open_panel(prev[0], prev[1], false)
+
+
 func _close_panel() -> void:
 	side_panel.visible = false
+	panel_history.clear()
+	side_back.visible = false
 	panel_mode = ""
 	selected_army = -1
 	map.selected_army = -1
@@ -954,9 +1000,22 @@ func _on_province_tapped(pid: int) -> void:
 		if a != null and a.owner == game.player:
 			a.auto = false
 			var err: String = game.move_army(a, pid)
+			if err == "":
+				# one order per selection: the next tap on the map looks around instead of moving again
+				selected_army = -1
+				map.selected_army = -1
 			_act(err, "🚶 Marschbefehl nach %s" % game.provinces[pid].name if err == "" else "")
 			map.queue_redraw()
 			return
+	map.selected_pid = pid
+	_open_panel("province", pid)
+	map.selected_pid = pid
+
+
+## Long press: province info without giving a march order.
+func _on_province_info(pid: int) -> void:
+	selected_army = -1
+	map.selected_army = -1
 	map.selected_pid = pid
 	_open_panel("province", pid)
 	map.selected_pid = pid
@@ -966,6 +1025,9 @@ func _on_army_tapped(id: int) -> void:
 	if selected_army == id:
 		_close_panel()
 		return
+	if side_panel.visible and panel_mode != "" and panel_mode != "army":
+		panel_history.append([panel_mode, panel_arg])
+	side_back.visible = not panel_history.is_empty()
 	selected_army = id
 	map.selected_army = id
 	map.selected_pid = -1
@@ -1048,7 +1110,10 @@ func _panel_army(id: int) -> void:
 	side_box.add_child(_lbl(info))
 	if a.owner != game.player:
 		return
-	side_box.add_child(_lbl("👉 Tippe auf eine Provinz, um die Armee dorthin zu schicken.", 16, Color(0.8, 0.85, 0.6)))
+	if selected_army == a.id:
+		side_box.add_child(_lbl("👉 Tippe auf eine Provinz, um die Armee dorthin zu schicken. Lange drücken zeigt nur Infos.", 16, Color(0.8, 0.85, 0.6)))
+	else:
+		side_box.add_child(_btn("🎯 Neues Ziel wählen", func(): selected_army = a.id; map.selected_army = a.id; _refresh(); map.queue_redraw()))
 	var auto_btn := _btn("🤖 Automatisch: AN" if a.auto else "🤖 Automatisch: AUS", func(): a.auto = not a.auto; _refresh())
 	side_box.add_child(auto_btn)
 	side_box.add_child(_row([

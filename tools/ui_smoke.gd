@@ -69,6 +69,9 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 		m._on_province_tapped(provs[month % provs.size()])
 		n += 1
 	m._on_province_tapped(month % g.provinces.size())
+	m._on_province_info(month % g.provinces.size())
+	m._panel_back()
+	m._panel_back()
 	var arms: Array = g.armies_of(tag)
 	if not arms.is_empty():
 		m._on_army_tapped(arms[0].id)

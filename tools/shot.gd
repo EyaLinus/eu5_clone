@@ -10,6 +10,10 @@ func _init() -> void:
 	if args.size() >= 2 and args[0] == "--out":
 		out = args[1]
 	DirAccess.make_dir_recursive_absolute(out)
+	if "--big" in args:
+		var f := FileAccess.open("user://settings.json", FileAccess.WRITE)
+		f.store_string(JSON.stringify({"big_ui": true, "tips": false, "ui_scale": 1.0}))
+		f.close()
 	var m = load("res://scenes/main.tscn").instantiate()
 	root.add_child(m)
 	_run(m)
