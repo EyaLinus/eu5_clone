@@ -15,7 +15,7 @@ func _init() -> void:
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
-		"test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_economy_goods_and_trade", "test_buildings", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_long_run_no_softlock",
 	]:
 		var before := failures
@@ -369,6 +369,97 @@ func test_inherit_never_takes_player() -> void:
 	var g = new_game("BOH")
 	g.apply_effects("HAB", {"inherit": "BOH"})
 	check(g.nations.BOH.alive, "player nation is never inherited")
+
+
+func test_economy_goods_and_trade() -> void:
+	var g = new_game("FRA", 5)
+	for p in g.provinces:
+		check(g.goods_def.has(p.good), "%s has a known good" % p.key)
+		check(g.markets.has(p.market), "%s trades in a market" % p.key)
+	check(g.provinces[g.key_to_pid["venice"]].market == g.key_to_pid["venice"], "market center trades in itself")
+	for i in 13:
+		g.tick()
+	var n = g.nations.FRA
+	check(n.tax_income > 0.0 and n.prod_income > 0.0 and n.trade_income > 0.0, "income has tax, production and trade")
+	check(absf(n.income - n.tax_income - n.prod_income - n.trade_income) < 0.001, "income is the sum of its parts")
+	for k in g.prices:
+		var base: float = float(g.goods_def[k].price)
+		check(g.prices[k] >= base * 0.59 and g.prices[k] <= base * 1.61, "price of %s stays in bounds" % k)
+	# merchants: count, send, recall
+	var Eco = g.Economy
+	check(n.merchants.size() == Eco.merchant_count(g, n), "AI/auto fills all merchant slots")
+	var before: float = Eco.trade_income(g, n)
+	var m: int = n.merchants[0]
+	Eco.recall_merchant(g, "FRA", m)
+	check(not n.merchant_auto and not n.merchants.has(m), "recall removes the merchant and stops auto mode")
+	check(Eco.trade_income(g, n) < before, "recalling a merchant lowers trade income")
+	check(Eco.send_merchant(g, "FRA", m) == "", "merchant can be sent again")
+	check(Eco.send_merchant(g, "FRA", m) != "", "only one merchant per market")
+	# goods leader bonus lands in n.bonus["goods"]
+	for k in g.goods_leader:
+		var t: String = g.goods_leader[k]
+		for key in g.goods_def[k].bonus:
+			check(g.nations[t].bonus.goods.get(key, 0.0) != 0.0, "%s gets the %s bonus" % [t, k])
+	# more development, more of everything
+	var p = g.provinces[g.key_to_pid["paris"]]
+	var tax0: float = Eco.tax(g, p)
+	var prod0: float = Eco.production_value(g, p)
+	var tp0: float = Eco.province_trade_power(g, p)
+	var mp0: float = Eco.local_manpower(g, p)
+	p.dev += 6
+	check(Eco.tax(g, p) > tax0 and Eco.production_value(g, p) > prod0 and Eco.province_trade_power(g, p) > tp0 \
+			and Eco.local_manpower(g, p) > mp0, "development raises tax, production, trade power and manpower")
+
+
+func test_buildings() -> void:
+	var g = new_game("FRA", 5)
+	var Eco = g.Economy
+	var pid: int = g.key_to_pid["paris"]
+	var p = g.provinces[pid]
+	var n = g.nations.FRA
+	n.gold = 10000.0
+	check(g.construct("FRA", g.key_to_pid["london"], "workshop") != "", "cannot build in foreign province")
+	check(g.construct("FRA", pid, "manufactory") != "", "manufactory needs a workshop")
+	var cost: float = Eco.building_cost(g, "FRA", pid, "workshop")
+	var dev0: int = p.dev
+	var prod0: float = Eco.production_value(g, p)
+	check(g.construct("FRA", pid, "workshop") == "", "workshop can be built")
+	check(absf(n.gold - (10000.0 - cost)) < 0.01, "building costs gold")
+	check(g.construct("FRA", pid, "marketplace") != "", "one construction per province at a time")
+	for i in 12:
+		g.tick()
+	check(Eco.level(p, "workshop") == 1 and p.constructing.is_empty(), "workshop finished after 12 months")
+	check(p.dev == dev0 + 1, "a finished building level adds development")
+	check(Eco.production_value(g, p) > prod0, "workshop raises production")
+	check(Eco.building_cost(g, "FRA", pid, "workshop") > cost, "next level costs more")
+	# slots
+	p.buildings = {}
+	p.dev = 7
+	Eco.refresh_local(g, p)
+	var free: int = Eco.slots(g, p)
+	var ids: Array = ["marketplace", "workshop", "estate", "barracks", "courthouse", "fortress"]
+	for i in free:
+		p.buildings[ids[i]] = 1
+	check(Eco.build_block_reason(g, "FRA", pid, ids[free]) != "", "no new building without a free slot")
+	check(Eco.build_block_reason(g, "FRA", pid, ids[0]) == "", "upgrades do not need a slot")
+	# barracks raise the force limit, courthouse lowers unrest, fortress counts as fort
+	g._update_cached(n)
+	var fl0: float = g.force_limit("FRA")
+	var q = g.provinces[g.key_to_pid["orleans"]]
+	q.buildings = {"barracks": 2, "courthouse": 1, "fortress": 1}
+	Eco.refresh_local(g, q)
+	g._update_cached(n)
+	check(absf(g.force_limit("FRA") - fl0 - 2.0) < 0.01, "barracks level 2 adds 2 force limit")
+	check(g.unrest_parts(q.id).buildings < 0.0, "courthouse and fortress lower unrest")
+	check(Eco.fort_level(g, q) >= 1, "fortress counts as a fort")
+	# save/load keeps buildings, construction and merchants
+	n.gold = 10000.0
+	g.construct("FRA", g.key_to_pid["lyon"], "estate")
+	var text := JSON.stringify(g.to_dict())
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(text))
+	check(JSON.stringify(g2.to_dict()) == text, "economy state survives save/load")
+	check(g2.provinces[q.id].loc.get("unrest", 0.0) < 0.0, "building cache is rebuilt on load")
 
 
 func test_save_roundtrip() -> void:

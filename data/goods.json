@@ -1,0 +1,290 @@
+{
+ "goods": {
+  "grain": {
+   "name": "Getreide",
+   "price": 0.2,
+   "bonus": {
+    "manpower": 0.1
+   },
+   "bonus_text": "+10 % Mannschaften",
+   "emoji": "🌾"
+  },
+  "wine": {
+   "name": "Wein",
+   "price": 0.3,
+   "bonus": {
+    "dip": 0.5
+   },
+   "bonus_text": "+0,5 Diplomatie/Monat",
+   "emoji": "🍷"
+  },
+  "wool": {
+   "name": "Wolle",
+   "price": 0.25,
+   "bonus": {
+    "tax": 0.1
+   },
+   "bonus_text": "+10 % Steuern",
+   "emoji": "🐑"
+  },
+  "cloth": {
+   "name": "Tuch",
+   "price": 0.35,
+   "bonus": {
+    "production": 0.1
+   },
+   "bonus_text": "+10 % Produktion",
+   "emoji": "🧵"
+  },
+  "fish": {
+   "name": "Fisch",
+   "price": 0.2,
+   "bonus": {
+    "maintenance": -0.1
+   },
+   "bonus_text": "-10 % Armeeunterhalt",
+   "emoji": "🐟"
+  },
+  "salt": {
+   "name": "Salz",
+   "price": 0.3,
+   "bonus": {
+    "trade": 0.1
+   },
+   "bonus_text": "+10 % Handelseinnahmen",
+   "emoji": "🧂"
+  },
+  "iron": {
+   "name": "Eisen",
+   "price": 0.3,
+   "bonus": {
+    "combat": 0.05
+   },
+   "bonus_text": "+5 % Kampfkraft",
+   "emoji": "⛏️"
+  },
+  "copper": {
+   "name": "Kupfer",
+   "price": 0.35,
+   "bonus": {
+    "develop_cost": -0.1
+   },
+   "bonus_text": "-10 % Entwicklungskosten",
+   "emoji": "🟠"
+  },
+  "silver": {
+   "name": "Silber",
+   "price": 0.45,
+   "bonus": {
+    "income": 0.05
+   },
+   "bonus_text": "+5 % Einkommen",
+   "emoji": "🪙"
+  },
+  "timber": {
+   "name": "Holz",
+   "price": 0.2,
+   "bonus": {
+    "build_cost": -0.1
+   },
+   "bonus_text": "-10 % Baukosten",
+   "emoji": "🪵"
+  },
+  "furs": {
+   "name": "Pelze",
+   "price": 0.35,
+   "bonus": {
+    "adm": 0.5
+   },
+   "bonus_text": "+0,5 Admin/Monat",
+   "emoji": "🦊"
+  },
+  "livestock": {
+   "name": "Vieh",
+   "price": 0.2,
+   "bonus": {
+    "force_limit": 2.0
+   },
+   "bonus_text": "+2 Truppenlimit",
+   "emoji": "🐄"
+  }
+ },
+ "provinces": {
+  "pale": "grain",
+  "orleans": "grain",
+  "picardy": "grain",
+  "normandy": "grain",
+  "toulouse": "grain",
+  "berry": "grain",
+  "piedmont": "grain",
+  "zaragoza": "grain",
+  "valencia": "grain",
+  "sevilla": "grain",
+  "sicily": "grain",
+  "apulia": "grain",
+  "rome": "grain",
+  "bologna": "grain",
+  "ancona": "grain",
+  "verona": "grain",
+  "friuli": "grain",
+  "pilsen": "grain",
+  "moravia": "grain",
+  "munich": "grain",
+  "regensburg": "grain",
+  "berlin": "grain",
+  "hesse": "grain",
+  "pomerania": "grain",
+  "mecklenburg": "grain",
+  "prussia": "grain",
+  "marienburg": "grain",
+  "poznan": "grain",
+  "warsaw": "grain",
+  "kiev": "grain",
+  "volhynia": "grain",
+  "chernigov": "grain",
+  "pressburg": "grain",
+  "slavonia": "grain",
+  "moscow": "grain",
+  "tver": "grain",
+  "vladimir": "grain",
+  "ryazan": "grain",
+  "reval": "grain",
+  "gotaland": "grain",
+  "edirne": "grain",
+  "thessaly": "grain",
+  "varna": "grain",
+  "bordeaux": "wine",
+  "champagne": "wine",
+  "anjou": "wine",
+  "languedoc": "wine",
+  "dijon": "wine",
+  "provence": "wine",
+  "pamplona": "wine",
+  "porto": "wine",
+  "malaga": "wine",
+  "napoli": "wine",
+  "siena": "wine",
+  "wien": "wine",
+  "palatinate": "wine",
+  "morea": "wine",
+  "wessex": "wool",
+  "eastanglia": "wool",
+  "midlands": "wool",
+  "york": "wool",
+  "calais": "wool",
+  "leon": "wool",
+  "toledo": "wool",
+  "burgos": "wool",
+  "extremadura": "wool",
+  "abruzzo": "wool",
+  "skopje": "wool",
+  "calabria": "cloth",
+  "london": "cloth",
+  "paris": "cloth",
+  "flanders": "cloth",
+  "brabant": "cloth",
+  "lyon": "cloth",
+  "barcelona": "cloth",
+  "murcia": "cloth",
+  "granada": "cloth",
+  "florence": "cloth",
+  "genoa": "cloth",
+  "silesia": "cloth",
+  "lusatia": "cloth",
+  "leipzig": "cloth",
+  "cologne": "cloth",
+  "swabia": "cloth",
+  "zurich": "cloth",
+  "pskov": "cloth",
+  "constantinople": "cloth",
+  "lothian": "fish",
+  "brest": "fish",
+  "holland": "fish",
+  "galicia": "fish",
+  "algarve": "fish",
+  "dalmatia": "fish",
+  "bremen": "fish",
+  "hamburg": "fish",
+  "copenhagen": "fish",
+  "scania": "fish",
+  "bergen": "fish",
+  "nizhny": "fish",
+  "rennes": "salt",
+  "poitou": "salt",
+  "franchecomte": "salt",
+  "lisbon": "salt",
+  "sardinia": "salt",
+  "venice": "salt",
+  "linz": "salt",
+  "brunswick": "salt",
+  "krakow": "salt",
+  "transylvania": "salt",
+  "crimea": "salt",
+  "luxembourg": "iron",
+  "biscay": "iron",
+  "milan": "iron",
+  "steiermark": "iron",
+  "carniola": "iron",
+  "nuremberg": "iron",
+  "bosnia": "iron",
+  "tula": "iron",
+  "stockholm": "iron",
+  "cornwall": "copper",
+  "kassa": "copper",
+  "dalarna": "copper",
+  "prague": "silver",
+  "tirol": "silver",
+  "dresden": "silver",
+  "serbia": "silver",
+  "dauphine": "timber",
+  "corsica": "timber",
+  "croatia": "timber",
+  "vilnius": "timber",
+  "minsk": "timber",
+  "smolensk": "timber",
+  "riga": "timber",
+  "oslo": "timber",
+  "turku": "timber",
+  "novgorod": "furs",
+  "karelia": "furs",
+  "beloozero": "furs",
+  "vologda": "furs",
+  "yaroslavl": "furs",
+  "kazan": "furs",
+  "northumberland": "livestock",
+  "wales": "livestock",
+  "highlands": "livestock",
+  "munster": "livestock",
+  "ulster": "livestock",
+  "auvergne": "livestock",
+  "limousin": "livestock",
+  "savoy": "livestock",
+  "parma": "livestock",
+  "bern": "livestock",
+  "lwow": "livestock",
+  "buda": "livestock",
+  "temes": "livestock",
+  "zaporozhia": "livestock",
+  "jutland": "livestock",
+  "holstein": "livestock",
+  "sofia": "livestock",
+  "wallachia": "livestock",
+  "moldavia": "livestock",
+  "albania": "livestock"
+ },
+ "markets": [
+  "london",
+  "paris",
+  "flanders",
+  "hamburg",
+  "novgorod",
+  "moscow",
+  "krakow",
+  "wien",
+  "nuremberg",
+  "venice",
+  "genoa",
+  "sevilla",
+  "constantinople"
+ ]
+}

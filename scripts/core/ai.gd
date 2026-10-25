@@ -87,13 +87,15 @@ func _spend_gold(g, n) -> void:
 		if where >= 0:
 			g.recruit(tag, where, k)
 		return
-	# surplus gold becomes development (several buildings per month when rich)
-	var margin: float = 40.0 if (not war and regs >= want - 1.0) else 150.0
+	# surplus gold goes into buildings (best value per gold first)
+	if (g.month + n.capital) % 3 != 0:
+		return
+	var margin: float = 20.0 if (not war and regs >= want - 1.0) else 120.0
 	for i in 3:
-		var best := _cheapest_province(g, tag)
-		if best < 0 or n.gold <= g.build_cost(best) + reserve + margin:
+		var best: Array = g.Economy.best_building(g, n, war)
+		if best.is_empty() or n.gold <= g.Economy.building_cost(g, tag, best[0], best[1]) + reserve + margin:
 			break
-		g.build(tag, best)
+		g.construct(tag, best[0], best[1])
 
 
 # ---------------------------------------------------------------- diplomacy
