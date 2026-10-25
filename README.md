@@ -24,7 +24,6 @@ Download: siehe [Releases](../../releases) (`EU5Lite.apk`, `EU5Lite.exe`).
 | 🦅 Polen | +10 % Mannschaften |
 | 🍷 Burgund | +5 % Kampfkraft |
 
-Osmanen, Polen und Burgund haben (noch) weniger Missionen und Events als die 7 Großmächte.
 Dazu 40 KI-Nationen (Venedig, Mailand, Dänemark, Schottland, …), 161 Provinzen auf einer Europakarte
 aus echten Küstenlinien (Natural Earth, Public Domain).
 
@@ -44,8 +43,8 @@ aus echten Küstenlinien (Natural Earth, Public Domain).
   zum alten Besitzer zurückfallen. Garnisonen und Unterdrückung helfen.
 - **Vasallen:** Statt Land zu fordern, kannst du den besiegten Kriegsführer zum Vasallen machen. Vasallen zahlen
   Tribut, kämpfen mit dir und lassen sich nach 15 Jahren diplomatisch annektieren.
-- **Inhalte:** 258 Events mit je 3 Entscheidungen (jede Nation hat eigene) und 122 Missionen
-  (9–10 je Großmacht),
+- **Inhalte:** 281 Events mit je 3 Entscheidungen (jede Nation hat eigene) und 135 Missionen
+  (10 je spielbarer Nation, 9 bei England und Spanien),
   plus allgemeine Events (Pest, Buchdruck, Reformation, …).
 
 ## Steuerung (Ein-Daumen-tauglich)

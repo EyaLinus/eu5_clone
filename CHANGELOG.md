@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.6.1 – 2026-10-25
+- **Content (PR #9):** Osmanen, Polen und Burgund haben jetzt je 10 Missionen und 11–12 eigene Events, also so viel
+  wie die Großmächte. Polen erhält zusätzlich +1 Diplomatie/Monat, Burgund +10 % Einkommen.
+- Balance (2 × 32 Partien): Ø 20 Nationen ausgelöscht, Großmächte überleben zu 97 %, Böhmen zu 81 %,
+  weniger Bankrott-Monate.
+
 ## v0.6.0 – 2026-10-25
 - **Neue spielbare Nationen:** Osmanen, Polen und Burgund (im Startmenü unter "Weitere Nationen"). Sie haben
   noch weniger Missionen und Events als die 7 Großmächte; das wird nachgezogen. Neues Daten-Flag `major` trennt
