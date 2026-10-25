@@ -7,14 +7,29 @@ signal province_long_pressed(pid: int)
 
 const SEA := Color("1d3a5c")
 const WASTE := Color("55574d")
-const BORDER := Color(0, 0, 0, 0.55)
 const ARMY_R := 15.0
 const Icons = preload("res://scripts/ui/icons.gd")
+## Painted base map (tools/art/map_terrain.py). Without it the map falls back to flat SEA/WASTE.
+const TERRAIN_PATH := "res://assets/art/map/terrain.png"
+const TERRAIN_HALF_PATH := "res://assets/art/map/terrain_half.png"
+const FILL_ALPHA := 0.74
+const PROV_BORDER := Color(0.12, 0.09, 0.06, 0.28)
+const NATION_BORDER := Color(0.07, 0.05, 0.09, 0.9)
+const COAST := Color(0.03, 0.09, 0.16, 0.8)
+const COUNTER_SIZE := Vector2(48, 28)
 
 var game
 var polys: Array = []
 var bboxes: Array = []
 var background: Array = []
+var terrain: Texture2D
+var terrain_half: Texture2D
+var _terrain_rect: TextureRect
+var _sea_rect: ColorRect
+## Border segments in world space: points 2e and 2e+1 between provinces edge_l[e] and edge_r[e] (-1 = sea)
+var edge_pts := PackedVector2Array()
+var edge_l := PackedInt32Array()
+var edge_r := PackedInt32Array()
 var world_size := Vector2(2000, 1300)
 var zoom := 0.8
 var offset := Vector2.ZERO
@@ -68,7 +83,101 @@ func setup(g, map_data: Dictionary) -> void:
 		for pt in poly:
 			arr.append(Vector2(pt[0], pt[1]))
 		background.append(arr)
+	_build_edges()
+	_setup_terrain()
 	queue_redraw()
+
+
+## Terrain lives in child nodes drawn behind this one, so it can use linear filtering while the
+## pixel-art icons on top keep nearest filtering. _sync_terrain() follows pan and zoom.
+func _setup_terrain() -> void:
+	terrain = load(TERRAIN_PATH) if ResourceLoader.exists(TERRAIN_PATH) else null
+	terrain_half = load(TERRAIN_HALF_PATH) if ResourceLoader.exists(TERRAIN_HALF_PATH) else null
+	if terrain == null:
+		return
+	if _terrain_rect == null:
+		_sea_rect = ColorRect.new()
+		_sea_rect.color = Color("132a45")
+		_sea_rect.show_behind_parent = true
+		_sea_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_sea_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(_sea_rect)
+		_terrain_rect = TextureRect.new()
+		_terrain_rect.show_behind_parent = true
+		_terrain_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_terrain_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		_terrain_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_terrain_rect.stretch_mode = TextureRect.STRETCH_SCALE
+		add_child(_terrain_rect)
+	_sync_terrain()
+
+
+func _sync_terrain() -> void:
+	if _terrain_rect == null:
+		return
+	var tex := terrain_half if zoom < 0.7 and terrain_half != null else terrain
+	if _terrain_rect.texture != tex:
+		_terrain_rect.texture = tex
+	_terrain_rect.position = offset
+	_terrain_rect.size = world_size
+	_terrain_rect.scale = Vector2(zoom, zoom)
+
+
+func _edge_key(a: Vector2, b: Vector2) -> String:
+	var ka := Vector2i(roundi(a.x * 10.0), roundi(a.y * 10.0))
+	var kb := Vector2i(roundi(b.x * 10.0), roundi(b.y * 10.0))
+	if ka.x > kb.x or (ka.x == kb.x and ka.y > kb.y):
+		var t := ka
+		ka = kb
+		kb = t
+	return "%d,%d,%d,%d" % [ka.x, ka.y, kb.x, kb.y]
+
+
+## Splits all polygon outlines into unique segments and finds the province on the other side.
+func _build_edges() -> void:
+	var seen := {}
+	edge_pts = PackedVector2Array()
+	edge_l = PackedInt32Array()
+	edge_r = PackedInt32Array()
+	for pid in polys.size():
+		for poly in polys[pid]:
+			var n: int = poly.size()
+			for i in n:
+				var a: Vector2 = poly[i]
+				var b: Vector2 = poly[(i + 1) % n]
+				var k := _edge_key(a, b)
+				if seen.has(k):
+					var e: int = seen[k]
+					if edge_r[e] == -1 and edge_l[e] != pid:
+						edge_r[e] = pid
+					continue
+				seen[k] = edge_l.size()
+				edge_pts.append(a)
+				edge_pts.append(b)
+				edge_l.append(pid)
+				edge_r.append(-1)
+	# segments whose vertices differ slightly between neighbours: probe both sides
+	for e in edge_l.size():
+		if edge_r[e] != -1:
+			continue
+		var a := edge_pts[e * 2]
+		var b := edge_pts[e * 2 + 1]
+		var nrm := (b - a).orthogonal().normalized() * 1.5
+		for probe in [(a + b) / 2 + nrm, (a + b) / 2 - nrm]:
+			var q := world_province_at(probe)
+			if q >= 0 and q != edge_l[e]:
+				edge_r[e] = q
+				break
+
+
+func world_province_at(w: Vector2) -> int:
+	for pid in polys.size():
+		if not bboxes[pid].has_point(w):
+			continue
+		for poly in polys[pid]:
+			if Geometry2D.is_point_in_polygon(w, poly):
+				return pid
+	return -1
 
 
 func _rect_of(arr: PackedVector2Array) -> Rect2:
@@ -109,22 +218,28 @@ func _clamp() -> void:
 	var ws := world_size * zoom
 	offset.x = (size.x - ws.x) / 2 if ws.x < size.x else clampf(offset.x, size.x - ws.x - margin, margin)
 	offset.y = (size.y - ws.y) / 2 if ws.y < size.y else clampf(offset.y, size.y - ws.y - margin, margin)
+	_sync_terrain()
 
 
 # ---------------------------------------------------------------- drawing
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), SEA)
+	var textured := _terrain_rect != null
+	if not textured:
+		draw_rect(Rect2(Vector2.ZERO, size), SEA)
 	if game == null:
 		return
 	draw_set_transform(offset, 0.0, Vector2(zoom, zoom))
-	for bg in background:
-		draw_colored_polygon(bg, WASTE)
+	if not textured:
+		for bg in background:
+			draw_colored_polygon(bg, WASTE)
 	var view := Rect2(to_world(Vector2.ZERO), size / zoom)
 	for p in game.provinces:
 		if not view.intersects(bboxes[p.id]):
 			continue
 		var c := province_color(p)
+		if textured:
+			c.a = FILL_ALPHA if map_mode < 2 else 0.86
 		for poly in polys[p.id]:
 			draw_colored_polygon(poly, c)
 		if p.controller != p.owner:
@@ -132,14 +247,7 @@ func _draw() -> void:
 			cc.a = 0.6
 			for poly in polys[p.id]:
 				_draw_hatch(poly, bboxes[p.id], cc)
-	var bw := 1.0 / zoom
-	for p in game.provinces:
-		if not view.intersects(bboxes[p.id]):
-			continue
-		for poly in polys[p.id]:
-			var closed: PackedVector2Array = poly.duplicate()
-			closed.append(poly[0])
-			draw_polyline(closed, BORDER, bw)
+	_draw_borders(view)
 	if selected_pid >= 0:
 		for poly in polys[selected_pid]:
 			var closed: PackedVector2Array = poly.duplicate()
@@ -148,6 +256,37 @@ func _draw() -> void:
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_draw_labels()
 	_draw_armies()
+
+
+## Province borders thin, coasts medium, borders between different owners thick.
+func _draw_borders(view: Rect2) -> void:
+	if edge_l.is_empty():
+		return
+	var thin := PackedVector2Array()
+	var coast := PackedVector2Array()
+	var nation := PackedVector2Array()
+	var v := view.grow(20.0)
+	for e in edge_l.size():
+		var a := edge_pts[e * 2]
+		var b := edge_pts[e * 2 + 1]
+		if not v.has_point(a) and not v.has_point(b):
+			continue
+		var r := edge_r[e]
+		if r < 0:
+			coast.append(a)
+			coast.append(b)
+		elif game.provinces[edge_l[e]].owner != game.provinces[r].owner:
+			nation.append(a)
+			nation.append(b)
+		else:
+			thin.append(a)
+			thin.append(b)
+	if zoom >= 0.6 and not thin.is_empty():
+		draw_multiline(thin, PROV_BORDER, 1.0 / zoom)
+	if not coast.is_empty():
+		draw_multiline(coast, COAST, 1.5 / zoom)
+	if not nation.is_empty():
+		draw_multiline(nation, NATION_BORDER, clampf(2.6 * zoom, 1.6, 3.4) / zoom)
 
 
 func province_color(p) -> Color:
@@ -236,7 +375,8 @@ func army_positions() -> Dictionary:
 	for a in game.armies:
 		var i: int = per.get(a.pid, 0)
 		per[a.pid] = i + 1
-		out[a.id] = to_screen(game.provinces[a.pid].center) + Vector2(i * (ARMY_R * 2 + 2), 6)
+		var step := 12.0 if zoom < 0.8 else 22.0
+		out[a.id] = to_screen(game.provinces[a.pid].center) + Vector2(i * 6, 8 + i * step)
 	return out
 
 
@@ -256,7 +396,11 @@ func _draw_armies() -> void:
 			continue
 		var c: Color = game.nations[a.owner].color
 		var ring := Color.WHITE if a.id == selected_army else Color(0, 0, 0, 0.9)
+		var counter := Icons.texture("army_counter")
 		var marker := Icons.texture("army_marker")
+		if counter != null:
+			_draw_counter(a, s, c, counter)
+			continue
 		if marker != null:
 			# pixel-art shield already has an outline: no circle, tint with the nation colour
 			if a.id == selected_army:
@@ -408,3 +552,28 @@ func province_at(screen_pos: Vector2) -> int:
 			if Geometry2D.is_point_in_polygon(w, poly):
 				return p.id
 	return -1
+
+
+## Army counter: nation-tinted plate, steel pikeman, regiment count, march arrow when moving.
+func _draw_counter(a, s: Vector2, c: Color, counter: Texture2D) -> void:
+	# zoomed out: native 1x plate with just the number, so Europe stays readable
+	var compact := zoom < 0.8
+	var csz := COUNTER_SIZE / 2 if compact else COUNTER_SIZE
+	var r := Rect2(s - csz / 2, csz)
+	if a.id == selected_army:
+		draw_rect(r.grow(3.0), Color(1, 1, 1, 0.9))
+	draw_texture_rect(counter, r, false, c)
+	var unit := Icons.texture("army_unit")
+	if unit != null and not compact:
+		draw_texture_rect(unit, Rect2(r.position, Vector2(20, 28)), false)
+	if a.target >= 0 and not compact:
+		var arrow := Icons.texture("army_moving")
+		if arrow != null:
+			draw_texture_rect(arrow, Rect2(Vector2(r.end.x - 10, r.position.y - 8), Vector2(18, 14)), false)
+	var txt := str(int(round(a.regs)))
+	var fs := (15 if txt.length() < 3 else 13) if not compact else 10
+	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	var cx := r.get_center().x if compact else r.position.x + 33
+	var tp := Vector2(cx - w / 2, s.y + fs * 0.36)
+	draw_string_outline(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 2 if compact else 3, Color.BLACK)
+	draw_string(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)

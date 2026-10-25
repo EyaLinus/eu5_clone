@@ -61,11 +61,29 @@ palette:
   purple_light: "#b07cd0"
   purple: "#8e44ad"
   purple_dark: "#4f2463"
+  # map terrain (texture only, see tools/art/map_terrain.py)
+  sea_deep: "#132a45"
+  sea: "#1c3d61"
+  sea_shallow: "#2b5f82"
+  foam: "#7fb0c4"
+  land_light: "#ece2c2"
+  land: "#d2c49a"
+  land_dark: "#a39368"
+  rock_light: "#b9ae98"
+  rock: "#8b8170"
+  rock_dark: "#5c5548"
+  snow: "#f4f2ec"
+  waste: "#77715f"
+  waste_dark: "#545041"
 
 ramps:
   gold: [gold_dark, gold, gold_light]
   grey: [grey_dark, grey, grey_light, white]
   paper: [paper_dark, paper]
+  sea: [sea_deep, sea, sea_shallow, foam]
+  land: [land_dark, land, land_light]
+  rock: [rock_dark, rock, rock_light, snow]
+  waste: [waste_dark, waste]
   red: [red_dark, red, red_light]
   blue: [blue_dark, blue, blue_light]
   green: [green_dark, green, green_light]
@@ -88,7 +106,7 @@ methods:
   sprite: pixel
   flag: pixel
   texture: procedural
-  map: geodata               # tools/gen_map.py, not this pipeline
+  map: geodata               # shapes: tools/gen_map.py; look: tools/art/map_terrain.py
 
 outputs:
   root: "assets/art/icons"
@@ -108,7 +126,9 @@ asset_kinds:
   icon: { display_px: 32, grid: 16 }          # HUD row (main.gd _icon_rect), integer x2
   tab_icon: { display_px: 36, grid: 16 }      # 60x60 buttons with expand_icon
   flag: { display_px: [48, 32], grid: [24, 16] }
-  army_marker: { display_px: 42, grid: 16 }   # map_view.gd: ARMY_R * 2.8
+  army_marker: { display_px: 42, grid: 16 }   # legacy shield token, replaced by army_counter
+  army_counter: { display_px: [48, 28], grid: [24, 14] }
+  map_terrain: { world_px: [1944, 1320], filter: linear }  # painted texture, not pixel art
 
 notes:
   - >

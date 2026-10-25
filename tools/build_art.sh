@@ -8,4 +8,5 @@ for src in assets/src/pixel/icons/*.txt assets/src/pixel/flags/*.txt; do
 	[ -e "$src" ] || continue
 	python3 "$S/pixelart.py" render "$src" --profile art_profile.yaml -o "assets/art/icons/$(basename "${src%.txt}").png" --scale 2
 done
+# map base texture (needs numpy, scipy): python3 tools/art/map_terrain.py
 python3 "$S/check_palette.py" assets/art/icons/*.png --profile art_profile.yaml --strict
