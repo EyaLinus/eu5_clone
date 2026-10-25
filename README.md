@@ -30,9 +30,15 @@ aus echten Küstenlinien (Natural Earth, Public Domain).
 ## Mechaniken (bewusst minimal)
 
 - **Zeit:** 1 Tick = 1 Monat, 2400 Ticks. Pause und 5 Geschwindigkeiten.
-- **Währungen:** 💰 Gold aus Provinzentwicklung; 📜 Admin, 🕊️ Diplomatie, ⚔️ Militär
+- **Währungen:** 💰 Gold aus Steuern, Gütern und Handel; 📜 Admin, 🕊️ Diplomatie, ⚔️ Militär
   (2 + Herrscherwert + Boni pro Monat, Obergrenze 999).
-- **Ausgaben:** Technologie, Berater und Gesetze (Punkte), Entwickeln (Admin) oder Bauen (Gold), Rekrutieren (Gold + Mannschaften),
+- **Wirtschaft:** Jede Provinz stellt eines von 12 Gütern her, Preise folgen jährlich Angebot und Nachfrage, der
+  größte Hersteller eines Guts erhält dessen Bonus. 13 Märkte verteilen Handelseinnahmen nach Handelsmacht,
+  Händler verstärken sie. Gebäude (Marktplatz, Werkstatt, Manufaktur, Gutshof, Kaserne, Festung, Gerichtshof)
+  haben Stufen, jede fertige Stufe bringt +1 Entwicklung. Entwicklung erhöht Steuern, Güter, Handelsmacht,
+  Mannschaften und Bauplätze.
+- **Fortschritt:** Rang Herzogtum, Königreich, Imperium (nach Entwicklung) mit Boni und 13 Meilensteine.
+- **Ausgaben:** Technologie, Berater und Gesetze (Punkte), Entwickeln (Admin), Gebäude (Gold), Rekrutieren (Gold + Mannschaften),
   Beziehungen/Bündnisse/Ansprüche (Diplomatie), Integration eroberter Provinzen (Admin).
 - **Krieg:** Armeen ziehen eine Provinz pro Monat, Schlachten bei Kontakt, Belagerung besetzt Provinzen.
   Kriegspunkte aus Besetzung, Schlachten und Hauptstadt. Frieden: besetzte Provinzen fordern, weißer Frieden

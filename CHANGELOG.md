@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.7.0 – 2026-10-25
+- **Wirtschaft:** Jede Provinz stellt ein Gut her (12 Güter, z. B. Getreide, Wein, Tuch, Eisen, Silber). Die Preise
+  ändern sich jedes Jahr mit Angebot und Nachfrage. Wer am meisten von einem Gut herstellt (mind. 20 % der Welt),
+  bekommt dessen Bonus. Einkommen = Steuern + Güter + Handel; das neue Panel 💰 Wirtschaft zeigt alles.
+- **Handel:** 13 Märkte (London, Paris, Flandern, Hamburg, Venedig, Konstantinopel, …). Deine Handelsmacht im
+  Einzugsgebiet bestimmt deinen Anteil. Händler (1–5) steigern sie, automatisch oder per Hand.
+- **Gebäude (Ausbau):** Marktplatz, Werkstatt, Manufaktur, Gutshof, Kaserne, Festung, Gerichtshof, mit Stufen.
+  Gold geht jetzt in Gebäude statt in "Bauen". Jede fertige Stufe bringt +1 Entwicklung.
+- **Entwicklung wirkt:** mehr Steuern, Güter, Handelsmacht, Mannschaften und Bauplätze je Stufe.
+- **Technologie und Regierung (eigener Thread):** Technologiebaum mit 81 Techs in 9 Zweigen und 30 Spezial-Techs
+  für die Großmächte. Regierungsbildschirm mit Beratern, Handelskompanien und Gesetzen, deren Optionen gleichzeitig
+  Vor- und Nachteile bringen.
+- **Armeeführung:** Pro Armee und als Standard für alle wählbar: ⚔️ Angriff, 🛡️ Verteidigen (nur eigenes und
+  verbündetes Land) oder ✋ Manuell. Schnellbefehle Belagern, Angreifen, Befreien und Zur Hauptstadt.
+  Armeeliste im Kriege-Panel. Eigene Armee gewählt und Feindarmee antippen bedeutet Angriff. "Alle meine Armeen
+  hierher" im Provinzpanel.
+- **Kartenmodi:** Auswahl-Panel statt Durchklicken, neu sind Güter, Handel und Krieg. Ländernamen stehen in der
+  Mitte des Reichs und wachsen mit seiner Größe.
+- **Progression:** Rang Herzogtum, Königreich (150 Entwicklung) und Imperium (400 Entwicklung) mit Boni.
+  13 Meilensteine mit Belohnungen (Missionen-Panel).
+- **Grafik (Art-Thread):** Pixel-Art statt Emojis, Flaggen im Text, ein Bild zu jedem Event, Hover-Infos auf der
+  Karte.
+- Tests und CI sind schneller: keine 200-Jahre-Läufe mehr in der CI (UI-Rauchtest 25 Jahre).
+- Balance (2 × 16 Partien): Ø 17–18 Nationen ausgelöscht, Großmächte überleben zu 97–98 %, weniger Bankrotte.
+
 ## v0.6.1 – 2026-10-25
 - **Content (PR #9):** Osmanen, Polen und Burgund haben jetzt je 10 Missionen und 11–12 eigene Events, also so viel
   wie die Großmächte. Polen erhält zusätzlich +1 Diplomatie/Monat, Burgund +10 % Einkommen.
