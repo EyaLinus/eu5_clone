@@ -1,9 +1,9 @@
 extends SceneTree
-## UI smoke test: plays every major for 200 years headless and opens every panel and popup on the way.
+## UI smoke test: plays every playable nation for 200 years headless and opens every panel and popup on the way.
 ## Any GDScript error shows up as "SCRIPT ERROR" in the output (CI greps for it).
 ## godot --headless --path . -s res://tools/ui_smoke.gd -- [--years 200] [--tags FRA,ENG]
 
-const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP"]
+const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP", "TUR", "POL", "BUR"]
 
 
 func _init() -> void:

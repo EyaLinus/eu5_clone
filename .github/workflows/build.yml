@@ -36,7 +36,7 @@ jobs:
       - name: UI smoke test (every major, all panels, 200 years)
         run: |
           godot --headless --path . -s res://tools/ui_smoke.gd -- --years 200 2>&1 | tee smoke.txt
-          test "$(grep -c '^SMOKE' smoke.txt)" -eq 7
+          test "$(grep -c '^SMOKE' smoke.txt)" -eq 10
           ! grep -q "SCRIPT ERROR" smoke.txt
       - name: Headless balance smoke run (10 games x 200 years)
         run: godot --headless --path . -s res://tools/sim.gd -- --runs 10 --years 200 --seed 500 | tee sim.txt

@@ -17,6 +17,7 @@ const HUD_TIPS := {
 	"army": "Regimenter / Truppenlimit", "ae": "Aggressive Expansion: ab der Koalitionsgrenze drohen Koalitionen",
 }
 const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP"]
+const EXTRA_PLAYABLE := ["TUR", "POL", "BUR"]  # playable, but less mission/event content than the majors
 
 var data: Dictionary
 var game
@@ -417,7 +418,9 @@ func _show_start_menu() -> void:
 	if FileAccess.file_exists(SAVE_PATH):
 		modal_box.add_child(_btn("💾 Weiterspielen", _load_game))
 	modal_box.add_child(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
-	for tag in MAJORS:
+	for tag in MAJORS + EXTRA_PLAYABLE:
+		if tag == EXTRA_PLAYABLE[0]:
+			modal_box.add_child(_lbl("Weitere Nationen (weniger Missionen und Events):", 16, Color(0.85, 0.75, 0.5)))
 		var nd: Dictionary = data.nations[tag]
 		var b := _btn("%s %s" % [nd.emoji, nd.name], _start_game.bind(tag))
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT

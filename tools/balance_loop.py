@@ -18,6 +18,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MAJORS = ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP"]
+EXTRA = ["TUR", "POL", "BUR"]  # playable, tracked but not part of major_survival
 
 # metric -> (low, high) acceptable range
 TARGETS = {
@@ -71,8 +72,8 @@ def measure(results):
         "revolts": avg(lambda r: r["stats"].get("revolts", 0)),
         "defections": avg(lambda r: r["stats"].get("defections", 0)),
         "independence": avg(lambda r: r["stats"].get("independence", 0)),
-        "major_dev": {t: round(avg(lambda r: r["majors"][t]["dev"]), 1) for t in MAJORS},
-        "major_alive": {t: round(avg(lambda r: 1.0 if r["majors"][t]["alive"] else 0.0), 2) for t in MAJORS},
+        "major_dev": {t: round(avg(lambda r: r["majors"][t]["dev"]), 1) for t in MAJORS + EXTRA},
+        "major_alive": {t: round(avg(lambda r: 1.0 if r["majors"][t]["alive"] else 0.0), 2) for t in MAJORS + EXTRA},
         "top_tags": {},
     }
     for r in results:

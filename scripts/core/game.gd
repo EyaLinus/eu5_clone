@@ -30,6 +30,7 @@ class Nation:
 	var color: Color
 	var emoji: String
 	var playable: bool = false
+	var major: bool = false  # one of the 7 great powers (rules + "major" condition), independent of playable
 	var idea: String = ""
 	var alive: bool = true
 	var capital: int = -1
@@ -147,6 +148,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		n.color = Color(nd.color)
 		n.emoji = nd.get("emoji", "🏳️")
 		n.playable = nd.get("playable", false)
+		n.major = nd.get("major", false)
 		n.idea = nd.get("idea", "")
 		n.aggression = float(nd.get("aggression", 0.6))
 		n.ruler_names = nd.get("rulers", [])
@@ -1052,7 +1054,7 @@ func vassal_block_reason(w: War, for_attackers: bool) -> String:
 		return "Vasallen können keine Vasallen haben."
 	if t.dev_total * 1.0 > nations[lead].dev_total * float(bal.vassal_max_dev_ratio):
 		return "%s ist zu groß, um Vasall zu werden." % t.name
-	if t.playable and lead != player:
+	if t.major and lead != player:
 		return "Großmächte werden nicht zu KI-Vasallen."
 	return ""
 
@@ -1738,7 +1740,7 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 			"vassal":
 				# event-driven vassalization (dynastic deals), only for free, independent minors
 				if nations.has(v) and v != tag and v != player and nations[v].alive and nations[v].overlord == "" \
-						and n.overlord == "" and not nations[v].playable and not at_war(tag, v):
+						and n.overlord == "" and not nations[v].major and not at_war(tag, v):
 					_vassalize(tag, v, true)
 					log_msg("⛓️ %s wird Vasall von %s." % [nations[v].name, n.name], [tag, v])
 	_update_cached(n)
@@ -1831,7 +1833,7 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 				if is_at_war(tag):
 					return false
 			"major":
-				if n.playable != bool(v):
+				if n.major != bool(v):
 					return false
 			"we_min":
 				if n.we < float(v):

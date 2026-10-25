@@ -251,7 +251,7 @@ func pick_demands(g, w, for_att: bool, budget: float) -> Array:
 		var p = g.provinces[pid]
 		# plausibility rule: the AI never annexes the capital of a playable great power
 		var owner_n = g.nations[p.owner]
-		if owner_n.playable and owner_n.capital == pid and lead != g.player:
+		if owner_n.major and owner_n.capital == pid and lead != g.player:
 			continue
 		var s: float = p.dev
 		var to: String = g.receiver_of(pid, winners)
