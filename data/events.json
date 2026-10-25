@@ -182,7 +182,7 @@
   {"id": "hab_bohemia_inherit", "tag": "HAB", "title": "Die böhmische Thronfolge", "text": "Der böhmische König ist ohne Erben gestorben. Habsburg hat Ansprüche.",
    "trigger": {"year_min": 1520, "year_max": 1540, "alive": "BOH", "at_peace": true},
    "options": [
-     {"text": "Den Thron beanspruchen!", "effects": {"inherit": "BOH", "ae": 10}, "ai": 35},
+     {"text": "Den Thron beanspruchen!", "effects": {"inherit": "BOH", "ae": 10}, "ai": 20},
      {"text": "Bündnis statt Krone.", "effects": {"alliance": "BOH"}, "ai": 40},
      {"text": "Kein Interesse.", "effects": {"adm": 50}}]},
   {"id": "hab_vienna_siege", "tag": "HAB", "title": "Die Türken vor Wien", "text": "Ein osmanisches Heer bedroht die Hauptstadt.",
