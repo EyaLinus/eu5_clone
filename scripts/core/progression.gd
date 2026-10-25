@@ -15,7 +15,7 @@ const MILESTONES := [
 	{"id": "buildings_25", "title": "Blühendes Land", "text": "25 Gebäudestufen im Reich.", "reward": {"prestige": 10}},
 	{"id": "goods_leader", "title": "Marktführer", "text": "Bei einem Gut Marktführer sein.", "reward": {"dip": 40}},
 	{"id": "goods_leader_3", "title": "Handelsmonopol", "text": "Bei drei Gütern Marktführer sein.", "reward": {"prestige": 15}},
-	{"id": "market_half", "title": "Herr des Marktes", "text": "Die Hälfte der Handelsmacht eines Marktes halten.", "reward": {"gold": 80}},
+	{"id": "market_half", "title": "Herr der Märkte", "text": "In zwei Märkten die Hälfte der Handelsmacht halten.", "reward": {"gold": 80}},
 	{"id": "trade_5", "title": "Handelsmacht", "text": "5 Gold Handelseinnahmen im Monat.", "reward": {"mods": {"income": 0.03}}},
 	{"id": "income_20", "title": "Reiche Kassen", "text": "20 Gold Einnahmen im Monat.", "reward": {"prestige": 10}},
 	{"id": "kingdom", "title": "Königreich", "text": "Den Rang Königreich erreichen (150 Entwicklung).", "reward": {"prestige": 10}},
@@ -102,10 +102,11 @@ static func _reached(g, tag: String, id: String) -> bool:
 		"goods_leader_3":
 			return g.goods_leader.values().count(tag) >= 3
 		"market_half":
+			var c := 0
 			for m in g.markets:
 				if Eco.trade_share(g, tag, m) >= 0.5:
-					return true
-			return false
+					c += 1
+			return c >= 2
 		"trade_5":
 			return n.trade_income >= 5.0
 		"income_20":
