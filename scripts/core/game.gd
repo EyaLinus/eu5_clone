@@ -4,6 +4,7 @@ extends RefCounted
 
 const AI = preload("res://scripts/core/ai.gd")
 const Economy = preload("res://scripts/core/economy.gd")
+const Progression = preload("res://scripts/core/progression.gd")
 
 const POWERS := ["adm", "dip", "mil"]
 const MONTH_NAMES := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
@@ -202,6 +203,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		n.manpower = n.max_manpower
 		var regs: float = round(force_limit(tag) * 0.6)
 		spawn_army(tag, n.capital, regs)
+	Progression.refresh(self)
 	event_defs = data.get("events", [])
 	for e in event_defs:
 		event_by_id[e.id] = e
@@ -720,6 +722,7 @@ func _yearly() -> void:
 				if mission_ready(tag, m):
 					complete_mission(tag, m.id)
 	Economy.yearly(self)
+	Progression.yearly(self)
 	_coalitions_yearly()
 	_liberty_yearly()
 	_record_history()
@@ -2121,3 +2124,4 @@ func from_dict(d: Dictionary) -> void:
 		_update_cached(nations[tag])
 	Economy.refresh_goods_leaders(self)
 	Economy.update_markets(self)
+	Progression.refresh(self)

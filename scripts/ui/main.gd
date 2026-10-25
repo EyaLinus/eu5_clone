@@ -1306,6 +1306,7 @@ func _panel_nation() -> void:
 	var me: String = game.player
 	var n = game.nations[me]
 	side_title.text = nname(me)
+	side_box.add_child(_lbl("👑 " + game.Progression.rank_name(game, me), 18, Color(1, 0.85, 0.5)))
 	side_box.add_child(_lbl(n.idea, 16, Color(0.8, 0.85, 0.7)))
 	side_box.add_child(_lbl("👑 %s: 📜%d 🕊️%d ⚔️%d" % [n.ruler_name if n.ruler_name != "" else "Herrscher", n.ruler.adm, n.ruler.dip, n.ruler.mil]))
 	side_box.add_child(_lbl("Monatlich: 📜+%.0f 🕊️+%.0f ⚔️+%.0f" % [game.monthly_power(n, "adm"), game.monthly_power(n, "dip"), game.monthly_power(n, "mil")]))
@@ -1618,6 +1619,23 @@ func _after_peace(ok: bool) -> void:
 func _panel_missions() -> void:
 	var me: String = game.player
 	side_title.text = "🎯 Missionen"
+	var Prog = game.Progression
+	var r: int = Prog.rank(game, me)
+	var rk: String = "👑 Rang: %s" % Prog.RANKS[r].name
+	if r + 1 < Prog.RANKS.size():
+		rk += " · nächster Rang %s ab %d Entwicklung (du: %d)" % [Prog.RANKS[r + 1].name, int(Prog.RANKS[r + 1].dev), game.nations[me].dev_total]
+	side_box.add_child(_lbl(rk, 18, Color(1, 0.85, 0.5)))
+	var ms_done := 0
+	for m in Prog.MILESTONES:
+		if Prog.done(game, me, m.id):
+			ms_done += 1
+	side_box.add_child(_lbl("🏅 Meilensteine %d / %d" % [ms_done, Prog.MILESTONES.size()], 20))
+	for m in Prog.MILESTONES:
+		var ok: bool = Prog.done(game, me, m.id)
+		var l := _lbl("%s %s: %s → %s" % ["✅" if ok else "▫️", m.title, m.text, effects_text(m.reward)], 15,
+				Color(0.6, 0.9, 0.6) if ok else Color(0.85, 0.85, 0.88))
+		side_box.add_child(l)
+	side_box.add_child(_lbl("🎯 Missionen", 20))
 	var avail: Array = game.available_missions(me)
 	var done: int = game.nations[me].missions_done.size()
 	side_box.add_child(_lbl("Erfüllt: %d" % done, 16, Color(0.7, 0.8, 0.9)))
@@ -1712,7 +1730,8 @@ func effects_text(e: Dictionary) -> String:
 				names.append(game.provinces[game.key_to_pid[key]].name)
 			parts.append("📜 Anspruch: " + ", ".join(names))
 		elif k == "mods":
-			var mn := {"income": "Einkommen", "combat": "Kampfkraft", "manpower": "Mannschaften", "adm": "Admin/Monat", "dip": "Diplomatie/Monat", "mil": "Militär/Monat", "ae_decay": "AE-Abbau"}
+			var mn := {"income": "Einkommen", "combat": "Kampfkraft", "manpower": "Mannschaften", "adm": "Admin/Monat", "dip": "Diplomatie/Monat", "mil": "Militär/Monat", "ae_decay": "AE-Abbau",
+					"production": "Produktion", "trade": "Handel", "tax": "Steuern"}
 			for m in v:
 				if m in ["adm", "dip", "mil"]:
 					parts.append("%s %+d" % [mn.get(m, m), int(v[m])])

@@ -15,7 +15,7 @@ func _init() -> void:
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
-		"test_economy_goods_and_trade", "test_buildings", "test_army_stances", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_economy_goods_and_trade", "test_buildings", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_long_run_no_softlock",
 	]:
 		var before := failures
@@ -486,6 +486,25 @@ func test_army_stances() -> void:
 	var b = g.spawn_army("BOH", n.capital, 2.0)
 	var t: int = g.ai.nearest_siege(g, b)
 	check(t < 0 or g.at_war("BOH", g.provinces[t].controller), "quick order 'siege' points at enemy land")
+
+
+func test_progression() -> void:
+	var g = new_game("FRA", 4)
+	var P = g.Progression
+	check(P.rank(g, "FRA") == 0, "France (97 dev) starts as a duchy-level realm")
+	check(g.nations.FRA.flags.get("rank", -1) == 0, "start rank recorded without news")
+	var p = g.provinces[g.key_to_pid["paris"]]
+	p.buildings = {"workshop": 1}
+	g.Economy.refresh_local(g, p)
+	var gold0: float = g.nations.FRA.gold
+	var got: Array = P.check_milestones(g, "FRA")
+	check(got.any(func(m): return m.id == "first_building"), "first building milestone reached")
+	check(g.nations.FRA.gold > gold0, "milestone pays its reward")
+	check(P.check_milestones(g, "FRA").is_empty(), "milestones pay only once")
+	p.dev += 60
+	g._update_cached(g.nations.FRA)
+	P.yearly(g)
+	check(P.rank(g, "FRA") == 1 and g.nations.FRA.bonus.rank.get("merchants", 0) == 1.0, "150 development makes a kingdom with bonus")
 
 
 func test_save_roundtrip() -> void:
