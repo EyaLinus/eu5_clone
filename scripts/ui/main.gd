@@ -6,6 +6,8 @@ const Game = preload("res://scripts/core/game.gd")
 const Data = preload("res://scripts/core/data.gd")
 const MapView = preload("res://scripts/ui/map_view.gd")
 const Icons = preload("res://scripts/ui/icons.gd")
+const TechScreen = preload("res://scripts/ui/tech_screen.gd")
+const GovScreen = preload("res://scripts/ui/gov_screen.gd")
 const SAVE_PATH := "user://save.json"
 const SETTINGS_PATH := "user://settings.json"
 const UI_SCALES := [0.85, 1.0, 1.2, 1.4]
@@ -51,6 +53,8 @@ var settings := {"ui_scale": 1.0, "tips": true, "tips_seen": [], "sound": true}
 var sfx_players: Array = []
 var sfx_streams := {}
 var last_battles := 0
+var tech_screen := TechScreen.new(self)
+var gov_screen := GovScreen.new(self)
 
 
 func _ready() -> void:
@@ -195,11 +199,14 @@ func _build_hud() -> void:
 	if _big():
 		hb.add_theme_constant_override("separation", 10)
 
-	var left := VBoxContainer.new()
+	# 8 tabs: one column on desktop, two columns with large touch targets so they fit 720 px height
+	var left := GridContainer.new()
+	left.columns = 2 if _big() else 1
 	left.position = Vector2(8, 68)
-	left.add_theme_constant_override("separation", 8)
+	left.add_theme_constant_override("v_separation", 8)
+	left.add_theme_constant_override("h_separation", 8)
 	hud.add_child(left)
-	for e in [["nation", "Nation"], ["diplomacy", "Diplomatie"], ["wars", "Kriege"],
+	for e in [["nation", "Nation"], ["tech", "Technologie"], ["government", "Regierung"], ["diplomacy", "Diplomatie"], ["wars", "Kriege"],
 			["missions", "Missionen"], ["log", "Chronik"], ["mapmode", "Kartenmodus"]]:
 		var cb: Callable = _cycle_map_mode if e[0] == "mapmode" else _open_panel.bind(e[0])
 		var tb := _tab_button("tab_" + e[0], cb, e[1])
@@ -214,16 +221,16 @@ func _build_hud() -> void:
 		tab_badges[e[0]] = badge
 		left.add_child(tb)
 
-	var zoom := VBoxContainer.new()
+	var zoom := HBoxContainer.new()
 	zoom.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	zoom.position = Vector2(8, -140)
 	zoom.add_theme_constant_override("separation", 8)
 	hud.add_child(zoom)
 	for e in [["🔍+", 1.3], ["🔍-", 1.0 / 1.3]]:
 		var b := _btn(e[0], func(): map.zoom_by(e[1]))
 		b.custom_minimum_size = Vector2(60, 56)
 		zoom.add_child(b)
-	zoom.offset_top = -130
+	zoom.offset_left = 8
+	zoom.offset_top = -64
 
 	side_panel = PanelContainer.new()
 	side_panel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
@@ -588,7 +595,7 @@ const TIPS := {
 	"occupied": ["🏳️ Besetzt", "Du hältst feindliche Provinzen. Unter ⚔️ Kriege → Friedensverhandlung kannst du sie fordern oder den Gegner zum Vasallen machen. Ein orangefarbener Punkt am Tab zeigt, wann sich Frieden lohnt."],
 	"unrest": ["✊ Unruhe", "Frisch erobertes Land ist unruhig, Kriegsmüdigkeit macht es schlimmer. Ab 5 droht ein Aufstand, und die Provinz kann zum alten Besitzer zurückfallen. Hilfe: Armee in der Provinz lassen oder ✊ Unruhe unterdrücken. Der Kartenmodus 'Unruhe' zeigt die Lage."],
 	"ae": ["😠 Aggressive Expansion", "Deine Eroberungen machen die Nachbarn nervös. Ab %d bilden sie Koalitionen und greifen gemeinsam an. Mach Pausen, vasallisiere statt zu annektieren und nutze Ansprüche (weniger AE)."],
-	"tech": ["🔬 Technologie", "Du kannst eine Technologie kaufen (🏛️ Nation). Der Punkt am Tab zeigt das an. Militär macht Armeen stärker, Verwaltung bringt Einkommen, Diplomatie baut AE schneller ab."],
+	"tech": ["🔬 Technologie", "Du kannst eine Technologie erforschen (🔬 Technologie). Der Punkt am Tab zeigt das an. Jede Kategorie hat drei Zweige, die du in beliebiger Reihenfolge ausbaust, dazu kommen nationale Spezial-Technologien. Unter ⚖️ Regierung ernennst du Berater, gründest Kompanien und wählst Gesetze."],
 	"mission": ["🎯 Mission erfüllt", "Eine Mission ist erfüllt. Hole dir die Belohnung unter 🎯 Missionen."],
 	"debt": ["💸 Schulden", "Deine Kasse ist leer. Unter −20 Gold desertieren Truppen. Entlasse Regimenter oder schließe Frieden: Im Frieden kosten Armeen weniger."],
 }
@@ -614,7 +621,7 @@ func _check_tips() -> bool:
 			break
 	if n.ae >= float(game.bal.ae_coalition_threshold) * 0.5:
 		cand.append("ae")
-	if game.month >= 6 and tab_badges.nation.visible:
+	if game.month >= 6 and tab_badges.tech.visible:
 		cand.append("tech")
 	if tab_badges.missions.visible:
 		cand.append("mission")
@@ -674,16 +681,14 @@ func _update_badges() -> void:
 		return
 	var me: String = game.player
 	var n = game.nations[me]
-	var tech := false
-	for k in game.POWERS:
-		if n.get(k) >= game.tech_cost(me, k):
-			tech = true
+	tab_badges.tech.visible = tech_screen.can_research(game, me)
+	tab_badges.government.visible = gov_screen.can_act(game, me)
 	var unrest := false
 	for pid in game.provinces_of(me):
 		if game.unrest(pid) >= float(game.bal.revolt_threshold) and game.provinces[pid].suppress_months == 0:
 			unrest = true
 			break
-	tab_badges.nation.visible = tech or unrest
+	tab_badges.nation.visible = unrest
 	var mission := false
 	for m in game.available_missions(me):
 		if game.mission_ready(me, m):
@@ -994,6 +999,10 @@ func _refresh() -> void:
 			_panel_ranking()
 		"hre":
 			_panel_hre()
+		"tech":
+			tech_screen.build()
+		"government":
+			gov_screen.build()
 	side_scroll.set_deferred("scroll_vertical", scroll)
 
 
@@ -1149,11 +1158,8 @@ func _panel_nation() -> void:
 		side_box.add_child(_lbl(Icons.prefix("vassal") + "Vasallen (Tribut %+.1f 💰/Monat)" % game.tribute_income(me), 22))
 		for v in vs:
 			side_box.add_child(_nation_btn(v, "  🏘️%d" % game.nations[v].dev_total, _open_panel.bind("other", v)))
-	side_box.add_child(_lbl("Technologie", 22))
-	var names := {"adm": "📜 Verwaltung (+4% Einkommen)", "dip": "🕊️ Diplomatie (schnellerer AE-Abbau)", "mil": "⚔️ Militär (+6% Kampfkraft, +½ Truppenlimit)"}
-	for k in game.POWERS:
-		side_box.add_child(_lbl("%s – Stufe %d" % [names[k], n.tech[k]], 17))
-		side_box.add_child(_btn("Erforschen (%d)" % game.tech_cost(me, k), func(): _act(game.buy_tech(me, k), "🔬 Fortschritt!")))
+	side_box.add_child(_lbl("Technologie: 📜%d 🕊️%d ⚔️%d · Regierung: %s" % [n.tech.adm, n.tech.dip, n.tech.mil, game.govt.form_name(me)], 17))
+	side_box.add_child(_row([_btn("🔬 Technologie", _open_panel.bind("tech")), _btn("⚖️ Regierung", _open_panel.bind("government"))]))
 	side_box.add_child(_lbl("Aggressive Expansion", 22))
 	var thr: float = game.bal.ae_coalition_threshold
 	var co := []
