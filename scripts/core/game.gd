@@ -1829,6 +1829,12 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"we_min":
 				if n.we < float(v):
 					return false
+			"hre":
+				if hre.has(tag) != bool(v):
+					return false
+			"emperor":
+				if (emperor == tag) != bool(v):
+					return false
 			"is_vassal":
 				if (n.overlord != "") != bool(v):
 					return false

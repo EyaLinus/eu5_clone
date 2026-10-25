@@ -1220,6 +1220,12 @@ func _panel_peace(war_id: int) -> void:
 		cb.focus_mode = Control.FOCUS_NONE
 		cb.toggled.connect(_toggle_peace.bind(pid))
 		side_box.add_child(cb)
+	if not cands.is_empty() and ws > 0:
+		side_box.add_child(_btn("✨ Beste Auswahl (für %d Punkte)" % int(ws), func():
+			peace_selection = {}
+			for pid in game.ai.pick_demands(game, w, att, ws):
+				peace_selection[pid] = true
+			_refresh()))
 	side_box.add_child(_btn("📜 Forderung stellen", func():
 		var ok: bool = game.offer_peace(me, w, peace_selection.keys(), true)
 		_after_peace(ok)))
@@ -1428,6 +1434,10 @@ func conditions_text(c: Dictionary) -> String:
 				lines.append(mark + "Ab dem Jahr %d" % int(v))
 			"we_min":
 				lines.append(mark + "Kriegsmüdigkeit ≥ %d" % int(v))
+			"hre":
+				lines.append(mark + ("Mitglied des Reiches" if v else "Nicht im Reich"))
+			"emperor":
+				lines.append(mark + ("Ist Kaiser" if v else "Ist nicht Kaiser"))
 			"is_vassal":
 				lines.append(mark + ("Ist ein Vasall" if v else "Ist unabhängig"))
 			"has_vassal":

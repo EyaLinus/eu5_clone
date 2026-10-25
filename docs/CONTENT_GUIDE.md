@@ -37,7 +37,8 @@ fehlt ein Effekt oder eine Bedingung, bitte im Feature-Thread anfragen.
 `year_min`, `year_max`, `owns` [keys], `owns_any` [keys], `not_owns` [keys], `at_war`, `at_peace`, `flag`, `not_flag`,
 `min_dev`, `alive` TAG, `not_alive` TAG, `ae_min`, `gold_min`, `allied` TAG, `allies` (Anzahl), `tech` {adm,dip,mil},
 `regs`, `major` (true = nur die 7 Großmächte, false = nur Kleinstaaten), `we_min` (Kriegsmüdigkeit ≥),
-`is_vassal` (bool), `has_vassal` (bool), `unrest_min` (höchste Provinz-Unruhe ≥).
+`is_vassal` (bool), `has_vassal` (bool), `unrest_min` (höchste Provinz-Unruhe ≥), `hre` (bool, Reichsmitglied),
+`emperor` (bool, ist Kaiser).
 
 ## Effekte (`effects`, `reward`)
 `gold`, `adm`, `dip`, `mil`, `ae`, `we` (Kriegsmüdigkeit ±, 0–20), `prestige`, `manpower`, `regs`, `dev_capital`, `dev_random` (±n),

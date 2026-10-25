@@ -307,6 +307,7 @@ func test_hre_election() -> void:
 	check(g2.check_conditions("BOH", {"we_min": 4, "is_vassal": false, "has_vassal": false}), "we_min / is_vassal / has_vassal")
 	check(not g2.check_conditions("BOH", {"we_min": 6}), "we_min fails below")
 	check(g2.check_conditions("BOH", {"unrest_min": 0}) and not g2.check_conditions("BOH", {"unrest_min": 50}), "unrest_min")
+	check(g2.check_conditions("BOH", {"hre": true, "emperor": true}) and g2.check_conditions("FRA", {"hre": false, "emperor": false}), "hre / emperor")
 	# a dead emperor triggers a new election at year end
 	for pid in g.provinces_of("BOH").duplicate():
 		g.provinces[pid].owner = "SAX"
