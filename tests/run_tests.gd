@@ -17,7 +17,7 @@ func _init() -> void:
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_economy_goods_and_trade", "test_buildings", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures",
 	]:
 		var before := failures
@@ -865,3 +865,30 @@ func test_event_pictures() -> void:
 	for e in data.events:
 		var m: String = e.get("image", motifs.get(e.id, "court"))
 		check(ResourceLoader.exists("res://assets/art/events/%s.png" % m), "event %s: picture %s missing" % [e.id, m])
+
+
+func test_company_invest() -> void:
+	var g = new_game("HAB")
+	var n = g.nations.HAB
+	n.gold = 100000.0
+	g.month = (1495 - 1444) * 12
+	check(g.govt.found_company(g, "HAB", "hab_fugger") == "", "found Fugger")
+	check(g.govt.invest_level(n, "hab_fugger") == 1, "new company starts at level 1")
+	var inc: float = g.mod(n, "income")
+	var ae: float = g.mod(n, "ae_gen")
+	check(g.govt.invest(g, "HAB", "hab_fugger", 1) != "", "cannot invest to the same level")
+	var c: float = g.govt.invest_cost(g, n, "hab_fugger", 3)
+	var gold: float = n.gold
+	check(c > g.govt.company_cost(g, n, "hab_fugger") * 0.5, "two levels cost more than half a company")
+	check(g.govt.invest(g, "HAB", "hab_fugger", 3) == "", "invest two levels")
+	check(absf(gold - c - n.gold) < 0.01, "investment costs gold")
+	check(absf(g.mod(n, "income") - inc - 0.15 * 1.0) < 0.001, "benefit +100 % at level 3 (+15 % more income)")
+	check(absf(g.mod(n, "ae_gen") - ae) < 0.001, "drawback unchanged")
+	check(g.govt.invest(g, "HAB", "hab_fugger", 6) != "", "max level 5")
+	var d: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	var g2 = new_game("HAB")
+	g2.from_dict(d)
+	check(g2.govt.invest_level(g2.nations.HAB, "hab_fugger") == 3, "investment level survives save/load")
+	check(absf(g2.mod(g2.nations.HAB, "income") - g.mod(n, "income")) < 0.0001, "scaled bonus rebuilt after load")
+	g.govt.dissolve_company(g, "HAB", "hab_fugger")
+	check(not n.gov.invest.has("hab_fugger"), "dissolving drops the investment")

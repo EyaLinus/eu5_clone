@@ -73,6 +73,9 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 	m._close_modal()
 	m.gov_screen._pick_company()
 	m._close_modal()
+	for cid in g.nations[tag].gov.companies:
+		m.gov_screen._invest(cid)
+	m._close_modal()
 	m.gov_screen._pick_law(g.govt.laws[month % g.govt.laws.size()].id)
 	m._close_modal()
 	n += 1

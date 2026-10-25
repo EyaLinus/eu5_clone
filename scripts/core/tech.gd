@@ -20,6 +20,20 @@ const LABELS := {
 	"advisor_slots": ["Berater-Platz", false, true],
 }
 
+## What each modifier does, for tooltips and detail popups.
+const DESCS := {
+	"income": "alle Einnahmen", "tax": "Steuern aus Provinzen", "production": "Wert der produzierten Güter",
+	"trade": "Einnahmen aus Handel", "merchants": "zusätzliche Händler", "build_cost": "Gold für Gebäude",
+	"develop_cost": "Verwaltungspunkte für Entwicklung", "maintenance": "Gold für stehende Armeen",
+	"manpower": "maximale Mannschaften", "combat": "Stärke in Schlachten", "force_limit": "Regimenter ohne Strafe",
+	"adm": "Verwaltungspunkte pro Monat", "dip": "Diplomatiepunkte pro Monat", "mil": "Militärpunkte pro Monat",
+	"ae_decay": "wie schnell Aggressive Expansion abklingt", "ae_gen": "AE bei Eroberungen und Kriegserklärungen",
+	"tech_cost": "Punkte für neue Technologien", "siege": "wie schnell Festungen fallen",
+	"unrest": "Unruhe in jeder Provinz (Aufstände ab 5)", "coring": "Monate, bis erobertes Land voll zählt",
+	"prestige": "Prestige pro Jahr (Ansehen, Kaiserwahl)", "company_slots": "weitere Investitionskompanie",
+	"advisor_slots": "weiterer Beraterplatz",
+}
+
 ## AI weight per modifier unit (combat scales with aggression).
 const AI_WEIGHTS := {
 	"income": 100.0, "tax": 60.0, "production": 60.0, "trade": 50.0, "merchants": 5.0, "build_cost": -30.0,

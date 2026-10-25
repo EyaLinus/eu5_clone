@@ -51,8 +51,13 @@ func _run(m) -> void:
 	await _shot("04c_tech_mil")
 	m.game.govt.hire(m.game, "FRA", "fra_coeur")
 	m.game.govt.set_law(m.game, "FRA", "kirche", "toleranz")
+	m.game.nations.FRA.gold = 2000.0
+	m.game.govt.found_company(m.game, "FRA", "lombarden")
 	m._open_panel("government")
 	await _shot("04d_government")
+	m.gov_screen._invest("lombarden")
+	await _shot("04g_invest")
+	m._close_modal()
 	m.gov_screen._pick_advisor()
 	await _shot("04e_pick_advisor")
 	m._close_modal()

@@ -1,7 +1,8 @@
 extends RefCounted
 ## Government (data/government.json), inspired by the Hearts of Iron politics screen:
 ## - political advisors (3 slots, hired with power of their type, national ones only in their lifetime)
-## - investment companies (2 slots, +1 from tech; bought with gold)
+## - investment companies (2 slots, +1 from tech; bought with gold, then invested into up to level 5:
+##   every level raises the benefits by 50 %, the drawbacks stay as they are)
 ## - laws with buff/nerf trade-offs (changing one costs power and has a cooldown)
 ## State lives in `n.gov`; the summed effects go into n.bonus["gov"].
 ## `g` is the game (scripts/core/game.gd); untyped to avoid a cyclic preload.
@@ -36,7 +37,7 @@ func init_nation(n) -> void:
 	var lw := {}
 	for l in laws:
 		lw[l.id] = l.options[0].id
-	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}}
+	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}, "invest": {}}
 	refresh(n)
 
 
@@ -148,6 +149,7 @@ func found_company(g, tag: String, id: String) -> String:
 	var n = g.nations[tag]
 	n.gold -= company_cost(g, n, id)
 	n.gov.companies.append(id)
+	n.gov.invest[id] = 1
 	_changed(g, n)
 	return ""
 
@@ -155,7 +157,61 @@ func found_company(g, tag: String, id: String) -> String:
 func dissolve_company(g, tag: String, id: String) -> void:
 	var n = g.nations[tag]
 	n.gov.companies.erase(id)
+	n.gov.invest.erase(id)
 	_changed(g, n)
+
+
+func max_invest() -> int:
+	return int(cfg.get("invest_max_level", 5))
+
+
+func invest_level(n, id: String) -> int:
+	return int(n.gov.invest.get(id, 1))
+
+
+## Effects of company `id` at investment `level`: benefits grow by invest_step per level, drawbacks do not.
+func company_effects(id: String, level: int) -> Dictionary:
+	var base: Dictionary = comp_by_id.get(id, {}).get("effects", {})
+	var mult: float = 1.0 + float(cfg.get("invest_step", 0.5)) * (level - 1)
+	var r := {}
+	for k in base:
+		var v := float(base[k])
+		var good: bool = (v > 0.0) == Tech.LABELS.get(k, [k, false, true])[2]
+		r[k] = v * mult if good else v
+	return r
+
+
+## Gold needed to raise company `id` from its current level to `to_level`.
+func invest_cost(g, n, id: String, to_level: int) -> float:
+	var c := 0.0
+	for l in range(invest_level(n, id), to_level):
+		c += company_cost(g, n, id) * float(cfg.get("invest_cost_mult", 0.5)) * l
+	return roundf(c)
+
+
+func invest_block(g, tag: String, id: String, to_level: int) -> String:
+	var n = g.nations[tag]
+	if not n.gov.companies.has(id):
+		return "Kompanie nicht gegründet."
+	if to_level <= invest_level(n, id):
+		return "Wähle eine höhere Stufe."
+	if to_level > max_invest():
+		return "Höchststufe ist %d." % max_invest()
+	var c := invest_cost(g, n, id, to_level)
+	if n.gold < c:
+		return "Zu wenig Gold (%d benötigt)." % c
+	return ""
+
+
+func invest(g, tag: String, id: String, to_level: int) -> String:
+	var err := invest_block(g, tag, id, to_level)
+	if err != "":
+		return err
+	var n = g.nations[tag]
+	n.gold -= invest_cost(g, n, id, to_level)
+	n.gov.invest[id] = to_level
+	_changed(g, n)
+	return ""
 
 
 # ---------------------------------------------------------------- laws
@@ -224,7 +280,7 @@ func refresh(n) -> void:
 	for id in n.gov.advisors:
 		effs.append(adv_by_id.get(id, {}).get("effects", {}))
 	for id in n.gov.companies:
-		effs.append(comp_by_id.get(id, {}).get("effects", {}))
+		effs.append(company_effects(id, invest_level(n, id)))
 	for law_id in n.gov.laws:
 		if law_by_id.has(law_id):
 			effs.append(law_option(law_id, n.gov.laws[law_id]).get("effects", {}))
@@ -261,6 +317,7 @@ func load_save(n, d) -> void:
 	for id in d.get("companies", []):
 		if comp_by_id.has(id):
 			n.gov.companies.append(id)
+			n.gov.invest[id] = clampi(int(d.get("invest", {}).get(id, 1)), 1, max_invest())
 	var lw: Dictionary = d.get("laws", {})
 	for law_id in lw:
 		if law_by_id.has(law_id) and not law_option(law_id, lw[law_id]).is_empty():
@@ -333,6 +390,7 @@ func _ai_advisor(g, n) -> void:
 
 func _ai_company(g, n) -> void:
 	if n.gov.companies.size() >= company_slots(g, n):
+		_ai_invest(g, n)
 		return
 	var best := ""
 	var best_v := 0.0
@@ -348,3 +406,20 @@ func _ai_company(g, n) -> void:
 	var reserve: float = 10.0 + n.expenses * 4.0 + 40.0
 	if n.gold >= company_cost(g, n, best) + reserve:
 		found_company(g, n.tag, best)
+
+
+## Rich AI states put surplus gold into their companies (one level at a time, the cheapest first).
+func _ai_invest(g, n) -> void:
+	var reserve: float = 10.0 + n.expenses * 4.0 + 150.0
+	var best := ""
+	var best_c := 1e18
+	for id in n.gov.companies:
+		var l := invest_level(n, id)
+		if l >= max_invest():
+			continue
+		var c := invest_cost(g, n, id, l + 1)
+		if c < best_c:
+			best_c = c
+			best = id
+	if best != "" and n.gold >= best_c + reserve:
+		invest(g, n.tag, best, invest_level(n, best) + 1)

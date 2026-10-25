@@ -5,6 +5,9 @@
  "company_slots": 2,
  "company_months": 18,
  "company_min_gold": 60,
+ "invest_max_level": 5,
+ "invest_step": 0.5,
+ "invest_cost_mult": 0.5,
  "law_cost": 60,
  "law_cooldown_years": 10,
  "forms": {

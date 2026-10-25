@@ -60,9 +60,9 @@ func build() -> void:
 	m.side_box.add_child(m._lbl("🏦 Investitionskompanien (%d/%d)" % [n.gov.companies.size(), gv.company_slots(g, n)], 22))
 	for id in n.gov.companies:
 		var c: Dictionary = gv.comp_by_id[id]
-		m.side_box.add_child(_card(c.name, c.get("text", ""), c.effects, c.has("tag"), "Auflösen", func():
-			gv.dissolve_company(g, me, id)
-			m._act("", "🏦 %s aufgelöst" % c.name)))
+		var lvl: int = gv.invest_level(n, id)
+		m.side_box.add_child(_card(c.name, "Investitionsstufe %d von %d" % [lvl, gv.max_invest()], gv.company_effects(id, lvl),
+				c.has("tag"), "Investieren", _invest.bind(id)))
 	for i in gv.company_slots(g, n) - n.gov.companies.size():
 		m.side_box.add_child(m._btn("➕ Kompanie gründen (%d %s)" % [gv.company_cost(g, n, ""), Icons.emoji("gold")], _pick_company))
 	if gv.company_slots(g, n) < 3:
@@ -184,3 +184,66 @@ func _pick_law(law_id: String) -> void:
 			card.get_child(0).get_child(1).disabled = true
 		m.modal_box.add_child(card)
 	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
+
+
+## Investment popup: a slider picks the target level, the preview shows effects and price live.
+func _invest(id: String) -> void:
+	var g = m.game
+	var gv = g.govt
+	var me: String = g.player
+	var n = g.nations[me]
+	var c: Dictionary = gv.comp_by_id[id]
+	var cur: int = gv.invest_level(n, id)
+	m._open_modal()
+	var box: VBoxContainer = m.modal_box
+	box.add_child(m._lbl("🏦 " + c.name, 26))
+	box.add_child(m._lbl(c.get("text", ""), 16, Color(0.85, 0.85, 0.75)))
+	box.add_child(m._lbl("Jede Stufe steigert die Vorteile um %d %%, die Nachteile bleiben gleich. Auflösen gibt kein Gold zurück." % roundi(float(gv.cfg.get("invest_step", 0.5)) * 100.0), 15, Color(0.72, 0.75, 0.82)))
+	var preview := VBoxContainer.new()
+	var go: Button
+	if cur < gv.max_invest():
+		var slider := HSlider.new()
+		slider.min_value = cur
+		slider.max_value = gv.max_invest()
+		slider.step = 1
+		slider.value = cur + 1
+		slider.tick_count = gv.max_invest() - cur + 1
+		slider.ticks_on_borders = true
+		slider.custom_minimum_size = Vector2(0, 56 if m._big() else 44)
+		slider.focus_mode = Control.FOCUS_NONE
+		box.add_child(slider)
+		box.add_child(preview)
+		go = m._btn("", func():
+			var err: String = gv.invest(g, me, id, int(slider.value))
+			m._close_modal()
+			m._act(err, "🏦 %s auf Stufe %d ausgebaut" % [c.name, int(slider.value)]))
+		var upd := func(v: float) -> void:
+			_invest_preview(preview, go, id, cur, int(v))
+		slider.value_changed.connect(upd)
+		upd.call(slider.value)
+	else:
+		box.add_child(m._lbl("Höchste Stufe erreicht.", 18, Color(0.7, 0.95, 0.7)))
+		box.add_child(TechScreen.effects_rich(gv.company_effects(id, cur), 18))
+	var dissolve: Button = m._btn("Auflösen", func():
+		gv.dissolve_company(g, me, id)
+		m._close_modal()
+		m._act("", "🏦 %s aufgelöst" % c.name))
+	var row := [dissolve, m._btn("Schließen", m._close_modal)]
+	if go != null:
+		row.push_front(go)
+	box.add_child(m._row(row))
+
+
+func _invest_preview(preview: VBoxContainer, go: Button, id: String, cur: int, to: int) -> void:
+	var g = m.game
+	var gv = g.govt
+	var n = g.nations[g.player]
+	m._clear(preview)
+	preview.add_child(m._lbl("Stufe %d → %d" % [cur, to], 20))
+	preview.add_child(TechScreen.effects_rich(gv.company_effects(id, to), 18))
+	var err: String = gv.invest_block(g, g.player, id, to)
+	var cost: float = gv.invest_cost(g, n, id, to)
+	go.text = "Investieren (%d %s)" % [cost, Icons.emoji("gold")]
+	go.disabled = err != ""
+	if err != "":
+		preview.add_child(m._lbl(err, 15, Color(0.95, 0.6, 0.55)))
