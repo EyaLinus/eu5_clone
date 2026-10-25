@@ -84,6 +84,7 @@ class Nation:
 	var merchants: Array = []  # market center pids
 	var merchant_auto: bool = true
 	var loans: Array = []  # loan amounts (gold) still owed
+	var trade_pacts: Array = []  # tags with a trade agreement (+trade income for both)
 	var autobuild: bool = false  # player: build the best building whenever the treasury stays above the reserve
 	var autobuild_reserve: float = 100.0
 	var army_stance: String = ""  # player's default for new armies: "" manual, "attack" or "defend"
@@ -209,6 +210,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	Economy.setup(self, data)
 	Economy.refresh_goods_leaders(self)
 	Economy.update_markets(self)
+	Economy.check_pacts(self)
 	for tag in order:
 		Economy.auto_merchants(self, nations[tag])
 	Economy.update_markets(self)
@@ -2038,7 +2040,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts,
 				"techs": tree.to_save(n), "gov": govt.to_save(n)}
 	d.nations = ns
 	var ar := []
@@ -2140,6 +2142,9 @@ func from_dict(d: Dictionary) -> void:
 		n.merchant_auto = e.get("merchant_auto", true)
 		n.army_stance = e.get("army_stance", "")
 		n.autobuild = bool(e.get("autobuild", false))
+		n.trade_pacts = []
+		for t in e.get("trade_pacts", []):
+			n.trade_pacts.append(str(t))
 		n.loans = []
 		for l in e.get("loans", []):
 			n.loans.append(float(l))
@@ -2176,3 +2181,5 @@ func from_dict(d: Dictionary) -> void:
 	Economy.refresh_goods_leaders(self)
 	Economy.update_markets(self)
 	Progression.refresh(self)
+	for t in order:
+		Economy.refresh_pact_bonus(self, nations[t])

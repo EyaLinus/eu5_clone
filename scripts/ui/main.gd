@@ -883,6 +883,23 @@ func _update_badges() -> void:
 		if game.side_tags(w, att)[0] == me and game.warscore(w) * (1.0 if att else -1.0) >= 25.0:
 			peace = true
 	tab_badges.wars.visible = peace
+	# economy: something to do with the money
+	var Eco = game.Economy
+	var why := ""
+	if n.gold < 0.0:
+		why = "Die Kasse ist im Minus: Kredit aufnehmen oder Armeen verkleinern."
+	elif n.income - n.expenses < 0.0:
+		why = "Die Monatsbilanz ist negativ."
+	elif not n.merchant_auto and n.merchants.size() < Eco.merchant_count(game, n):
+		why = "Ein Händler ist frei."
+	elif not n.loans.is_empty() and n.gold >= float(n.loans[n.loans.size() - 1]) + 100.0 and not game.is_at_war(me):
+		why = "Ein Kredit kann getilgt werden."
+	elif not n.autobuild and not game.is_at_war(me):
+		var best: Array = Eco.best_building(game, n, false)
+		if not best.is_empty() and n.gold >= Eco.building_cost(game, me, best[0], best[1]) + 50.0:
+			why = "Genug Gold für ein neues Gebäude (oder Autobau einschalten)."
+	tab_badges.economy.visible = why != ""
+	tab_badges.economy.get_parent().tooltip_text = "Wirtschaft" + (("\n● " + why) if why != "" else "")
 
 
 ## Desktop shortcuts: Space pauses/resumes, 1-5 set the speed, Esc closes panels.
@@ -1613,6 +1630,8 @@ func _panel_diplomacy() -> void:
 				txt += "  😠"
 			if o.overlord != "" and o.overlord != me:
 				txt += "  ⛓️"
+			if game.nations[me].trade_pacts.has(tag):
+				txt += "  🔗"
 			side_box.add_child(_nation_btn(tag, txt, _open_panel.bind("other", tag)))
 
 
@@ -1655,6 +1674,17 @@ func _panel_other(tag: String) -> void:
 		side_box.add_child(_btn("💔 Bündnis auflösen", func(): game.break_alliance(me, tag); _act("", "💔 Bündnis aufgelöst")))
 	else:
 		side_box.add_child(_btn("🤝 Bündnis anbieten (%d 🕊️)" % int(b.alliance_cost), func(): _act(game.propose_alliance(me, tag), "🤝 Bündnis geschlossen!")))
+	var Eco = game.Economy
+	if game.nations[me].trade_pacts.has(tag):
+		side_box.add_child(_btn("✂️ Handelsabkommen kündigen", func(): Eco.cancel_pact(game, me, tag); _act("", "✂️ Handelsabkommen gekündigt"),
+				"Beide verlieren +%d %% Handelseinnahmen." % int(float(b.trade_pact_bonus) * 100)))
+	else:
+		var why: String = Eco.pact_block_reason(game, me, tag)
+		var acc: bool = Eco.accepts_pact(game, tag, me)
+		side_box.add_child(_btn("🔗 Handelsabkommen (%d 🕊️)%s" % [int(b.trade_pact_cost), "" if acc else " ❌"], func(): _act(Eco.offer_pact(game, me, tag), "🔗 Handelsabkommen geschlossen!"),
+				"Beide Reiche erhalten +%d %% Handelseinnahmen, höchstens %d Abkommen. Nimmt an ab Beziehung %d oder als Verbündeter, ohne gegenseitige Ansprüche. Krieg beendet es.%s" % [
+					int(float(b.trade_pact_bonus) * 100), int(b.max_trade_pacts), int(b.trade_pact_min_rel), ("\n❌ " + why) if why != "" else ("" if acc else "\n❌ Würde derzeit ablehnen.")],
+				why != ""))
 	if not game.at_war(me, tag):
 		side_box.add_child(_btn("🔥 Krieg erklären…", _confirm_war.bind(tag)))
 	if o.ae >= float(b.ae_coalition_threshold) and not o.coalition.has(me):

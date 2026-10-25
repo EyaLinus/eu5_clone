@@ -393,6 +393,69 @@ static func recall_merchant(g, tag: String, m: int) -> void:
 	update_markets(g)
 
 
+# ---------------------------------------------------------------- trade agreements
+
+## "" if `tag` may offer a trade agreement to `other`, else the reason.
+static func pact_block_reason(g, tag: String, other: String) -> String:
+	var n = g.nations[tag]
+	var o = g.nations[other]
+	if tag == other or not o.alive:
+		return "Nicht möglich."
+	if n.trade_pacts.has(other):
+		return "Abkommen besteht bereits."
+	if g.at_war(tag, other):
+		return "Ihr seid im Krieg."
+	if n.trade_pacts.size() >= int(g.bal.max_trade_pacts) or o.trade_pacts.size() >= int(g.bal.max_trade_pacts):
+		return "Höchstens %d Handelsabkommen je Reich." % int(g.bal.max_trade_pacts)
+	if n.dip < float(g.bal.trade_pact_cost):
+		return "Zu wenig Diplomatie (%d)." % int(g.bal.trade_pact_cost)
+	return ""
+
+
+## AI answer: friendly enough and no claims between the two.
+static func accepts_pact(g, target: String, from: String) -> bool:
+	if g.has_claim_on(from, target) or g.has_claim_on(target, from):
+		return false
+	return g.get_rel(target, from) >= float(g.bal.trade_pact_min_rel) or g.is_allied(target, from)
+
+
+static func offer_pact(g, tag: String, other: String) -> String:
+	var why := pact_block_reason(g, tag, other)
+	if why != "":
+		return why
+	g.nations[tag].dip -= float(g.bal.trade_pact_cost)
+	if other != g.player and not accepts_pact(g, other, tag):
+		return "%s lehnt ab (Beziehung %d, nötig %d)." % [g.nations[other].name, int(g.get_rel(other, tag)), int(g.bal.trade_pact_min_rel)]
+	g.nations[tag].trade_pacts.append(other)
+	g.nations[other].trade_pacts.append(tag)
+	refresh_pact_bonus(g, g.nations[tag])
+	refresh_pact_bonus(g, g.nations[other])
+	g.log_msg("🔗 Handelsabkommen zwischen %s und %s." % [g.nations[tag].name, g.nations[other].name], [tag, other])
+	return ""
+
+
+static func cancel_pact(g, tag: String, other: String) -> void:
+	g.nations[tag].trade_pacts.erase(other)
+	g.nations[other].trade_pacts.erase(tag)
+	refresh_pact_bonus(g, g.nations[tag])
+	refresh_pact_bonus(g, g.nations[other])
+
+
+static func refresh_pact_bonus(g, n) -> void:
+	n.bonus["pacts"] = {"trade": float(g.bal.trade_pact_bonus) * n.trade_pacts.size()}
+
+
+## Monthly: war or death ends agreements.
+static func check_pacts(g) -> void:
+	for tag in g.order:
+		var n = g.nations[tag]
+		for o in n.trade_pacts.duplicate():
+			if not n.alive or not g.nations[o].alive or g.at_war(tag, o):
+				cancel_pact(g, tag, o)
+				if tag == g.player or o == g.player:
+					g.log_msg("🔗 Das Handelsabkommen zwischen %s und %s ist beendet." % [n.name, g.nations[o].name], [tag, o])
+
+
 # ---------------------------------------------------------------- loans
 
 ## Size of one loan: a year of income, at least loan_min.

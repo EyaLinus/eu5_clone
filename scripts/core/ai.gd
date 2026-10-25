@@ -132,6 +132,7 @@ func _diplomacy(g, n) -> void:
 	for ally in n.allies.duplicate():
 		if g.get_rel(tag, ally) < -30.0:
 			g.break_alliance(tag, ally)
+	_trade_pact(g, n)
 	if n.allies.size() >= 2:
 		return
 	var best := ""
@@ -152,6 +153,23 @@ func _diplomacy(g, n) -> void:
 		g.propose_alliance(tag, best)
 	elif n.dip >= float(g.bal.improve_relation_cost) + 30.0:
 		g.improve_relations(tag, best)
+
+
+## Now and then a trade agreement with the friendliest neighbor that accepts.
+func _trade_pact(g, n) -> void:
+	if n.trade_pacts.size() >= 2 or n.dip < float(g.bal.trade_pact_cost) + 60.0 or g.rng.randf() > 0.1:
+		return
+	var best := ""
+	var best_rel := -1e9
+	for t in g.nations_in_range(n.tag, 4):
+		if t == g.player or g.Economy.pact_block_reason(g, n.tag, t) != "" or not g.Economy.accepts_pact(g, t, n.tag):
+			continue
+		var r: float = g.get_rel(n.tag, t)
+		if r > best_rel:
+			best_rel = r
+			best = t
+	if best != "":
+		g.Economy.offer_pact(g, n.tag, best)
 
 
 func accepts_alliance(g, target: String, from: String) -> bool:
