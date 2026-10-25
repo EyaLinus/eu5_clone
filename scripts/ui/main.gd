@@ -783,6 +783,9 @@ func _show_event(event_id: String) -> void:
 	var e: Dictionary = game.event_by_id[event_id]
 	_sfx("event")
 	_open_modal()
+	var pic := _event_picture(e)
+	if pic != null:
+		modal_box.add_child(pic)
 	modal_box.add_child(_lbl("📯 " + e.title, 28))
 	modal_box.add_child(_lbl(e.text, 18))
 	for i in e.options.size():
@@ -795,6 +798,28 @@ func _show_event(event_id: String) -> void:
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		modal_box.add_child(b)
+
+
+var _event_motifs = null
+
+
+## Framed pixel-art scene for an event: its "image" field, else assets/art/events/event_motifs.json
+## (tools/art/event_motifs.py), else the court scene. Several events share one motif.
+func _event_picture(e: Dictionary) -> TextureRect:
+	if _event_motifs == null:
+		var f := FileAccess.open("res://assets/art/events/event_motifs.json", FileAccess.READ)
+		_event_motifs = JSON.parse_string(f.get_as_text()) if f != null else {}
+	var motif: String = e.get("image", _event_motifs.get(e.id, "court"))
+	var path := "res://assets/art/events/%s.png" % motif
+	if not ResourceLoader.exists(path):
+		return null
+	var r := TextureRect.new()
+	r.texture = load(path)
+	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	r.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	r.custom_minimum_size = Vector2(0, 200)
+	return r
 
 
 func _choose_event(event_id: String, idx: int) -> void:
