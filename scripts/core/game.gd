@@ -3,6 +3,8 @@ extends RefCounted
 ## (balance runs, tests) exactly like in the UI. One tick = one month.
 
 const AI = preload("res://scripts/core/ai.gd")
+const Tech = preload("res://scripts/core/tech.gd")
+const Government = preload("res://scripts/core/government.gd")
 
 const POWERS := ["adm", "dip", "mil"]
 const MONTH_NAMES := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
@@ -61,6 +63,8 @@ class Nation:
 	var overlord: String = ""
 	var vassal_since: int = 0
 	var we: float = 0.0  # war exhaustion 0..we_max
+	var techs := {}  # researched tech id -> month (scripts/core/tech.gd)
+	var gov := {}  # advisors, companies, laws (scripts/core/government.gd)
 	# cached per month
 	var dev_total: int = 0
 	var income: float = 0.0
@@ -114,6 +118,8 @@ var stats := {"wars": 0, "battles": 0, "peace_deals": 0, "provinces_changed": 0,
 		"events": 0, "missions": 0, "eliminated": 0, "white_peace": 0, "timeouts": 0, "bankrupt_months": 0,
 		"revolts": 0, "defections": 0, "independence": 0}
 var ai
+var tree = Tech.new()  # tech tree definitions + logic
+var govt = Government.new()  # government definitions + logic
 var hre: Array = []
 var emperor: String = ""
 var electors: Array = []
@@ -128,6 +134,8 @@ func _init() -> void:
 
 func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	bal = data.balance
+	tree = Tech.new(data.get("techs", {}))
+	govt = Government.new(data.get("government", {}))
 	rng.seed = seed_value
 	player = player_tag
 	for pd in data.map.provinces:
@@ -164,6 +172,8 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		n.dip = 50.0
 		n.mil = 50.0
 		_new_ruler(n)
+		tree.refresh(n)
+		govt.init_nation(n)
 		nations[tag] = n
 		order.append(tag)
 		provinces[n.capital].fort = 1
@@ -262,7 +272,7 @@ func nation_dev(tag: String) -> int:
 
 func force_limit(tag: String) -> float:
 	var n: Nation = nations[tag]
-	return float(bal.base_force_limit) + n.dev_total * float(bal.force_limit_per_dev) + n.tech.mil / 2
+	return float(bal.base_force_limit) + n.dev_total * float(bal.force_limit_per_dev) + n.tech.mil / 2 + mod(n, "force_limit")
 
 
 func armies_of(tag: String) -> Array:
@@ -446,7 +456,18 @@ func tech_cost(tag: String, kind: String) -> float:
 	var lvl: int = n.tech[kind] + 1
 	var expected: float = (year() - int(bal.start_year)) / float(bal.tech_years_per_level)
 	var ahead: float = maxf(0.0, lvl - expected)
-	return round((float(bal.tech_base) + float(bal.tech_step) * lvl) * (1.0 + ahead * float(bal.tech_ahead_penalty)))
+	return round((float(bal.tech_base) + float(bal.tech_step) * lvl) * (1.0 + ahead * float(bal.tech_ahead_penalty))
+			* maxf(0.5, 1.0 + mod(n, "tech_cost")))
+
+
+## Multiplier on aggressive expansion `tag` generates (techs, advisors, laws).
+func ae_mult(tag: String) -> float:
+	return maxf(0.2, 1.0 + mod(nations[tag], "ae_gen"))
+
+
+## Months until a newly gained province of `tag` becomes a core.
+func core_time(tag: String) -> int:
+	return int(round(float(bal.core_months) * maxf(0.2, 1.0 + mod(nations[tag], "coring"))))
 
 
 ## Soft cap: above `dev_soft_cap` every further point gets `dev_over_mult` more expensive (hard cap `max_dev`).
@@ -578,7 +599,8 @@ func unrest_parts(pid: int) -> Dictionary:
 			break
 	if p.suppress_months > 0:
 		r.suppressed = -float(bal.unrest_suppress)
-	r.total = maxf(0.0, r.uncored + r.war + r.garrison + r.suppressed)
+	r.policy = mod(n, "unrest")  # techs, advisors, laws
+	r.total = maxf(0.0, r.uncored + r.war + r.garrison + r.suppressed + r.policy)
 	return r
 
 
@@ -675,6 +697,7 @@ func _yearly() -> void:
 			log_msg("👑 %s besteigt den Thron (📜%d 🕊️%d ⚔️%d)." % [who, n.ruler.adm, n.ruler.dip, n.ruler.mil], [tag])
 			if tag == emperor:
 				hre_election()
+		govt.yearly(self, n)
 		_check_events(n)
 		if tag != player:
 			for m in available_missions(tag):
@@ -972,7 +995,7 @@ func _siege(p: Province) -> void:
 	for b in besiegers:
 		regs += b.regs
 	var prog: float = float(bal.siege_base) * minf(regs, 20.0) / (sqrt(p.dev) + 2.0) / (1.0 + p.fort * float(bal.fort_siege_mult))
-	p.siege += prog
+	p.siege += prog * maxf(0.2, 1.0 + mod(nations[besiegers[0].owner], "siege"))
 	if p.siege >= 100.0:
 		p.siege = 0.0
 		var sieger: String = besiegers[0].owner
@@ -1121,7 +1144,7 @@ func declare_war(att: String, def: String, coalition_members: Array = []) -> Str
 		if n.dip < float(bal.nocb_war_dip):
 			return "Zu wenig Diplomatie für einen Krieg ohne Kriegsgrund."
 		n.dip -= float(bal.nocb_war_dip)
-		n.ae += float(bal.ae_no_cb)
+		n.ae += float(bal.ae_no_cb) * ae_mult(att)
 	var w := War.new()
 	w.id = next_war_id
 	next_war_id += 1
@@ -1230,7 +1253,7 @@ func make_peace(w: War, winner_att: bool, pids: Array, vassalize: bool = false) 
 			ae *= float(bal.capital_peace_mult)
 		if w.coalition:
 			ae *= 0.3
-		n.ae += ae
+		n.ae += ae * ae_mult(to)
 		n.adm -= p.dev * float(bal.core_cost_per_dev)
 		n.prestige += p.dev * float(bal.prestige_per_dev_taken)
 		n.claims.erase(pid)
@@ -1238,7 +1261,7 @@ func make_peace(w: War, winner_att: bool, pids: Array, vassalize: bool = false) 
 		p.owner = to
 		p.controller = to
 		p.prev_owner = old
-		p.core_months = int(bal.core_months)
+		p.core_months = core_time(to)
 		p.siege = 0.0
 		if nations[old].capital == pid:
 			p.fort = 0
@@ -1295,7 +1318,7 @@ func _vassalize(lord: String, tag: String, reduced_ae: bool) -> void:
 	var ae: float = v.dev_total * float(bal.ae_per_dev) * float(bal.vassal_ae_mult)
 	if reduced_ae:
 		ae *= 0.3
-	l.ae += ae
+	l.ae += ae * ae_mult(lord)
 	l.prestige += v.dev_total * float(bal.prestige_per_dev_taken) * 0.5
 	v.overlord = lord
 	v.vassal_since = month
@@ -1352,13 +1375,13 @@ func annex_vassal(lord: String, tag: String) -> String:
 		return "Zu wenig Verwaltung (%d)." % int(ac)
 	l.dip -= c
 	l.adm -= ac
-	l.ae += v.dev_total * float(bal.ae_per_dev) * float(bal.annex_ae_mult)
+	l.ae += v.dev_total * float(bal.ae_per_dev) * float(bal.annex_ae_mult) * ae_mult(lord)
 	for pid in provinces_of(tag).duplicate():
 		var p: Province = provinces[pid]
 		p.owner = lord
 		p.controller = lord
 		p.prev_owner = ""
-		p.core_months = int(bal.core_months)
+		p.core_months = core_time(lord)
 		l.claims.erase(pid)
 	_rebuild_owned()
 	for a in armies:
@@ -1538,14 +1561,17 @@ func build(tag: String, pid: int) -> String:
 	return ""
 
 
+## Researches the best available tech of `kind` (AI path; the player picks in the tech screen).
 func buy_tech(tag: String, kind: String) -> String:
 	var n: Nation = nations[tag]
 	var c := tech_cost(tag, kind)
 	if n.get(kind) < c:
 		return "Zu wenig Punkte (%d benötigt)." % c
-	n.set(kind, n.get(kind) - c)
-	n.tech[kind] += 1
-	return ""
+	return tree.research_best(self, tag, kind)
+
+
+func research(tag: String, id: String) -> String:
+	return tree.research(self, tag, id)
 
 
 func recruit(tag: String, pid: int, count: int) -> String:
@@ -1834,6 +1860,13 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 				for t in v:
 					if n.tech[t] < int(v[t]):
 						return false
+			"has_tech":
+				if not n.techs.has(v):
+					return false
+			"law":
+				for l in v:
+					if n.gov.laws.get(l, "") != v[l]:
+						return false
 			"regs":
 				if army_regs(tag) < float(v):
 					return false
@@ -1961,7 +1994,8 @@ func to_dict() -> Dictionary:
 				"mil": n.mil, "ae": n.ae, "prestige": n.prestige, "manpower": n.manpower, "tech": n.tech,
 				"ruler": n.ruler, "ruler_name": n.ruler_name, "name_counts": n.name_counts, "mods": n.mods, "relations": n.relations, "allies": n.allies,
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
-				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we}
+				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
+				"techs": tree.to_save(n), "gov": govt.to_save(n)}
 	d.nations = ns
 	var ar := []
 	for a in armies:
@@ -2041,6 +2075,8 @@ func from_dict(d: Dictionary) -> void:
 		n.overlord = e.get("overlord", "")
 		n.vassal_since = int(e.get("vassal_since", 0))
 		n.we = float(e.get("we", 0.0))
+		tree.load_save(n, e.get("techs", {}))
+		govt.load_save(n, e.get("gov", {}))
 	armies.clear()
 	for e in d.armies:
 		var a := Army.new()

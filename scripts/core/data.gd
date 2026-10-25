@@ -21,4 +21,6 @@ static func load_all() -> Dictionary:
 		"events": load_json("res://data/events.json"),
 		"missions": load_json("res://data/missions.json"),
 		"diplomacy": load_json("res://data/diplomacy.json"),
+		"techs": load_json("res://data/techs.json"),
+		"government": load_json("res://data/government.json"),
 	}
