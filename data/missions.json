@@ -188,5 +188,49 @@
      "require": {"owns_any": ["picardy", "champagne"]}, "reward": {"prestige": 15, "mods": {"manpower": 0.05}}},
     {"id": "bur_rhine", "title": "Zwischen Rhein und Maas", "desc": "Köln oder die Pfalz als Brücke zum Reich.",
      "require": {"owns_any": ["cologne", "palatinate"]}, "reward": {"mods": {"manpower": 0.05}, "dip": 30}}
+  ],
+  "VEN": [
+    {"id": "ven_terraferma", "title": "Die Terraferma", "desc": "Verona und Friaul schützen die Lagune vom Festland her.",
+     "require": {"year_min": 1450, "at_peace": true, "owns": ["verona", "friuli"]}, "reward": {"mods": {"manpower": 0.05}, "adm": 30}},
+    {"id": "ven_dalmatia", "title": "Der Golf von Venedig", "desc": "Dalmatien bleibt venezianisch, die Adria ist unser Meer.",
+     "require": {"owns": ["dalmatia"], "tech": {"dip": 6}}, "reward": {"mods": {"income": 0.05}, "prestige": 10}},
+    {"id": "ven_lombardy", "after": "ven_terraferma", "title": "Gegen Mailand", "desc": "Bergamo, Brescia und vielleicht Mailand selbst.",
+     "require": {"owns_any": ["milan", "parma"]}, "reward": {"prestige": 15, "dip": 30}},
+    {"id": "ven_arsenal", "title": "Das Arsenal", "desc": "Eine Galeere pro Tag, die größte Werft der Welt.",
+     "require": {"tech": {"mil": 8}, "regs": 15}, "reward": {"mods": {"combat": 0.05}}}
+  ],
+  "MLO": [
+    {"id": "mlo_sforza", "title": "Das Haus Sforza", "desc": "Das Herzogtum sichern, Parma inklusive.",
+     "require": {"year_min": 1450, "at_peace": true, "owns": ["milan", "parma"]}, "reward": {"prestige": 10, "adm": 30}},
+    {"id": "mlo_genoa", "after": "mlo_sforza", "title": "Ein Hafen für Mailand", "desc": "Genua öffnet die Lombardei zum Meer.",
+     "require": {"owns_any": ["genoa"]}, "reward": {"mods": {"income": 0.05}}},
+    {"id": "mlo_leonardo", "title": "Der Hof des Moro", "desc": "Künstler und Ingenieure am Mailänder Hof.",
+     "require": {"tech": {"adm": 6}, "min_dev": 30}, "reward": {"prestige": 15, "dev_capital": 2}}
+  ],
+  "PAP": [
+    {"id": "pap_romagna", "title": "Die Romagna", "desc": "Bologna und Ancona bleiben beim Heiligen Stuhl.",
+     "require": {"year_min": 1450, "owns": ["rome", "bologna", "ancona"]}, "reward": {"prestige": 15, "mods": {"manpower": 0.05}}},
+    {"id": "pap_st_peter", "title": "Der neue Petersdom", "desc": "Die größte Kirche der Christenheit.",
+     "require": {"tech": {"adm": 8}, "gold_min": 200}, "reward": {"prestige": 25, "dev_capital": 2}},
+    {"id": "pap_legations", "after": "pap_romagna", "title": "Die Legationen", "desc": "Ferrara, Parma oder Siena für den Kirchenstaat.",
+     "require": {"owns_any": ["parma", "siena"]}, "reward": {"dip": 40}}
+  ],
+  "TUS": [
+    {"id": "tus_siena", "title": "Siena unterwerfen", "desc": "Die alte Rivalin muss sich Florenz beugen.",
+     "require": {"owns": ["siena"], "year_min": 1450}, "reward": {"prestige": 10, "mods": {"income": 0.03}}},
+    {"id": "tus_medici_bank", "title": "Die Bank der Medici", "desc": "Filialen in Brügge, London, Rom und Genf.",
+     "require": {"tech": {"dip": 6}, "gold_min": 150}, "reward": {"mods": {"income": 0.05}, "dip": 30}},
+    {"id": "tus_grand_duchy", "after": "tus_siena", "title": "Das Großherzogtum", "desc": "Florenz wird zur Toskana.",
+     "require": {"owns_any": ["genoa", "corsica", "bologna"]}, "reward": {"prestige": 20}}
+  ],
+  "DAN": [
+    {"id": "dan_kalmar", "title": "Die Union erhalten", "desc": "Dänemark, Norwegen und Schweden unter einer Krone.",
+     "require": {"year_min": 1460, "owns": ["copenhagen", "oslo", "stockholm"]}, "reward": {"prestige": 20, "mods": {"manpower": 0.05}}},
+    {"id": "dan_sound", "title": "Der Sundzoll", "desc": "Helsingør und Schonen kontrollieren den Weg in die Ostsee.",
+     "require": {"owns": ["copenhagen", "scania"], "tech": {"dip": 6}}, "reward": {"mods": {"income": 0.05}}},
+    {"id": "dan_dithmarschen", "after": "dan_sound", "title": "Holstein und Dithmarschen", "desc": "Die Bauernrepublik im Süden.",
+     "require": {"owns_any": ["hamburg", "bremen"]}, "reward": {"dip": 30, "prestige": 10}},
+    {"id": "dan_baltic", "after": "dan_kalmar", "title": "Dominium maris Baltici", "desc": "Ein Brückenkopf an der Ostseeküste.",
+     "require": {"owns_any": ["riga", "reval", "pomerania", "prussia"]}, "reward": {"mods": {"combat": 0.03}, "prestige": 10}}
   ]
 }
