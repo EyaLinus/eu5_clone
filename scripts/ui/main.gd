@@ -28,6 +28,7 @@ var speed := 0
 var acc := 0.0
 var panel_mode := ""
 var panel_arg = null
+var econ_tab := "overview"  # sub-tab of the economy panel
 var selected_army := -1
 var peace_selection := {}
 var last_log_count := 0
@@ -1411,6 +1412,28 @@ func _panel_economy() -> void:
 	var n = game.nations[me]
 	var Eco = game.Economy
 	side_title.text = "💰 Wirtschaft"
+	var tabs := []
+	for e in [["overview", "💰 Kasse"], ["trade", "🏬 Handel"], ["goods", "🏭 Güter"]]:
+		var key: String = e[0]
+		var b := _btn(e[1], func(): econ_tab = key; _refresh())
+		if econ_tab == key:
+			b.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
+			b.add_theme_color_override("font_hover_color", Color(1.0, 0.85, 0.4))
+		tabs.append(b)
+	side_box.add_child(_row(tabs))
+	match econ_tab:
+		"trade":
+			_economy_trade()
+		"goods":
+			_economy_goods()
+		_:
+			_economy_overview()
+
+
+func _economy_overview() -> void:
+	var me: String = game.player
+	var n = game.nations[me]
+	var Eco = game.Economy
 	var trib: float = game.tribute_income(me)
 	var intr: float = Eco.interest(game, n)
 	var army_cost: float = n.expenses - Eco.upkeep(game, me) - intr
@@ -1465,6 +1488,11 @@ func _panel_economy() -> void:
 	if building > 0:
 		side_box.add_child(_lbl("🏗️ %d Bauprojekte laufen." % building, 16, Color(0.95, 0.8, 0.4)))
 
+
+func _economy_trade() -> void:
+	var me: String = game.player
+	var n = game.nations[me]
+	var Eco = game.Economy
 	side_box.add_child(_lbl("🏬 Handel · Händler %d / %d" % [n.merchants.size(), Eco.merchant_count(game, n)], 22))
 	side_box.add_child(_btn("🤖 Händler automatisch: " + ("AN" if n.merchant_auto else "AUS"), func():
 		n.merchant_auto = not n.merchant_auto
@@ -1490,6 +1518,11 @@ func _panel_economy() -> void:
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		side_box.add_child(b)
 
+
+func _economy_goods() -> void:
+	var me: String = game.player
+	var n = game.nations[me]
+	var Eco = game.Economy
 	side_box.add_child(_lbl("🏭 Güter und Preise", 22))
 	var out: Dictionary = Eco.goods_output(game, me)
 	var world: Dictionary = Eco.supply(game)
