@@ -57,6 +57,25 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "missions", "log", "ranking", "hre"]:
 		m._open_panel(mode)
 		n += 1
+	# tech + government: play them like a player (AI choices), open every screen and popup
+	for k in g.POWERS:
+		var id: String = g.tree.best_choice(g, tag, k)
+		if id != "":
+			g.research(tag, id)
+		m.tech_screen._select(k)
+		m._open_panel("tech")
+		m.tech_screen._detail(g.tree.techs_for(tag, k)[month % 27].id)
+		m._close_modal()
+		n += 1
+	g.govt.ai_think(g, g.nations[tag])
+	m._open_panel("government")
+	m.gov_screen._pick_advisor()
+	m._close_modal()
+	m.gov_screen._pick_company()
+	m._close_modal()
+	m.gov_screen._pick_law(g.govt.laws[month % g.govt.laws.size()].id)
+	m._close_modal()
+	n += 1
 	var others: Array = g.order.filter(func(t): return t != tag and g.nations[t].alive)
 	if not others.is_empty():
 		m._open_panel("other", others[month % others.size()])

@@ -4,6 +4,7 @@ extends RefCounted
 
 
 func think(g, n) -> void:
+	g.govt.ai_think(g, n)
 	_spend_power(g, n)
 	_spend_gold(g, n)
 	var slot: int = (g.month + n.capital) % 6

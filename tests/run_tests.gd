@@ -16,7 +16,9 @@ func _init() -> void:
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_economy_goods_and_trade", "test_buildings", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
-		"test_missions_complete", "test_long_run_no_softlock", "test_emoji_coverage",
+		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip",
+		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures",
 	]:
 		var before := failures
 		call(t)
@@ -552,6 +554,288 @@ func test_long_run_no_softlock() -> void:
 	check(stuck == 0, "no war older than the timeout")
 
 
+# ---------------------------------------------------------------- tech tree + government
+
+const Tech = preload("res://scripts/core/tech.gd")
+
+
+func test_tech_data() -> void:
+	var td: Dictionary = data.techs
+	var ids := {}
+	var per_cat := {"adm": 0, "dip": 0, "mil": 0}
+	for t in td.techs + td.special:
+		check(not ids.has(t.id), "tech id %s unique" % t.id)
+		ids[t.id] = true
+		check(per_cat.has(t.cat), "tech %s has a valid category" % t.id)
+		for k in t.effects:
+			check(Tech.LABELS.has(k), "tech %s effect key %s has a label" % [t.id, k])
+	for t in td.techs:
+		per_cat[t.cat] += 1
+	for t in td.techs + td.special:
+		for r in t.get("req", []):
+			check(ids.has(r), "tech %s requirement %s exists" % [t.id, r])
+	for c in per_cat:
+		check(per_cat[c] == 27, "27 generic %s techs" % c)
+	for tag in data.nations:
+		if data.nations[tag].get("playable", false):
+			var n := 0
+			for t in td.special:
+				if t.tag == tag:
+					n += 1
+			check(n == 3, "%s has 3 special techs" % tag)
+
+
+func test_tech_tree() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	n.adm = 900.0
+	check(g.research("FRA", "adm_landvoegte") != "", "requirement blocks research")
+	check(g.research("FRA", "adm_kanzlei") == "", "first adm tech researched")
+	check(n.tech.adm == 1 and n.techs.has("adm_kanzlei"), "level and id recorded")
+	check(g.research("FRA", "adm_kanzlei") != "", "no double research")
+	check(g.research("FRA", "adm_landvoegte") == "", "second tech after its requirement")
+	check(g.research("FRA", "adm_kataster") != "", "year lock (1484 tech in 1444)")
+	var before: float = n.adm
+	var c: float = g.tech_cost("FRA", "adm")
+	check(g.research("FRA", "adm_zuenfte") == "", "other branch researched")
+	check(absf(before - c - n.adm) < 0.01, "research costs tech_cost")
+	n.dip = 0.0
+	check(g.research("FRA", "dip_gesandte") != "", "not enough power blocks research")
+	n.mil = 900.0
+	check(g.buy_tech("FRA", "mil") == "", "buy_tech picks a tech automatically")
+	check(n.tech.mil == 1, "buy_tech advanced mil")
+
+
+func test_special_techs() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	n.mil = 900.0
+	check(g.research("FRA", "fra_ordonnance") != "", "special tech needs its requirement")
+	check(g.research("FRA", "mil_pikenhaufen") == "", "requirement researched")
+	var lvl: int = n.tech.mil
+	check(g.research("FRA", "fra_ordonnance") == "", "special tech researched")
+	check(n.tech.mil == lvl, "special techs do not count as levels")
+	g.nations.ENG.mil = 900.0
+	g.research("ENG", "mil_pikenhaufen")
+	check(g.research("ENG", "fra_ordonnance") != "", "other nations cannot take French special techs")
+	var spec := 0
+	for t in g.tree.techs_for("ENG", "mil"):
+		if Tech.is_special(t):
+			check(t.tag == "ENG", "techs_for only lists own specials")
+			spec += 1
+	check(spec >= 1, "ENG sees its mil special tech")
+	# AI path prefers available special techs
+	var g2 = new_game("ENG")
+	g2.nations.FRA.mil = 900.0
+	g2.research("FRA", "mil_pikenhaufen")
+	check(g2.tree.best_choice(g2, "FRA", "mil") == "fra_ordonnance", "AI picks the special tech first")
+
+
+func test_tech_modifiers() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	n.mil = 2000.0
+	n.adm = 2000.0
+	g.research("FRA", "mil_lehnsaufgebot")
+	var fl: float = g.force_limit("FRA")
+	g.research("FRA", "mil_soldwesen")
+	check(absf(g.force_limit("FRA") - fl - 2.0) < 0.01, "force limit +1 from tech, +1 from the second mil level")
+	g.research("FRA", "adm_universitaet")
+	var with_bonus: float = g.tech_cost("FRA", "adm")
+	var saved: Dictionary = n.bonus.tech
+	n.bonus.tech = {}
+	var without: float = g.tech_cost("FRA", "adm")
+	n.bonus.tech = saved
+	check(absf(with_bonus - round(without * 0.97)) <= 1.0, "tech_cost modifier applies (%d vs %d)" % [with_bonus, without])
+	check(absf(g.mod(n, "tech_cost") + 0.03) < 0.001, "bonus tech recorded in mod()")
+	check(g.ae_mult("FRA") == 1.0, "no ae modifier yet")
+	check(g.core_time("FRA") == int(g.bal.core_months), "default core time")
+
+
+func test_government_data() -> void:
+	var gd: Dictionary = data.government
+	var ids := {}
+	for a in gd.advisors:
+		check(not ids.has(a.id), "advisor %s unique" % a.id)
+		ids[a.id] = true
+		check(["adm", "dip", "mil"].has(a.type), "advisor %s type" % a.id)
+		for k in a.effects:
+			check(Tech.LABELS.has(k), "advisor %s key %s has a label" % [a.id, k])
+		if a.has("tag"):
+			check(data.nations.has(a.tag) and int(a.from) <= int(a.to), "national advisor %s valid" % a.id)
+	for c in gd.companies:
+		for k in c.effects:
+			check(Tech.LABELS.has(k), "company %s key %s has a label" % [c.id, k])
+	var tech_ids := {}
+	for t in data.techs.techs:
+		tech_ids[t.id] = true
+	for l in gd.laws:
+		check(l.options[0].effects.is_empty(), "law %s default option has no effects" % l.id)
+		for o in l.options:
+			if o.has("req"):
+				check(tech_ids.has(o.req), "law option %s requirement exists" % o.id)
+			var good := false
+			var bad := false
+			for line in Tech.effect_lines(o.effects):
+				if line[1]:
+					good = true
+				else:
+					bad = true
+			check(o.effects.is_empty() or (good and bad), "law option %s is a trade-off" % o.id)
+	for tag in data.nations:
+		if data.nations[tag].get("playable", false):
+			var na := 0
+			var nc := 0
+			for a in gd.advisors:
+				if a.get("tag", "") == tag:
+					na += 1
+			for c in gd.companies:
+				if c.get("tag", "") == tag:
+					nc += 1
+			check(na >= 3 and nc >= 1, "%s has national advisors and a company" % tag)
+
+
+func test_advisors() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	n.adm = 500.0
+	n.dip = 500.0
+	n.mil = 500.0
+	var pool := []
+	for a in g.govt.advisor_pool(g, "FRA"):
+		pool.append(a.id)
+	check(pool.has("fra_coeur"), "Jacques Coeur available in 1444")
+	check(not pool.has("fra_richelieu"), "Richelieu not yet born")
+	check(not pool.has("eng_cromwell"), "no foreign national advisors")
+	var inc: float = g.mod(n, "income")
+	check(g.govt.hire(g, "FRA", "kaemmerer") == "", "hire advisor")
+	check(absf(g.mod(n, "income") - inc - 0.06) < 0.001, "advisor bonus applies")
+	check(absf(n.adm - (500.0 - g.govt.advisor_cost(g, n, "kaemmerer"))) < 0.01, "advisor costs power of its type")
+	check(g.govt.hire(g, "FRA", "kaemmerer") != "", "no double hire")
+	g.govt.hire(g, "FRA", "fra_coeur")
+	g.govt.hire(g, "FRA", "feldhauptmann")
+	check(g.govt.hire(g, "FRA", "gesandter") != "", "slot limit of 3")
+	g.govt.dismiss(g, "FRA", "kaemmerer")
+	check(absf(g.mod(n, "income") - inc - 0.03) < 0.001, "dismissal removes bonus (Coeur keeps +3 %)")
+	# national advisors leave after their time
+	g.month = (1457 - 1444) * 12
+	g.govt.yearly(g, n)
+	check(not n.gov.advisors.has("fra_coeur"), "Coeur leaves court after 1456")
+
+
+func test_companies() -> void:
+	var g = new_game("ENG")
+	var n = g.nations.ENG
+	n.gold = 5000.0
+	var cost: float = g.govt.company_cost(g, n, "lombarden")
+	check(cost >= float(data.government.company_min_gold), "company has a minimum price")
+	check(g.govt.found_company(g, "ENG", "eng_muscovy") != "", "Muscovy Company only from 1555")
+	check(g.govt.found_company(g, "ENG", "fra_lyon") != "", "foreign company blocked")
+	check(g.govt.found_company(g, "ENG", "lombarden") == "", "found company")
+	check(absf(n.gold - (5000.0 - cost)) < 0.01, "company costs gold")
+	check(g.govt.found_company(g, "ENG", "kaufmannsgilde") == "", "second company")
+	check(g.govt.found_company(g, "ENG", "bergbau") != "", "two company slots")
+	n.dip = 5000.0
+	for id in ["dip_messen", "dip_wechsel"]:
+		check(g.research("ENG", id) == "", "research " + id)
+	g.month = (1580 - 1444) * 12
+	for id in ["dip_gilden", "dip_karavellen", "dip_boersen", "dip_girobanken", "dip_aktien"]:
+		g.research("ENG", id)
+	check(g.govt.company_slots(g, n) == 3, "Aktiengesellschaften unlock a third slot")
+	check(g.govt.found_company(g, "ENG", "bergbau") == "", "third company")
+	g.govt.dissolve_company(g, "ENG", "bergbau")
+	check(not n.gov.companies.has("bergbau"), "dissolve company")
+
+
+func test_laws() -> void:
+	var g = new_game("SPA")
+	var n = g.nations.SPA
+	n.adm = 500.0
+	n.mil = 500.0
+	check(n.gov.laws.heer == "lehnsheer", "default law")
+	check(g.govt.set_law(g, "SPA", "heer", "stehendes_heer") != "", "law needs its tech")
+	var mp: float = g.mod(n, "manpower")
+	check(g.govt.set_law(g, "SPA", "heer", "landesaufgebot") == "", "change law")
+	check(absf(g.mod(n, "manpower") - mp - 0.25) < 0.001, "law buff applies")
+	check(g.mod(n, "combat") < float(data.nations.SPA.bonus.combat), "law nerf applies")
+	check(g.govt.set_law(g, "SPA", "heer", "soeldner") != "", "cooldown blocks changes")
+	check(g.check_conditions("SPA", {"law": {"heer": "landesaufgebot"}}), "law condition")
+	check(not g.check_conditions("SPA", {"has_tech": "adm_kanzlei"}), "has_tech condition (missing)")
+	var pid: int = g.provinces_of("SPA")[0]
+	check(absf(g.unrest_parts(pid).policy - 0.5) < 0.001, "law unrest shows in province unrest")
+	g.month += 121
+	check(g.govt.set_law(g, "SPA", "heer", "soeldner") == "", "law change after cooldown")
+
+
+func test_gov_save_roundtrip() -> void:
+	var g = new_game("POL", 5)
+	var n = g.nations.POL
+	n.adm = 900.0
+	n.dip = 900.0
+	n.gold = 900.0
+	g.govt.hire(g, "POL", "pol_olesnicki")
+	g.month = (1470 - 1444) * 12
+	g.research("POL", "dip_messen")
+	g.research("POL", "pol_kornhandel")
+	g.govt.found_company(g, "POL", "pol_danzig")
+	g.govt.set_law(g, "POL", "kirche", "toleranz")
+	var text := JSON.stringify(g.to_dict())
+	var g2 = new_game("POL", 9)
+	g2.from_dict(JSON.parse_string(text))
+	check(JSON.stringify(g2.to_dict()) == text, "tech/government state survives save/load")
+	var n2 = g2.nations.POL
+	check(n2.techs.has("pol_kornhandel") and n2.gov.advisors.has("pol_olesnicki") and n2.gov.companies.has("pol_danzig"),
+			"techs, advisors and companies restored")
+	for k in ["trade", "dip", "unrest", "income", "prestige"]:
+		check(absf(g.mod(n, k) - g2.mod(n2, k)) < 0.0001, "bonus %s rebuilt after load" % k)
+
+
+func test_old_save_tech_levels() -> void:
+	var g = new_game("FRA", 4)
+	g.nations.FRA.tech = {"adm": 4, "dip": 2, "mil": 3}
+	var d: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	for tag in d.nations:
+		d.nations[tag].erase("techs")
+		d.nations[tag].erase("gov")
+	var g2 = new_game("FRA", 4)
+	g2.from_dict(d)
+	var n = g2.nations.FRA
+	check(n.techs.size() == 9, "old save: levels turn into the oldest techs (%d)" % n.techs.size())
+	check(n.gov.laws.size() == data.government.laws.size(), "old save: default laws")
+	check(g2.research("FRA", "adm_kanzlei") != "", "old save: granted techs count as researched")
+
+
+func test_ai_uses_government() -> void:
+	var g = new_game("FRA", 21)
+	for i in 12 * 40:
+		while not g.pending_events.is_empty():
+			g.choose_event_option("FRA", g.pending_events[0], 0)
+		while not g.pending_peace.is_empty():
+			g.answer_player_peace(g.pending_peace[0], true)
+		g.tick()
+	var adv := 0
+	var comp := 0
+	var laws := 0
+	var spec := 0
+	var alive := 0
+	for tag in g.order:
+		var n = g.nations[tag]
+		if not n.alive or tag == "FRA":
+			continue
+		alive += 1
+		adv += n.gov.advisors.size()
+		comp += n.gov.companies.size()
+		for l in n.gov.laws:
+			if n.gov.laws[l] != g.govt.law_by_id[l].options[0].id:
+				laws += 1
+		for t in g.tree.specials_of(tag):
+			if n.techs.has(t.id):
+				spec += 1
+	print("    AI 1484: %d nations, %d advisors, %d companies, %d laws changed, %d special techs" % [alive, adv, comp, laws, spec])
+	check(adv >= alive, "AI hires advisors")
+	check(comp >= alive / 2, "AI founds companies")
+	check(laws >= alive / 2, "AI changes laws")
+	check(spec >= 5, "AI researches special techs")
 ## Every emoji in UI code and data/*.json needs a pixel glyph (scripts/ui/pixel_emoji.gd); there is no emoji font.
 ## Nation emoji are exempt (nations show their flag) but every nation needs one.
 func test_emoji_coverage() -> void:
@@ -573,3 +857,11 @@ func test_emoji_coverage() -> void:
 				check(have.has("%x" % c), "%s: no pixel glyph for %s (U+%X), add it in tools/art/emoji_icons.py" % [path, char(c), c])
 	for tag in data.nations:
 		check(ResourceLoader.exists("res://assets/art/icons/flag_%s.png" % tag), "nation %s has no flag" % tag)
+
+
+## Every event's picture (own "image" or the generated motif map) must exist; tools/art/event_motifs.py.
+func test_event_pictures() -> void:
+	var motifs: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/art/events/event_motifs.json"))
+	for e in data.events:
+		var m: String = e.get("image", motifs.get(e.id, "court"))
+		check(ResourceLoader.exists("res://assets/art/events/%s.png" % m), "event %s: picture %s missing" % [e.id, m])

@@ -14,6 +14,10 @@ Kein `class_name`: alles wird per `preload()` verbunden, damit Headless-Skripte 
 | `scripts/core/game.gd` | Spielzustand (Province, Nation, Army, War), Monats-Tick, Aktionen, Effekte/Bedingungen, Save/Load |
 | `scripts/core/ai.gd` | KI: Wirtschaft, Diplomatie, Kriegserklärung, Frieden, Armeeführung, Event-Wahl |
 | `scripts/core/data.gd` | Lädt `data/*.json` |
+| `scripts/core/tech.gd` | Technologiebaum: Definitionen, Sperren (Vorgänger, Jahr), Kosten, Erforschen, KI-Wahl, Effekt-Texte |
+| `scripts/core/government.gd` | Regierung: Berater, Investitionskompanien, Gesetze, Jahres-Tick, KI |
+| `scripts/ui/tech_screen.gd`, `gov_screen.gd` | Technologie- und Regierungs-Screen im Seitenpanel (Popups für Details/Auswahl) |
+| `data/techs.json`, `data/government.json` | Generiert von `tools/content/tech_gov.py` (dort editieren) |
 | `scripts/ui/main.gd` | Gesamte UI in Code gebaut (HUD, Seitenpanel, Popups), Zeitsteuerung, Autosave |
 | `scripts/ui/icons.gd` | Icon-Registry: Emoji-Fallback, PNG aus `assets/art/icons/<key>.png` falls vorhanden |
 | `scripts/ui/map_view.gd` | Karte: Zeichnen (Polygone, Schraffur bei Besetzung, Armeen) und Touch/Maus-Eingabe |
@@ -26,7 +30,7 @@ Kein `class_name`: alles wird per `preload()` verbunden, damit Headless-Skripte 
 
 ## Bedingungen und Effekte (Events/Missionen)
 Bedingungen (`Game.check_conditions`): `year_min/max, owns, owns_any, not_owns, at_war, at_peace, flag, not_flag,
-min_dev, alive, not_alive, ae_min, gold_min, allied, allies, tech{adm,dip,mil}, regs, major, we_min, is_vassal, has_vassal, unrest_min, hre, emperor`.
+min_dev, alive, not_alive, ae_min, gold_min, allied, allies, tech{adm,dip,mil}, has_tech, law{id:option}, regs, major, we_min, is_vassal, has_vassal, unrest_min, hre, emperor`.
 Effekte (`Game.apply_effects`): `gold, adm, dip, mil, ae, we, prestige, manpower, regs, dev_capital, dev_random,
 relations{TAG:x}, claim[keys], flag, mods{income,combat,manpower,adm,dip,mil,ae_decay}, ruler{adm,dip,mil},
 alliance, inherit, vassal, province, war`. Neue Schlüssel immer in beiden UI-Textfunktionen
@@ -55,6 +59,18 @@ alliance, inherit, vassal, province, war`. Neue Schlüssel immer in beiden UI-Te
 - Unruhe (`unrest_parts`): nicht integriert + Kriegsmüdigkeit − Garnison − Unterdrückung. Ab `revolt_threshold`
   monatliche Aufstandschance (`_revolt`): Eine nicht integrierte Provinz fällt an `Province.prev_owner` zurück, wenn
   dieser lebt und angrenzt, sonst Plünderung (−1 Entwicklung, Gold) und 2 Jahre Ruhe.
+
+- Modifier (`Game.mod(n, key)`): permanente `n.mods` (Nationalgeist, Events, Missionen) plus abgeleitete
+  `n.bonus[quelle]` (nicht gespeichert, jedes System berechnet seinen Eintrag neu: "tech", "gov", "goods",
+  "buildings"). Effekt-Keys und ihre deutschen Namen stehen in `Tech.LABELS`.
+- Technologie (v0.7): 3 Kategorien × 3 Zweige × 9 Techs, Tech n eines Zweigs ist ab `year − early_years` (20)
+  verfügbar und braucht den Vorgänger. `n.tech[cat]` zählt die erforschten Standard-Techs (alte Formeln:
+  Einkommen, Kampfkraft, Truppenlimit, AE-Abbau). Jede spielbare Nation hat 3 Spezial-Techs (zählen nicht als Stufe).
+  `buy_tech` (KI) wählt über `Tech.best_choice`: Spezial-Techs zuerst, sonst höchster `effect_value`.
+- Regierung (v0.7): 3 Beraterplätze (Kosten 75 Punkte ihrer Art, historische nur in ihren Lebensjahren),
+  2 Kompanieplätze (+1 durch "Aktiengesellschaften", Preis = 18 Monatseinkommen, min. 60 Gold), 4 Gesetze mit
+  je einer neutralen Grundoption und Optionen mit Buff + Nerf (Wechsel 60 Punkte, 10 Jahre Sperre).
+  Der Test `test_government_data` erzwingt, dass jede Nicht-Grundoption mindestens einen Vor- und einen Nachteil hat.
 
 ## Werkzeuge
 - `tools/sim.gd` Batch-Simulation, `tools/metrics.gd` Kennzahlen, `tools/trace.gd` 20-Jahres-Verlauf einer Partie.

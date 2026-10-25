@@ -1,0 +1,406 @@
+#!/usr/bin/env python3
+"""Generates data/techs.json and data/government.json (tech tree + government screen content).
+
+Run from the repo root: python3 tools/content/tech_gov.py
+Modifier keys are the shared Game.mod() keys (see scripts/core/tech.gd for the label table).
+"""
+import json
+import os
+
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Every branch has 9 techs; the n-th tech of a branch becomes available around BRANCH_YEARS[n].
+BRANCH_YEARS = [1444, 1462, 1484, 1506, 1528, 1550, 1572, 1594, 1616]
+
+# category -> [(branch_id, branch_name, [(id, name, effects), ...9])]
+TREE = {
+    "adm": [
+        ("staat", "Staat & Recht", [
+            ("adm_kanzlei", "Königliche Kanzlei", {"income": 0.03}),
+            ("adm_landvoegte", "Landvögte", {"unrest": -0.25, "tax": 0.02}),
+            ("adm_kataster", "Grundbücher & Kataster", {"tax": 0.05}),
+            ("adm_gerichte", "Oberste Gerichtshöfe", {"unrest": -0.25, "coring": -0.1}),
+            ("adm_beamte", "Berufsbeamtentum", {"income": 0.04}),
+            ("adm_intendanten", "Intendanten", {"coring": -0.15}),
+            ("adm_kameral", "Kameralistik", {"tax": 0.08}),
+            ("adm_policey", "Policey-Ordnungen", {"unrest": -0.5}),
+            ("adm_absolut", "Absolute Verwaltung", {"adm": 1}),
+        ]),
+        ("wirtschaft", "Gewerbe & Bau", [
+            ("adm_zuenfte", "Zunftordnungen", {"production": 0.05}),
+            ("adm_muehlen", "Wassermühlen", {"build_cost": -0.05}),
+            ("adm_saigerhuetten", "Saigerhütten", {"production": 0.05}),
+            ("adm_baukunst", "Renaissance-Baukunst", {"build_cost": -0.1}),
+            ("adm_verlag", "Verlagssystem", {"production": 0.08}),
+            ("adm_kanaele", "Kanal- und Schleusenbau", {"develop_cost": -0.1}),
+            ("adm_manufaktur", "Manufakturen", {"production": 0.1}),
+            ("adm_polder", "Trockenlegung & Polder", {"develop_cost": -0.1}),
+            ("adm_merkantil", "Merkantile Wirtschaftslehre", {"production": 0.08, "trade": 0.05}),
+        ]),
+        ("wissen", "Wissen & Glaube", [
+            ("adm_universitaet", "Universitäten", {"tech_cost": -0.03}),
+            ("adm_buchdruck", "Buchdruck", {"tech_cost": -0.05}),
+            ("adm_humanismus", "Humanismus", {"prestige": 0.5, "tech_cost": -0.02}),
+            ("adm_kirchenreform", "Kirchenreform", {"unrest": -0.25, "prestige": 0.25}),
+            ("adm_akademien", "Gelehrte Akademien", {"tech_cost": -0.05}),
+            ("adm_vermessung", "Landesvermessung", {"develop_cost": -0.05, "coring": -0.05}),
+            ("adm_naturphil", "Naturphilosophie", {"tech_cost": -0.05}),
+            ("adm_wissenschaft", "Wissenschaftliche Revolution", {"tech_cost": -0.04, "income": 0.02}),
+            ("adm_aufklaerung", "Frühe Aufklärung", {"adm": 1, "unrest": -0.25}),
+        ]),
+    ],
+    "dip": [
+        ("hof", "Hof & Gesandte", [
+            ("dip_gesandte", "Ständige Gesandtschaften", {"ae_decay": 0.05}),
+            ("dip_heraldik", "Heraldik & Turniere", {"prestige": 0.5}),
+            ("dip_vertraege", "Vertragsrecht", {"ae_gen": -0.05}),
+            ("dip_zeremoniell", "Hofzeremoniell", {"prestige": 0.5}),
+            ("dip_kabinett", "Geheime Kabinette", {"ae_gen": -0.1}),
+            ("dip_heiratspolitik", "Heiratspolitik", {"ae_decay": 0.1}),
+            ("dip_kongresse", "Friedenskongresse", {"ae_gen": -0.05, "ae_decay": 0.05}),
+            ("dip_dienst", "Diplomatischer Dienst", {"dip": 1}),
+            ("dip_gleichgewicht", "Gleichgewicht der Mächte", {"ae_decay": 0.15}),
+        ]),
+        ("handel", "Handel & Geld", [
+            ("dip_messen", "Handelsmessen", {"trade": 0.05}),
+            ("dip_wechsel", "Wechselbriefe", {"income": 0.02, "trade": 0.03}),
+            ("dip_gilden", "Kaufmannsgilden", {"trade": 0.05}),
+            ("dip_karavellen", "Karavellen", {"trade": 0.05}),
+            ("dip_boersen", "Börsen", {"trade": 0.08}),
+            ("dip_girobanken", "Girobanken", {"income": 0.04}),
+            ("dip_aktien", "Aktiengesellschaften", {"trade": 0.05, "company_slots": 1}),
+            ("dip_fernhandel", "Fernhandelsrouten", {"trade": 0.1}),
+            ("dip_handelsbilanz", "Handelsbilanzlehre", {"trade": 0.08, "income": 0.02}),
+        ]),
+        ("recht", "Integration & Herrschaft", [
+            ("dip_lehnsrecht", "Lehnsrecht", {"coring": -0.05}),
+            ("dip_staende", "Ständeversammlungen", {"unrest": -0.25, "tax": 0.02}),
+            ("dip_privilegien", "Städtische Privilegien", {"tax": 0.03, "production": 0.03}),
+            ("dip_personalunion", "Verwaltung von Personalunionen", {"coring": -0.1}),
+            ("dip_statthalter", "Statthalterschaften", {"coring": -0.15}),
+            ("dip_religionsfrieden", "Religionsfrieden", {"unrest": -0.25, "ae_decay": 0.05}),
+            ("dip_kammergericht", "Reichskammergericht", {"ae_gen": -0.05, "coring": -0.05}),
+            ("dip_flugschriften", "Flugschriften & Propaganda", {"unrest": -0.25, "prestige": 0.5}),
+            ("dip_staatsraison", "Staatsräson", {"coring": -0.15, "advisor_slots": 1}),
+        ]),
+    ],
+    "mil": [
+        ("taktik", "Taktik", [
+            ("mil_pikenhaufen", "Pikenhaufen", {"combat": 0.03}),
+            ("mil_ordonnanz", "Ordonnanzkompanien", {"combat": 0.03}),
+            ("mil_arkebusiere", "Arkebusiere", {"combat": 0.04}),
+            ("mil_gevierthaufen", "Gevierthaufen", {"combat": 0.04}),
+            ("mil_pistoliere", "Reiterpistoliere", {"combat": 0.04}),
+            ("mil_exerzieren", "Exerzierreglement", {"combat": 0.05}),
+            ("mil_salven", "Salvenfeuer", {"combat": 0.05}),
+            ("mil_brigade", "Schwedische Brigade", {"combat": 0.05}),
+            ("mil_lineartaktik", "Lineartaktik", {"combat": 0.06}),
+        ]),
+        ("belagerung", "Artillerie & Festungen", [
+            ("mil_bombarden", "Bombarden", {"siege": 0.05}),
+            ("mil_feldgeschuetze", "Feldgeschütze", {"siege": 0.05, "combat": 0.01}),
+            ("mil_bastionen", "Bastionen", {"siege": 0.05, "combat": 0.01}),
+            ("mil_minen", "Minengänge", {"siege": 0.1}),
+            ("mil_trace_italienne", "Trace italienne", {"siege": 0.05, "combat": 0.02}),
+            ("mil_bronzeguss", "Bronzeguss", {"siege": 0.1}),
+            ("mil_moerser", "Mörser", {"siege": 0.1}),
+            ("mil_ingenieure", "Ingenieurskorps", {"siege": 0.1}),
+            ("mil_sternfestungen", "Sternfestungen", {"siege": 0.1, "combat": 0.02}),
+        ]),
+        ("heerwesen", "Heerwesen", [
+            ("mil_lehnsaufgebot", "Lehnsaufgebot", {"manpower": 0.05}),
+            ("mil_soldwesen", "Soldwesen", {"force_limit": 1}),
+            ("mil_landsknechte", "Landsknechte", {"manpower": 0.1}),
+            ("mil_magazine", "Magazinsystem", {"maintenance": -0.05}),
+            ("mil_musterrollen", "Musterungsrollen", {"force_limit": 2}),
+            ("mil_kriegskanzlei", "Kriegskanzlei", {"maintenance": -0.05}),
+            ("mil_garnisonen", "Stehende Garnisonen", {"unrest": -0.25, "force_limit": 1}),
+            ("mil_kasernen", "Kasernen", {"manpower": 0.1, "force_limit": 2}),
+            ("mil_stehendes_heer", "Stehendes Heer", {"mil": 1}),
+        ]),
+    ],
+}
+
+# National special techs for every playable nation: (id, cat, name, year, requires, effects, text)
+SPECIAL = {
+    "FRA": [
+        ("fra_ordonnance", "mil", "Compagnies d'ordonnance", 1445, "mil_pikenhaufen", {"combat": 0.05, "manpower": 0.1},
+         "Karl VII. schafft das erste stehende Heer Europas."),
+        ("fra_bourges", "adm", "Pragmatische Sanktion von Bourges", 1450, "adm_kanzlei", {"income": 0.05, "prestige": -0.25},
+         "Die gallikanische Kirche zahlt an die Krone statt nach Rom, der Papst ist verstimmt."),
+        ("fra_intendants", "adm", "Intendants de justice", 1590, "adm_intendanten", {"coring": -0.2, "adm": 1, "unrest": 0.5},
+         "Königliche Kommissare regieren die Provinzen, der Adel murrt."),
+    ],
+    "ENG": [
+        ("eng_longbow", "mil", "Yeomen-Langbogner", 1444, "mil_pikenhaufen", {"combat": 0.06, "manpower": -0.05},
+         "Jeder freie Mann übt sonntags am Bogen, aber gute Schützen sind rar."),
+        ("eng_adventurers", "dip", "Charta der Merchant Adventurers", 1490, "dip_gilden", {"trade": 0.12},
+         "Londoner Tuchhändler erhalten das Monopol auf den Export nach Flandern."),
+        ("eng_supremacy", "adm", "Suprematsakte", 1530, "adm_kirchenreform", {"income": 0.08, "tech_cost": -0.03, "unrest": 0.5},
+         "Die Krone wird Oberhaupt der Kirche und zieht die Klostergüter ein."),
+    ],
+    "SPA": [
+        ("spa_hermandad", "adm", "Santa Hermandad", 1476, "adm_landvoegte", {"unrest": -1.0},
+         "Eine königliche Landpolizei bringt Ordnung auf die Straßen Kastiliens."),
+        ("spa_casa", "dip", "Casa de Contratación", 1503, "dip_karavellen", {"trade": 0.15, "production": -0.05},
+         "Sevilla kontrolliert allen Überseehandel, das heimische Gewerbe verkümmert."),
+        ("spa_tercios", "mil", "Tercios", 1530, "mil_gevierthaufen", {"combat": 0.08, "maintenance": 0.05},
+         "Die gefürchtetste Infanterie Europas ist teuer im Unterhalt."),
+    ],
+    "BOH": [
+        ("boh_wagenburg", "mil", "Hussitische Wagenburg", 1444, "mil_pikenhaufen", {"combat": 0.06},
+         "Kampfwagen und Handfeuerwaffen nach dem Vorbild Jan Žižkas."),
+        ("boh_kuttenberg", "adm", "Kuttenberger Münzreform", 1470, "adm_saigerhuetten", {"income": 0.06, "production": 0.05},
+         "Neue Schmelzverfahren holen mehr Silber aus den alten Gruben."),
+        ("boh_majestaetsbrief", "dip", "Majestätsbrief", 1600, "dip_religionsfrieden", {"unrest": -1.0, "prestige": -0.25},
+         "Religionsfreiheit für alle Stände, die Krone verliert an Autorität."),
+    ],
+    "HAB": [
+        ("hab_hausmacht", "dip", "Habsburgische Hausmacht", 1477, "dip_vertraege", {"ae_decay": 0.1, "prestige": 0.5},
+         "Andere mögen Kriege führen, du, glückliches Österreich, heirate."),
+        ("hab_hofkammer", "adm", "Hofkammer", 1498, "adm_kataster", {"income": 0.05, "tech_cost": -0.03},
+         "Maximilian I. ordnet die Finanzen der Erblande neu."),
+        ("hab_militaergrenze", "mil", "Militärgrenze", 1530, "mil_musterrollen", {"force_limit": 3, "manpower": 0.1, "unrest": 0.25},
+         "Wehrbauern sichern die Grenze gegen die Osmanen."),
+    ],
+    "RUS": [
+        ("rus_pomestje", "mil", "Pomestje-System", 1480, "mil_lehnsaufgebot", {"manpower": 0.2, "combat": -0.02},
+         "Dienstadel erhält Land gegen Kriegsdienst, viele Reiter, wenig Disziplin."),
+        ("rus_prikasy", "adm", "Prikas-Ämter", 1550, "adm_beamte", {"coring": -0.15, "unrest": 0.25},
+         "Zentrale Behörden in Moskau verwalten das wachsende Reich."),
+        ("rus_strelizen", "mil", "Strelizen", 1550, "mil_exerzieren", {"combat": 0.06, "maintenance": 0.05},
+         "Iwan IV. stellt die ersten Musketierregimenter auf."),
+    ],
+    "NAP": [
+        ("nap_dogana", "adm", "Dogana delle pecore", 1447, "adm_kanzlei", {"income": 0.06},
+         "Alfons V. besteuert die Wanderherden Apuliens."),
+        ("nap_seide", "dip", "Seidenhandel Kalabriens", 1470, "dip_wechsel", {"trade": 0.1},
+         "Kalabrische Seide wird in ganz Europa gehandelt."),
+        ("nap_vizekoenig", "adm", "Vizekönigliche Verwaltung", 1530, "adm_beamte", {"unrest": -0.5, "tax": 0.05, "prestige": -0.25},
+         "Ein straff geführter Verwaltungsstaat, der Hof verliert an Glanz."),
+    ],
+    "TUR": [
+        ("tur_janitscharen", "mil", "Janitscharen-Korps", 1444, "mil_pikenhaufen", {"combat": 0.06, "maintenance": 0.05},
+         "Die Elitetruppe des Sultans, besoldet und gefürchtet."),
+        ("tur_timar", "mil", "Timar-System", 1460, "mil_lehnsaufgebot", {"manpower": 0.15, "force_limit": 2},
+         "Sipahi erhalten Landlehen gegen Reiterdienst."),
+        ("tur_kanun", "adm", "Kanun-Gesetzbücher", 1520, "adm_gerichte", {"unrest": -0.75, "coring": -0.1},
+         "Süleyman der Gesetzgeber vereinheitlicht das Recht des Reiches."),
+    ],
+    "POL": [
+        ("pol_kornhandel", "dip", "Danziger Kornhandel", 1466, "dip_messen", {"trade": 0.12},
+         "Getreide aus Masowien fließt über die Weichsel nach Westen."),
+        ("pol_husaren", "mil", "Geflügelte Husaren", 1500, "mil_arkebusiere", {"combat": 0.07},
+         "Die schwere Reiterei Polens entscheidet Schlachten mit einem Angriff."),
+        ("pol_nihil_novi", "dip", "Nihil novi", 1505, "dip_staende", {"unrest": -1.0, "tech_cost": 0.03},
+         "Nichts Neues ohne Zustimmung des Sejm, Reformen werden zäh."),
+    ],
+    "BUR": [
+        ("bur_tuchstaedte", "adm", "Flämische Tuchstädte", 1444, "adm_zuenfte", {"production": 0.1},
+         "Gent, Brügge und Ypern weben das beste Tuch des Nordens."),
+        ("bur_hofprunk", "dip", "Prunk des Burgunderhofes", 1454, "dip_heraldik", {"prestige": 1.0, "income": -0.03},
+         "Feste wie das Fasanenbankett beeindrucken Europa und leeren die Kasse."),
+        ("bur_ordonnanzen", "mil", "Burgundische Ordonnanzen", 1471, "mil_ordonnanz", {"combat": 0.06, "force_limit": 2, "maintenance": 0.05},
+         "Karl der Kühne baut ein modernes, teures Berufsheer auf."),
+    ],
+}
+
+# ---------------------------------------------------------------- government
+
+# Generic political advisors: (id, name, power type, effects)
+ADVISORS = [
+    ("kaemmerer", "Kämmerer", "adm", {"income": 0.06}),
+    ("steuermeister", "Strenger Steuermeister", "adm", {"tax": 0.12, "unrest": 0.5}),
+    ("baumeister", "Hofbaumeister", "adm", {"build_cost": -0.15}),
+    ("gelehrter", "Hofgelehrter", "adm", {"tech_cost": -0.08}),
+    ("landvogt", "Oberster Landvogt", "adm", {"unrest": -1.0}),
+    ("reformer", "Eifriger Reformer", "adm", {"adm": 1, "unrest": 0.5}),
+    ("zeremonienmeister", "Zeremonienmeister", "dip", {"prestige": 1.0}),
+    ("gesandter", "Erster Gesandter", "dip", {"ae_decay": 0.15}),
+    ("meisterspion", "Meisterspion", "dip", {"ae_gen": -0.15}),
+    ("handelsherr", "Handelsherr", "dip", {"trade": 0.1}),
+    ("eiferer", "Glaubenseiferer", "dip", {"unrest": -1.5, "prestige": 0.5, "tech_cost": 0.05}),
+    ("feldhauptmann", "Feldhauptmann", "mil", {"combat": 0.05}),
+    ("zeugmeister", "Zeugmeister", "mil", {"siege": 0.2}),
+    ("werbeoffizier", "Werbeoffizier", "mil", {"manpower": 0.15}),
+    ("quartiermeister", "Generalquartiermeister", "mil", {"maintenance": -0.1}),
+    ("kriegstreiber", "Kriegstreiber", "mil", {"combat": 0.08, "ae_gen": 0.1}),
+]
+
+# National advisors (historical figures), hireable from..to, they leave the court after `to`.
+# (id, tag, name, power, from, to, effects)
+NATIONAL_ADVISORS = [
+    ("fra_coeur", "FRA", "Jacques Cœur", "dip", 1444, 1456, {"trade": 0.15, "income": 0.03}),
+    ("fra_bureau", "FRA", "Jean Bureau", "mil", 1444, 1463, {"siege": 0.3, "combat": 0.03}),
+    ("fra_sully", "FRA", "Herzog von Sully", "adm", 1597, 1611, {"income": 0.1, "unrest": -0.5}),
+    ("fra_richelieu", "FRA", "Kardinal Richelieu", "adm", 1624, 1642, {"adm": 2, "unrest": 0.75}),
+    ("eng_suffolk", "ENG", "William de la Pole", "dip", 1444, 1450, {"dip": 1, "prestige": -0.5}),
+    ("eng_cromwell", "ENG", "Thomas Cromwell", "adm", 1532, 1540, {"adm": 2, "unrest": 0.5}),
+    ("eng_cecil", "ENG", "William Cecil", "dip", 1558, 1598, {"dip": 1, "ae_decay": 0.1}),
+    ("eng_walsingham", "ENG", "Francis Walsingham", "dip", 1573, 1590, {"ae_gen": -0.2, "unrest": -0.5}),
+    ("spa_luna", "SPA", "Álvaro de Luna", "adm", 1444, 1453, {"adm": 1, "prestige": -0.5}),
+    ("spa_cisneros", "SPA", "Kardinal Cisneros", "adm", 1495, 1517, {"tech_cost": -0.1, "unrest": -0.5}),
+    ("spa_cordoba", "SPA", "Gonzalo de Córdoba", "mil", 1495, 1515, {"combat": 0.1}),
+    ("spa_olivares", "SPA", "Graf-Herzog von Olivares", "adm", 1621, 1643, {"force_limit": 4, "unrest": 0.75}),
+    ("boh_podiebrad", "BOH", "Georg von Podiebrad", "adm", 1448, 1471, {"adm": 1, "dip": 1}),
+    ("boh_rozmital", "BOH", "Zdeněk Lev von Rožmitál", "adm", 1507, 1523, {"income": 0.08, "unrest": 0.25}),
+    ("boh_rosenberg", "BOH", "Wilhelm von Rosenberg", "dip", 1570, 1592, {"dip": 1, "unrest": -0.5}),
+    ("hab_piccolomini", "HAB", "Enea Silvio Piccolomini", "dip", 1444, 1455, {"dip": 1, "prestige": 0.5}),
+    ("hab_salm", "HAB", "Niklas Graf Salm", "mil", 1520, 1530, {"combat": 0.06, "unrest": -0.5}),
+    ("hab_wallenstein", "HAB", "Albrecht von Wallenstein", "mil", 1618, 1634, {"force_limit": 5, "combat": 0.05, "ae_gen": 0.1}),
+    ("rus_kholmsky", "RUS", "Daniil Cholmski", "mil", 1460, 1493, {"combat": 0.07}),
+    ("rus_adashev", "RUS", "Alexei Adaschew", "adm", 1549, 1560, {"adm": 1, "unrest": -0.5}),
+    ("rus_godunov", "RUS", "Boris Godunow", "adm", 1584, 1605, {"adm": 1, "income": 0.05, "prestige": -0.5}),
+    ("nap_petrucci", "NAP", "Antonello Petrucci", "adm", 1458, 1487, {"income": 0.08}),
+    ("nap_pontano", "NAP", "Giovanni Pontano", "dip", 1486, 1503, {"dip": 1, "tech_cost": -0.05}),
+    ("nap_toledo", "NAP", "Pedro de Toledo", "adm", 1532, 1553, {"unrest": -1.0, "tax": 0.05}),
+    ("tur_candarli", "TUR", "Çandarlı Halil Pascha", "adm", 1444, 1453, {"adm": 1, "combat": -0.03}),
+    ("tur_ibrahim", "TUR", "Pargalı İbrahim Pascha", "dip", 1523, 1536, {"dip": 1, "ae_decay": 0.1}),
+    ("tur_sinan", "TUR", "Mimar Sinan", "adm", 1538, 1588, {"build_cost": -0.25, "prestige": 0.5}),
+    ("tur_sokollu", "TUR", "Sokollu Mehmed Pascha", "adm", 1565, 1579, {"adm": 1, "dip": 1}),
+    ("pol_olesnicki", "POL", "Zbigniew Oleśnicki", "dip", 1444, 1455, {"dip": 1, "unrest": -0.5}),
+    ("pol_zamoyski", "POL", "Jan Zamoyski", "adm", 1578, 1605, {"adm": 1, "combat": 0.03}),
+    ("pol_zolkiewski", "POL", "Stanisław Żółkiewski", "mil", 1600, 1620, {"combat": 0.08}),
+    ("bur_rolin", "BUR", "Nicolas Rolin", "adm", 1444, 1462, {"income": 0.08, "unrest": -0.25}),
+    ("bur_croy", "BUR", "Antoine de Croÿ", "dip", 1444, 1465, {"dip": 1, "prestige": -0.25}),
+    ("bur_marche", "BUR", "Olivier de la Marche", "dip", 1465, 1500, {"prestige": 1.0, "ae_decay": 0.05}),
+]
+
+# Investment companies: (id, name, year, effects, text). Cost = months of income (min. company_min_gold).
+COMPANIES = [
+    ("lombarden", "Lombardische Bankiers", 1444, {"income": 0.08, "prestige": -0.25},
+     "Kredit gegen hohe Zinsen. Das Volk hält Wucher für eine Sünde."),
+    ("kaufmannsgilde", "Kaufmannsgilde", 1444, {"trade": 0.12, "unrest": 0.25},
+     "Die Gilde handelt gut, verlangt aber Privilegien, die die Zünfte erzürnen."),
+    ("bergbau", "Bergbaugesellschaft", 1444, {"production": 0.1, "manpower": -0.05},
+     "Erzgruben und Hütten binden viele Arbeiter."),
+    ("tuchverleger", "Tuchverleger", 1460, {"production": 0.08, "trade": 0.04},
+     "Verleger liefern Wolle an Landweber und verkaufen das Tuch."),
+    ("bauhuette", "Bauhütte", 1460, {"build_cost": -0.15, "develop_cost": -0.05},
+     "Steinmetze und Baumeister ziehen von Baustelle zu Baustelle."),
+    ("geschuetzgiesserei", "Geschützgießerei", 1480, {"siege": 0.2, "combat": 0.03, "income": -0.02},
+     "Bronze ist teuer, aber die Mauern deiner Feinde fallen."),
+    ("salzkontor", "Salzkontor", 1480, {"tax": 0.06, "trade": 0.04},
+     "Ein Monopol auf das weiße Gold."),
+    ("fernhandel", "Fernhandelskompanie", 1550, {"trade": 0.2, "ae_gen": 0.05},
+     "Eine Kompanie mit eigenem Heer, die sich wenig um Nachbarn schert."),
+    ("wechselbank", "Wechselbank", 1580, {"income": 0.06, "develop_cost": -0.08},
+     "Bargeldloser Zahlungsverkehr nach Amsterdamer Vorbild."),
+]
+
+# National companies: (id, tag, name, year, effects, text)
+NATIONAL_COMPANIES = [
+    ("fra_lyon", "FRA", "Seidenmanufaktur von Lyon", 1466, {"production": 0.15, "tax": -0.03}, "Ludwig XI. holt italienische Seidenweber ins Land."),
+    ("eng_muscovy", "ENG", "Muscovy Company", 1555, {"trade": 0.2, "prestige": -0.25}, "Händler auf der Nordroute nach Moskau."),
+    ("spa_mesta", "SPA", "Honrado Concejo de la Mesta", 1444, {"production": 0.12, "develop_cost": 0.05}, "Die Schafzüchter dürfen das ganze Land beweiden."),
+    ("boh_kuttenberger_muenze", "BOH", "Kuttenberger Münze", 1444, {"income": 0.1, "unrest": 0.25}, "Der Prager Groschen ist in ganz Mitteleuropa begehrt."),
+    ("hab_fugger", "HAB", "Handelshaus Fugger", 1490, {"income": 0.15, "ae_gen": 0.05}, "Jakob Fugger leiht dem Kaiser Geld, und alle wissen davon."),
+    ("rus_stroganow", "RUS", "Handelshaus Stroganow", 1558, {"production": 0.15, "trade": 0.05}, "Salz und Pelze vom Ural."),
+    ("nap_monte", "NAP", "Monte di Pietà", 1539, {"unrest": -0.75, "income": 0.05}, "Ein Pfandhaus für die Armen von Neapel."),
+    ("tur_bursa", "TUR", "Bedesten von Bursa", 1444, {"trade": 0.15, "tax": 0.03}, "Die gedeckte Seidenhalle am Ende der Karawanenroute."),
+    ("pol_danzig", "POL", "Danziger Kornbörse", 1466, {"trade": 0.18, "adm": -1}, "Der Getreidehandel macht die Szlachta reich und eigensinnig."),
+    ("bur_beurse", "BUR", "Brügger Beurse", 1444, {"trade": 0.12, "income": 0.05}, "Die erste Börse Europas, im Haus der Familie van der Beurse."),
+]
+
+# Laws: (id, name, power type to change, [(option_id, name, requires_tech or "", effects, text)]); first option is the default
+LAWS = [
+    ("wirtschaft", "Wirtschaftsordnung", "adm", [
+        ("grundherrschaft", "Grundherrschaft", "", {}, "Abgaben der Bauern an ihre Herren."),
+        ("staedtefoerderung", "Städteförderung", "", {"production": 0.08, "manpower": -0.05}, "Bürger statt Bauern."),
+        ("merkantilismus", "Merkantilismus", "adm_verlag", {"production": 0.12, "tax": 0.04, "trade": -0.1}, "Eigene Waren schützen, fremde verzollen."),
+        ("freihandel", "Freihandel", "dip_boersen", {"trade": 0.15, "tax": -0.05}, "Niedrige Zölle locken Kaufleute an."),
+        ("kriegswirtschaft", "Kriegswirtschaft", "", {"maintenance": -0.15, "force_limit": 2, "production": -0.1, "unrest": 0.5}, "Alles für die Front."),
+    ]),
+    ("heer", "Heeresverfassung", "mil", [
+        ("lehnsheer", "Lehnsheer", "", {}, "Die Vasallen stellen Truppen im Kriegsfall."),
+        ("soeldner", "Söldnerheere", "", {"force_limit": 3, "maintenance": 0.1, "manpower": -0.1}, "Geld statt Blut, solange die Kasse reicht."),
+        ("landesaufgebot", "Allgemeines Landesaufgebot", "", {"manpower": 0.25, "combat": -0.04, "unrest": 0.5}, "Jeder wehrfähige Mann wird gemustert."),
+        ("stehendes_heer", "Stehendes Heer", "mil_kriegskanzlei", {"combat": 0.08, "maintenance": 0.1}, "Gedrillte Berufssoldaten, auch im Frieden besoldet."),
+    ]),
+    ("staat", "Staatsaufbau", "adm", [
+        ("feudal", "Feudalordnung", "", {}, "Der König ist Erster unter den Großen."),
+        ("staendestaat", "Ständestaat", "", {"unrest": -1.0, "tax": 0.05, "tech_cost": 0.05}, "Die Stände bewilligen Steuern und blockieren Neuerungen."),
+        ("zentralisierung", "Zentralisierung", "adm_beamte", {"adm": 1, "coring": -0.15, "unrest": 0.75}, "Beamte der Krone ersetzen den Landadel."),
+        ("absolutismus", "Absolutismus", "adm_absolut", {"adm": 1, "mil": 1, "unrest": 1.0, "prestige": 0.5}, "L'État, c'est moi."),
+    ]),
+    ("kirche", "Kirchenpolitik", "dip", [
+        ("tradition", "Alte Ordnung", "", {}, "Die Kirche lebt nach ihren alten Rechten."),
+        ("toleranz", "Toleranz", "", {"unrest": -1.0, "prestige": -0.5}, "Andersgläubige bleiben unbehelligt."),
+        ("glaubenseifer", "Glaubenseifer", "", {"prestige": 1.0, "combat": 0.03, "ae_gen": 0.1}, "Für den wahren Glauben, gegen die Ketzer."),
+        ("saekularisierung", "Säkularisierung", "adm_kirchenreform", {"income": 0.08, "unrest": 1.0, "prestige": -0.5}, "Kirchengüter fallen an die Krone."),
+    ]),
+]
+
+GOV_FORMS = {
+    "default": "Feudalmonarchie",
+    "POL": "Wahlmonarchie", "VEN": "Kaufmannsrepublik", "GEN": "Kaufmannsrepublik", "PAP": "Theokratie",
+    "TUR": "Sultanat", "TEU": "Ordensstaat", "LIV": "Ordensstaat", "HSA": "Städtebund", "NOV": "Stadtrepublik",
+    "TUS": "Stadtrepublik", "SWI": "Eidgenossenschaft", "HAB": "Erzherzogtum", "BUR": "Herzogtum", "MLO": "Herzogtum",
+    "SAV": "Herzogtum", "RUS": "Großfürstentum", "LIT": "Großfürstentum", "CRI": "Khanat", "KAZ": "Khanat",
+    "BYZ": "Kaiserreich", "KOL": "Kurfürstliches Erzstift", "PAL": "Kurfürstentum", "SAX": "Kurfürstentum",
+    "BRA": "Kurfürstentum", "NUR": "Freie Reichsstadt", "BRI": "Herzogtum", "BAV": "Herzogtum",
+}
+
+
+def build():
+    nations = json.load(open(os.path.join(ROOT, "data/nations.json")))
+    techs = []
+    branches = []
+    ids = set()
+    for cat, brs in TREE.items():
+        for bid, bname, lst in brs:
+            assert len(lst) == len(BRANCH_YEARS), bid
+            branches.append({"id": bid, "cat": cat, "name": bname})
+            prev = ""
+            for i, (tid, name, eff) in enumerate(lst):
+                assert tid not in ids, tid
+                ids.add(tid)
+                t = {"id": tid, "cat": cat, "branch": bid, "name": name, "year": BRANCH_YEARS[i], "effects": eff}
+                if prev:
+                    t["req"] = [prev]
+                techs.append(t)
+                prev = tid
+    special = []
+    for tag, lst in SPECIAL.items():
+        assert nations[tag].get("playable"), tag
+        for tid, cat, name, year, req, eff, text in lst:
+            assert req in ids, req
+            assert tid not in ids, tid
+            ids.add(tid)
+            special.append({"id": tid, "tag": tag, "cat": cat, "name": name, "year": year, "req": [req], "effects": eff, "text": text})
+    for tag in nations:
+        if nations[tag].get("playable"):
+            assert tag in SPECIAL, "special techs missing for " + tag
+    out = {"_doc": "Generated by tools/content/tech_gov.py, edit there.", "early_years": 20,
+           "branches": branches, "techs": techs, "special": special}
+    json.dump(out, open(os.path.join(ROOT, "data/techs.json"), "w"), ensure_ascii=False, indent=1)
+
+    adv = [{"id": a, "name": n, "type": t, "effects": e} for a, n, t, e in ADVISORS]
+    for a, tag, n, t, y0, y1, e in NATIONAL_ADVISORS:
+        assert tag in nations, tag
+        adv.append({"id": a, "tag": tag, "name": n, "type": t, "from": y0, "to": y1, "effects": e})
+    comp = [{"id": c, "name": n, "year": y, "effects": e, "text": tx} for c, n, y, e, tx in COMPANIES]
+    for c, tag, n, y, e, tx in NATIONAL_COMPANIES:
+        comp.append({"id": c, "tag": tag, "name": n, "year": y, "effects": e, "text": tx})
+    laws = []
+    for lid, name, power, opts in LAWS:
+        lo = []
+        for oid, oname, req, eff, tx in opts:
+            assert req == "" or req in ids, req
+            o = {"id": oid, "name": oname, "effects": eff, "text": tx}
+            if req:
+                o["req"] = req
+            lo.append(o)
+        laws.append({"id": lid, "name": name, "power": power, "options": lo})
+    for t in GOV_FORMS:
+        assert t == "default" or t in nations, t
+    gov = {"_doc": "Generated by tools/content/tech_gov.py, edit there.",
+           "advisor_slots": 3, "advisor_cost": 75, "company_slots": 2, "company_months": 18, "company_min_gold": 60,
+           "law_cost": 60, "law_cooldown_years": 10, "forms": GOV_FORMS,
+           "advisors": adv, "companies": comp, "laws": laws}
+    json.dump(gov, open(os.path.join(ROOT, "data/government.json"), "w"), ensure_ascii=False, indent=1)
+    print("techs %d + %d special, advisors %d, companies %d, laws %d" % (len(techs), len(special), len(adv), len(comp), len(laws)))
+
+
+if __name__ == "__main__":
+    build()

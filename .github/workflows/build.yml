@@ -33,13 +33,14 @@ jobs:
         run: godot --headless --path . --import || true
       - name: Unit and data tests
         run: godot --headless --path . -s res://tests/run_tests.gd
-      - name: UI smoke test (every major, all panels, 200 years)
+      # short runs on purpose: CI should stay at a few minutes; full 200-year balance runs happen locally (tools/balance_loop.py)
+      - name: UI smoke test (every playable nation, all panels, 25 years)
         run: |
-          godot --headless --path . -s res://tools/ui_smoke.gd -- --years 40 2>&1 | tee smoke.txt
+          godot --headless --path . -s res://tools/ui_smoke.gd -- --years 25 2>&1 | tee smoke.txt
           test "$(grep -c '^SMOKE' smoke.txt)" -eq 10
           ! grep -q "SCRIPT ERROR" smoke.txt
-      - name: Headless balance smoke run (10 games x 200 years)
-        run: godot --headless --path . -s res://tools/sim.gd -- --runs 10 --years 200 --seed 500 | tee sim.txt
+      - name: Headless balance smoke run (3 games x 50 years)
+        run: godot --headless --path . -s res://tools/sim.gd -- --runs 3 --years 50 --seed 500 | tee sim.txt
       - uses: actions/upload-artifact@v4
         with:
           name: sim-summary

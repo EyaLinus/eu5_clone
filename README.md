@@ -32,7 +32,7 @@ aus echten Küstenlinien (Natural Earth, Public Domain).
 - **Zeit:** 1 Tick = 1 Monat, 2400 Ticks. Pause und 5 Geschwindigkeiten.
 - **Währungen:** 💰 Gold aus Provinzentwicklung; 📜 Admin, 🕊️ Diplomatie, ⚔️ Militär
   (2 + Herrscherwert + Boni pro Monat, Obergrenze 999).
-- **Ausgaben:** Technologie (3 Zweige), Entwickeln (Admin) oder Bauen (Gold), Rekrutieren (Gold + Mannschaften),
+- **Ausgaben:** Technologie, Berater und Gesetze (Punkte), Entwickeln (Admin) oder Bauen (Gold), Rekrutieren (Gold + Mannschaften),
   Beziehungen/Bündnisse/Ansprüche (Diplomatie), Integration eroberter Provinzen (Admin).
 - **Krieg:** Armeen ziehen eine Provinz pro Monat, Schlachten bei Kontakt, Belagerung besetzt Provinzen.
   Kriegspunkte aus Besetzung, Schlachten und Hauptstadt. Frieden: besetzte Provinzen fordern, weißer Frieden
@@ -41,6 +41,12 @@ aus echten Küstenlinien (Natural Earth, Public Domain).
   Koalitionsgrenze treten Nachbarn einer Koalition bei, die bei ausreichender Stärke den Krieg erklärt.
 - **Kriegsmüdigkeit und Unruhe:** Lange Kriege machen das Volk müde, frisch erobertes Land ist unruhig und kann
   zum alten Besitzer zurückfallen. Garnisonen und Unterdrückung helfen.
+- **Technologiebaum:** Verwaltung, Diplomatie und Militär mit je 3 Zweigen à 9 Technologien (1444–1640),
+  frei wählbare Reihenfolge, dazu 3 nationale Spezial-Technologien für jede spielbare Nation
+  (z. B. Tercios, Janitscharen, Geflügelte Husaren).
+- **Regierung (wie in Hearts of Iron):** 3 politische Berater (darunter 34 historische Persönlichkeiten wie
+  Jacques Cœur, Thomas Cromwell oder Mimar Sinan), 2–3 Investitionskompanien (Fugger, Muscovy Company, …) und
+  4 Gesetze (Wirtschaft, Heer, Staat, Kirche), deren Optionen immer Vor- und Nachteile haben.
 - **Vasallen:** Statt Land zu fordern, kannst du den besiegten Kriegsführer zum Vasallen machen. Vasallen zahlen
   Tribut, kämpfen mit dir und lassen sich nach 15 Jahren diplomatisch annektieren.
 - **Inhalte:** 281 Events mit je 3 Entscheidungen (jede Nation hat eigene) und 135 Missionen
