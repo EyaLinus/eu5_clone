@@ -906,7 +906,9 @@ func test_estates() -> void:
 	check(absf(g.govt.estate_target(g, n, "adel") - 65.0) < 0.01, "law shifts the nobility's target to 65")
 	for i in 60:
 		g.govt.estates_monthly(g, n)
-	check(n.gov.estates.adel > 60.0 and g.govt.estate_tier(n, "adel") == "loyal", "nobility drifts to loyal (%.1f)" % n.gov.estates.adel)
+	check(n.gov.estates.adel > 60.0, "nobility drifts towards its target (%.1f)" % n.gov.estates.adel)
+	g.govt.change_estate(g, n, "adel", 5.0)
+	check(n.gov.estates.adel >= 65.0 and g.govt.estate_tier(n, "adel") == "loyal", "nobility is loyal from 65 (%.1f)" % n.gov.estates.adel)
 	check(n.bonus.estates.get("manpower", 0.0) > 0.0, "loyal nobility gives manpower")
 	g.govt.change_estate(g, n, "klerus", -40.0)
 	check(g.govt.estate_tier(n, "klerus") == "angry", "angry clergy")
@@ -932,6 +934,7 @@ func test_estates() -> void:
 			g.govt._estate_crisis(g, n)
 		fired += g.pending_events.size()
 	check(fired >= 1 and fired <= 2, "estate crisis at most every 4 years (%d in 8 years)" % fired)
+	g.govt.change_estate(g, n, "adel", 80.0 - n.gov.estates.adel)
 	var text := JSON.stringify(g.to_dict())
 	var g2 = new_game("FRA", 3)
 	g2.from_dict(JSON.parse_string(text))

@@ -73,7 +73,7 @@ alliance, inherit, vassal, province, war`. Neue Schlüssel immer in beiden UI-Te
   Investitionsstufen (v0.8): `n.gov.invest` {id: Stufe 1–5}, Vorteile ×(1+0,5·(Stufe−1)), Nachteile bleiben;
   Ausbau kostet Σ 0,5·Preis·Stufe. KI investiert nur mit Rücklage (10 + 4·Ausgaben + 150).
   Stände (v0.8): `n.gov.estates` {adel, klerus, buerger} 0–100, driften 0,03/Monat zum Ziel 50 + mod(`estate_<id>`).
-  Ab 60 treu, unter 30 verärgert: Effekte in n.bonus["estates"], Unruhe als eigener Posten in `unrest_parts`.
+  Ab 65 treu, unter 30 verärgert: Effekte in n.bonus["estates"], Unruhe als eigener Posten in `unrest_parts`.
   Krisen-Events (`estate_crisis_*`) höchstens alle 4 Jahre, Zugeständnis +20 für max(30, 6·Einkommen) Gold, 5 Jahre Sperre.
   Der Test `test_government_data` erzwingt, dass jede Nicht-Grundoption mindestens einen Vor- und einen Nachteil hat.
 

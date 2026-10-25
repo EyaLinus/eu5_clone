@@ -9,7 +9,7 @@
  "invest_step": 0.5,
  "invest_cost_mult": 0.5,
  "estate_drift": 0.03,
- "estate_loyal": 60,
+ "estate_loyal": 65,
  "estate_angry": 30,
  "estate_crisis": 25,
  "estate_crisis_chance": 0.35,
@@ -37,7 +37,7 @@
    "name": "Klerus",
    "text": "Bischöfe, Klöster und Orden. Halten das Volk ruhig und lehren an den Universitäten.",
    "loyal": {
-    "unrest": -0.5,
+    "unrest": -0.25,
     "prestige": 0.5
    },
    "angry": {
