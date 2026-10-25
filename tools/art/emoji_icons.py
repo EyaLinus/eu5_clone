@@ -26,6 +26,7 @@ REUSE = {
     "⭐": "prestige", "🏘": "dev", "🏰": "fort", "📅": "date", "🔥": "siege", "🎯": "tab_missions",
     "📯": "event", "👑": "tab_nation", "🤝": "tab_diplomacy", "🗺": "tab_mapmode", "⛓": "vassal",
     "⚠": "coalition", "📂": "tab_log", "🔬": "tab_tech", "⚖": "tab_government",
+    "🎓": "advisor", "🏦": "company",
 }
 
 E = {}  # emoji -> (name, grid)
@@ -121,6 +122,10 @@ add("🏭", "manufactory", layer([".........dd.", ".........dd.", "....RR...ad."
 add("🏬", "trade_hall", layer(["....YGGD....", "...RRRRRR...", "..RRRRRRRR..", ".RRRRRRRRRRE", "PPPPPPPPPPPP", "PGDPPGDPPGDQ", "PPPPPPPPPPPQ", "PPGDPHHPGDPQ", "PPPPPHHPPPPQ", "QQQQQHHQQQQQ"], 2, 3))
 add("🛒", "handcart", layer(["..lL.GD.ww..", ".lLLGGDwwwa.", "OOOOOOOOOOOH", "OHHHHHHHHHHH", ".O........O.", "HOH......HOH", ".H........H."], 2, 5))
 add("📉", "chart_down", layer(["PPPPPPPPPP", "PQRPPPPPPP", "PQPRPPPPPP", "PQPPRPPPPP", "PQPPPRPRPP", "PQPPPPRPRP", "PQPPPPPPPR", "PQPPPPPPPP", "PQQQQQQQQP", "PPPPPPPPPP"], 3, 3))
+
+# ---- tech tree states
+add("🔒", "lock", layer(["...aaaa...", "..ag..ga..", "..a....g..", "..a....g..", "YYYYYYYYYD", "YGGGGGGGGD", "YGGGkkGGGD", "YGGGkkGGGD", "YGGGGkGGGD", "DDDDDDDDDD"], 3, 3))
+add("✓", "tick", layer([".........ll", "........lLF", ".......lLF.", "ll....lLF..", "lLl..lLF...", ".lLllLF....", "..lLLF.....", "...LF......"], 2, 4))
 
 if __name__ == "__main__":
     os.makedirs(SRC, exist_ok=True)
