@@ -6,6 +6,7 @@ const Game = preload("res://scripts/core/game.gd")
 const Data = preload("res://scripts/core/data.gd")
 const MapView = preload("res://scripts/ui/map_view.gd")
 const Icons = preload("res://scripts/ui/icons.gd")
+const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
 const SAVE_PATH := "user://save.json"
 const SETTINGS_PATH := "user://settings.json"
 const UI_SCALES := [0.85, 1.0, 1.2, 1.4]
@@ -123,13 +124,7 @@ func _cycle_ui_scale() -> void:
 func _setup_theme() -> void:
 	var t := Theme.new()
 	t.default_font_size = 20
-	var emoji = load("res://assets/fonts/NotoColorEmoji.ttf")
-	if emoji is FontFile:
-		emoji.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_ENABLED
-		var base: Font = ThemeDB.fallback_font
-		var fb: Array[Font] = base.fallbacks
-		fb.append(emoji)
-		base.fallbacks = fb
+	PixelEmoji.install()  # all emoji in UI strings are drawn as pixel glyphs
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.09, 0.1, 0.13, 0.94)
 	sb.set_corner_radius_all(10)
@@ -395,7 +390,7 @@ func _act(err: String, ok_text: String = "") -> void:
 
 func nname(tag: String) -> String:
 	var n = game.nations[tag]
-	return "%s %s" % [n.emoji, n.name]
+	return "%s %s" % [PixelEmoji.nation(tag, n.emoji), n.name]
 
 
 ## Button for a nation: pixel flag as icon when available, emoji otherwise.
@@ -422,7 +417,7 @@ func _show_start_menu() -> void:
 		if tag == EXTRA_PLAYABLE[0]:
 			modal_box.add_child(_lbl("Weitere Nationen (weniger Missionen und Events):", 16, Color(0.85, 0.75, 0.5)))
 		var nd: Dictionary = data.nations[tag]
-		var b := _btn("%s %s" % [nd.emoji, nd.name], _start_game.bind(tag))
+		var b := _btn("%s %s" % [PixelEmoji.nation(tag, nd.emoji), nd.name], _start_game.bind(tag))
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		modal_box.add_child(b)
 		modal_box.add_child(_lbl(nd.get("idea", ""), 15, Color(0.7, 0.75, 0.8)))
@@ -479,7 +474,7 @@ func _after_game_loaded() -> void:
 func _show_intro() -> void:
 	var n = game.nations[game.player]
 	_open_modal()
-	modal_box.add_child(_lbl("%s %s, %s" % [n.emoji, n.name, game.date_string()], 30))
+	modal_box.add_child(_lbl("%s, %s" % [nname(game.player), game.date_string()], 30))
 	modal_box.add_child(_lbl(n.idea, 18, Color(0.8, 0.85, 0.7)))
 	modal_box.add_child(_lbl("So spielst du:\n• Zeit läuft mit ▶/➕ oben rechts, ⏸ pausiert.\n• Tippe auf eine Provinz für Infos und Aktionen (Entwickeln, Rekrutieren, Krieg).\n• Tippe auf eine Armee (Kreis mit Zahl) und dann auf ein Ziel, um sie zu bewegen. 🤖 lässt sie automatisch kämpfen.\n• 📜 Admin, 🕊️ Diplomatie und ⚔️ Militär sammeln sich monatlich: für Technologie, Entwicklung, Bündnisse und Kriegsgründe.\n• 😠 Aggressive Expansion steigt bei Eroberungen. Ab %d bilden Nachbarn Koalitionen gegen dich.\n• ✊ Frisch eroberte Provinzen sind unruhig, Kriegsmüdigkeit verstärkt das. Garnisonen und Unterdrückung helfen.\n• Am PC: Leertaste = Pause, 1–5 = Tempo, Esc = Panel schließen." % int(game.bal.ae_coalition_threshold), 17))
 	modal_box.add_child(_btn("Los geht's ▶", func(): _close_modal(); _set_speed(2)))
@@ -538,16 +533,15 @@ const MODE_LEGENDS := [
 	"Deine Beziehungen zu allen Nationen.",
 	"Dunkel = arm, gelb = reich.",
 	"Eigene Provinzen: grün = ruhig, rot = Aufstand droht.",
+	"Deine Kriege auf einen Blick. Streifen = besetzt.",
 	"Welches Gut jede Provinz herstellt (eigene Provinzen hell).",
 	"Einzugsgebiete der Märkte, das Zentrum leuchtet hell (eigene Provinzen hell).",
-	"Deine Kriege auf einen Blick.",
 ]
 ## Color keys per map mode: [color, text]
 const MODE_KEYS := {
 	1: [["3a9d4a", "du"], ["7fc98a", "deine Vasallen"], ["4a7fd0", "Verbündete"], ["c0392b", "Feinde"],
 		["e0a030", "Ansprüche"], ["8e3a8e", "Koalition gegen dich"], ["9aa7b0", "Waffenstillstand"]],
-	6: [["3a9d4a", "dein Land"], ["4a7fd0", "Verbündete im Krieg"], ["b03a2e", "Feind"],
-		["f1c40f", "Feindesland, das du besetzt"], ["e67e22", "dein/verbündetes Land in Feindeshand"]],
+	4: [["3a9d4a", "du"], ["4a7fd0", "Mitkämpfer"], ["c0392b", "Feinde"], ["5a5a52", "unbeteiligt"]],
 }
 
 
@@ -1136,7 +1130,7 @@ func _panel_province(pid: int) -> void:
 		if not game.at_war(me, p.owner):
 			side_box.add_child(_btn("🔥 Krieg gegen %s…" % game.nations[p.owner].name, _confirm_war.bind(p.owner)))
 	if not game.armies_of(me).is_empty():
-		side_box.add_child(_btn("🚩 Alle meine Armeen hierher", _all_armies_to.bind(pid), "Schickt jede eigene Armee in diese Provinz (danach manuell)."))
+		side_box.add_child(_btn("🏁 Alle meine Armeen hierher", _all_armies_to.bind(pid), "Schickt jede eigene Armee in diese Provinz (danach manuell)."))
 	var here: Array = game.armies_in(pid)
 	if not here.is_empty():
 		side_box.add_child(_lbl("Armeen hier:", 18, Color(0.7, 0.8, 0.9)))
@@ -1165,8 +1159,8 @@ func _province_buildings(p) -> void:
 		if lvl >= maxl:
 			txt = label + "  (max.)"
 		else:
-			txt = "%s  %s %d💰" % [label, "⬆" if lvl > 0 else "+", int(Eco.building_cost(game, me, p.id, bid))]
-		var b := _btn(txt, func(): _act(game.construct(me, p.id, bid), "🏗️ Bau begonnen: " + d.name), d.text + (("\n⛔ " + reason) if reason != "" else ""), reason != "")
+			txt = "%s  %s %d💰" % [label, "➕" if lvl > 0 else "+", int(Eco.building_cost(game, me, p.id, bid))]
+		var b := _btn(txt, func(): _act(game.construct(me, p.id, bid), "🏗️ Bau begonnen: " + d.name), d.text + (("\n❌ " + reason) if reason != "" else ""), reason != "")
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		side_box.add_child(b)
 		if reason != "" and lvl < maxl and not reason.begins_with("Hier wird") and not reason.begins_with("Höchste"):
@@ -1181,7 +1175,7 @@ func _panel_economy() -> void:
 	side_title.text = "💰 Wirtschaft"
 	var trib: float = game.tribute_income(me)
 	var army_cost: float = n.expenses - Eco.upkeep(game, me)
-	var lines := "Einnahmen %.2f/Monat\n  💰 Steuern %.2f\n  📦 Güter %.2f\n  🏬 Handel %.2f" % [n.income, n.tax_income, n.prod_income, n.trade_income]
+	var lines := "Einnahmen %.2f/Monat\n  💰 Steuern %.2f\n  🏭 Güter %.2f\n  🏬 Handel %.2f" % [n.income, n.tax_income, n.prod_income, n.trade_income]
 	if trib != 0.0:
 		lines += "\n  ⛓️ Tribut %+.2f" % trib
 	lines += "\nAusgaben %.2f/Monat\n  🛡️ Armee %.2f\n  🏰 Gebäude %.2f" % [n.expenses, army_cost, Eco.upkeep(game, me)]
@@ -1224,7 +1218,7 @@ func _panel_economy() -> void:
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		side_box.add_child(b)
 
-	side_box.add_child(_lbl("📦 Güter und Preise", 22))
+	side_box.add_child(_lbl("🏭 Güter und Preise", 22))
 	var out: Dictionary = Eco.goods_output(game, me)
 	var world: Dictionary = Eco.supply(game)
 	for k in game.goods_def:
@@ -1253,11 +1247,11 @@ func _panel_mapmodes() -> void:
 		side_box.add_child(b)
 	side_box.add_child(_lbl(MODE_LEGENDS[map.map_mode], 16, Color(0.8, 0.85, 0.7)))
 	for k in MODE_KEYS.get(map.map_mode, []):
-		side_box.add_child(_lbl("■ " + k[1], 16, Color(k[0])))
-	if map.map_mode == 4:
+		side_box.add_child(_lbl("● " + k[1], 16, Color(k[0])))
+	if map.map_mode == map.MODE_GOODS:
 		for k in game.goods_def:
 			var gd: Dictionary = game.goods_def[k]
-			var l := _lbl("■ %s %s" % [gd.emoji, gd.name], 16, Color(gd.color))
+			var l := _lbl("● %s %s" % [gd.emoji, gd.name], 16, Color(gd.color))
 			side_box.add_child(l)
 
 
@@ -1467,9 +1461,9 @@ func _panel_wars() -> void:
 		var us := []
 		var them := []
 		for t in game.side_tags(w, att):
-			us.append(game.nations[t].emoji + game.nations[t].name)
+			us.append(nname(t))
 		for t in game.side_tags(w, not att):
-			them.append(game.nations[t].emoji + game.nations[t].name)
+			them.append(nname(t))
 		side_box.add_child(_lbl("🔥 " + w.name, 20, Color(1, 0.8, 0.6)))
 		side_box.add_child(_lbl("Wir: %s\nGegner: %s\nKriegspunkte: %+d · Dauer: %d Monate" % [", ".join(us), ", ".join(them), int(ws), game.month - w.start], 16))
 		if game.side_tags(w, att)[0] == me:
@@ -1584,7 +1578,7 @@ func _all_armies_to(pid: int) -> void:
 			a.auto = false
 			if game.move_army(a, pid) == "":
 				sent += 1
-	_toast("🚩 %d Armeen marschieren nach %s." % [sent, game.provinces[pid].name] if sent > 0 else "Keine Armee kann dorthin.")
+	_toast("🏁 %d Armeen marschieren nach %s." % [sent, game.provinces[pid].name] if sent > 0 else "Keine Armee kann dorthin.")
 	map.queue_redraw()
 
 
@@ -1629,10 +1623,10 @@ func _panel_missions() -> void:
 	for m in Prog.MILESTONES:
 		if Prog.done(game, me, m.id):
 			ms_done += 1
-	side_box.add_child(_lbl("🏅 Meilensteine %d / %d" % [ms_done, Prog.MILESTONES.size()], 20))
+	side_box.add_child(_lbl("🏆 Meilensteine %d / %d" % [ms_done, Prog.MILESTONES.size()], 20))
 	for m in Prog.MILESTONES:
 		var ok: bool = Prog.done(game, me, m.id)
-		var l := _lbl("%s %s: %s → %s" % ["✅" if ok else "▫️", m.title, m.text, effects_text(m.reward)], 15,
+		var l := _lbl("%s %s: %s → %s" % ["✅" if ok else "🎯", m.title, m.text, effects_text(m.reward)], 15,
 				Color(0.6, 0.9, 0.6) if ok else Color(0.85, 0.85, 0.88))
 		side_box.add_child(l)
 	side_box.add_child(_lbl("🎯 Missionen", 20))

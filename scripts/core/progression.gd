@@ -76,7 +76,7 @@ static func check_milestones(g, tag: String) -> Array:
 		n.flags[f] = true
 		g.apply_effects(tag, m.reward)
 		got.append(m)
-		g.log_msg("🏅 Meilenstein: %s" % m.title)
+		g.log_msg("🏆 Meilenstein: %s" % m.title)
 	return got
 
 

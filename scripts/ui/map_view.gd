@@ -9,6 +9,7 @@ const SEA := Color("1d3a5c")
 const WASTE := Color("55574d")
 const ARMY_R := 15.0
 const Icons = preload("res://scripts/ui/icons.gd")
+const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
 ## Painted base map (tools/art/map_terrain.py). Without it the map falls back to flat SEA/WASTE.
 const TERRAIN_PATH := "res://assets/art/map/terrain.png"
 const TERRAIN_HALF_PATH := "res://assets/art/map/terrain_half.png"
@@ -17,6 +18,12 @@ const PROV_BORDER := Color(0.12, 0.09, 0.06, 0.28)
 const NATION_BORDER := Color(0.07, 0.05, 0.09, 0.9)
 const COAST := Color(0.03, 0.09, 0.16, 0.8)
 const COUNTER_SIZE := Vector2(48, 28)
+const SELECT := Color("f4d35e")  # selection and the player's realm border (gold from the art palette)
+## war map mode: our side, our co-belligerents, enemies, everyone else
+const WAR_US := Color("3a9d4a")
+const WAR_ALLY := Color("4a7fd0")
+const WAR_ENEMY := Color("c0392b")
+const WAR_NEUTRAL := Color("5a5a52")
 
 var game
 var polys: Array = []
@@ -35,10 +42,18 @@ var zoom := 0.8
 var offset := Vector2.ZERO
 var selected_pid := -1
 var selected_army := -1
+## province under the mouse pointer (desktop only; touch has no hover)
+var hover_pid := -1
+var _hover_pos := Vector2.ZERO
+## war map mode: tag -> 1 us, 2 co-belligerent, -1 enemy (rebuilt every draw)
+var _war_side := {}
 var font: Font
-## 0 political, 1 diplomatic (player view), 2 development, 3 unrest, 4 goods, 5 trade (markets), 6 war (player)
+## 0 political, 1 diplomatic (player view), 2 development, 3 unrest, 4 war, 5 goods, 6 trade (markets)
 var map_mode := 0
-const MODE_NAMES := ["Politisch", "Diplomatisch", "Entwicklung", "Unruhe", "Güter", "Handel", "Krieg"]
+const MODE_NAMES := ["Politisch", "Diplomatisch", "Entwicklung", "Unruhe", "Krieg", "Güter", "Handel"]
+const MODE_WAR := 4
+const MODE_GOODS := 5
+const MODE_TRADE := 6
 const MARKET_COLORS := ["c0392b", "2e5bd4", "e3b21b", "1e8449", "8e44ad", "d35400", "16a085", "7f8c8d", "e84393",
 		"6c5ce7", "00b894", "fdcb6e", "a0522d"]
 
@@ -236,28 +251,92 @@ func _draw() -> void:
 		for bg in background:
 			draw_colored_polygon(bg, WASTE)
 	var view := Rect2(to_world(Vector2.ZERO), size / zoom)
+	if map_mode == MODE_WAR:
+		_build_war_sides()
 	for p in game.provinces:
 		if not view.intersects(bboxes[p.id]):
 			continue
 		var c := province_color(p)
 		if textured:
 			c.a = FILL_ALPHA if map_mode < 2 else 0.86
+		if p.id == hover_pid or p.id == selected_pid:
+			c = c.lightened(0.28 if p.id == selected_pid else 0.16)
 		for poly in polys[p.id]:
 			draw_colored_polygon(poly, c)
 		if p.controller != p.owner:
-			var cc: Color = game.nations[p.controller].color
-			cc.a = 0.6
+			var cc: Color = _occupier_color(p.controller)
+			cc.a = 0.6 if map_mode != MODE_WAR else 0.9
 			for poly in polys[p.id]:
 				_draw_hatch(poly, bboxes[p.id], cc)
 	_draw_borders(view)
+	if hover_pid >= 0 and hover_pid != selected_pid:
+		# with an army selected the pointer shows the march target
+		_outline(hover_pid, SELECT if selected_army >= 0 else Color(1, 1, 1, 0.7), 2.0)
 	if selected_pid >= 0:
-		for poly in polys[selected_pid]:
-			var closed: PackedVector2Array = poly.duplicate()
-			closed.append(poly[0])
-			draw_polyline(closed, Color.WHITE, 3.0 / zoom)
+		_outline(selected_pid, Color(0, 0, 0, 0.75), 6.0)
+		_outline(selected_pid, SELECT, 3.0)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_draw_labels()
 	_draw_armies()
+	_draw_hover_tip()
+
+
+## Province outline with a constant on-screen width (world-space transform must be active).
+func _outline(pid: int, c: Color, px: float) -> void:
+	for poly in polys[pid]:
+		var closed: PackedVector2Array = poly.duplicate()
+		closed.append(poly[0])
+		draw_polyline(closed, c, px / zoom)
+
+
+func _build_war_sides() -> void:
+	_war_side.clear()
+	var me: String = game.player
+	if me == "":
+		return
+	_war_side[me] = 1
+	for w in game.wars_of(me):
+		var att: bool = game.is_attacker(w, me)
+		for t in game.side_tags(w, att):
+			if t != me:
+				_war_side[t] = 2
+		for t in game.side_tags(w, not att):
+			_war_side[t] = -1
+
+
+func _war_color(tag: String) -> Color:
+	match _war_side.get(tag, 0):
+		1:
+			return WAR_US
+		2:
+			return WAR_ALLY
+		-1:
+			return WAR_ENEMY
+	return WAR_NEUTRAL
+
+
+## Stripe colour for occupied provinces: the occupier's colour, or its war side in the war map mode.
+func _occupier_color(tag: String) -> Color:
+	if map_mode == MODE_WAR:
+		return _war_color(tag).lightened(0.15)
+	return game.nations[tag].color
+
+
+## Small label next to the mouse pointer: province, owner flag and name, siege progress.
+func _draw_hover_tip() -> void:
+	if hover_pid < 0 or game == null:
+		return
+	var p = game.provinces[hover_pid]
+	var txt := "%s · %s %s" % [p.name, PixelEmoji.nation(p.owner, game.nations[p.owner].emoji), game.nations[p.owner].name]
+	if p.controller != p.owner:
+		txt += " (besetzt: %s)" % game.nations[p.controller].name
+	var fs := 15
+	var sz := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
+	var pos := _hover_pos + Vector2(16, 26)
+	pos.x = minf(pos.x, size.x - sz.x - 12)
+	pos.y = minf(pos.y, size.y - 12)
+	draw_rect(Rect2(pos - Vector2(6, sz.y - 2), sz + Vector2(12, 6)), Color(0.09, 0.1, 0.13, 0.88))
+	draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
 
 
 ## Province borders thin, coasts medium, borders between different owners thick.
@@ -267,6 +346,9 @@ func _draw_borders(view: Rect2) -> void:
 	var thin := PackedVector2Array()
 	var coast := PackedVector2Array()
 	var nation := PackedVector2Array()
+	var realm := PackedVector2Array()  # outer border of the player's realm (political mode)
+	var front := PackedVector2Array()  # borders between enemies (war mode)
+	var me: String = game.player
 	var v := view.grow(20.0)
 	for e in edge_l.size():
 		var a := edge_pts[e * 2]
@@ -280,6 +362,14 @@ func _draw_borders(view: Rect2) -> void:
 		elif game.provinces[edge_l[e]].owner != game.provinces[r].owner:
 			nation.append(a)
 			nation.append(b)
+			var ol: String = game.provinces[edge_l[e]].owner
+			var orr: String = game.provinces[r].owner
+			if map_mode == 0 and me != "" and (ol == me or orr == me):
+				realm.append(a)
+				realm.append(b)
+			elif map_mode == MODE_WAR and _war_side.get(ol, 0) * _war_side.get(orr, 0) < 0:
+				front.append(a)
+				front.append(b)
 		else:
 			thin.append(a)
 			thin.append(b)
@@ -287,8 +377,13 @@ func _draw_borders(view: Rect2) -> void:
 		draw_multiline(thin, PROV_BORDER, 1.0 / zoom)
 	if not coast.is_empty():
 		draw_multiline(coast, COAST, 1.5 / zoom)
+	var nw := clampf(2.6 * zoom, 1.6, 3.4)
 	if not nation.is_empty():
-		draw_multiline(nation, NATION_BORDER, clampf(2.6 * zoom, 1.6, 3.4) / zoom)
+		draw_multiline(nation, NATION_BORDER, nw / zoom)
+	if not realm.is_empty():
+		draw_multiline(realm, Color(SELECT, 0.85), (nw * 0.6) / zoom)
+	if not front.is_empty():
+		draw_multiline(front, Color("ff6a4a"), (nw * 0.75) / zoom)
 
 
 func province_color(p) -> Color:
@@ -321,40 +416,25 @@ func province_color(p) -> Color:
 				return Color("4a4a44")
 			var u := clampf(game.unrest(p.id) / float(game.bal.revolt_threshold), 0.0, 1.0)
 			return Color("3a9d4a").lerp(Color("d03a2a"), u)
-		4:
+		MODE_WAR:
+			return _war_color(p.owner)
+		MODE_GOODS:
 			var gc := Color(game.goods_def[p.good].get("color", "#888888"))
 			return gc if p.owner == game.player or game.player == "" else gc.darkened(0.25)
-		5:
+		MODE_TRADE:
 			var i: int = game.markets.find(p.market)
 			var mc := Color(MARKET_COLORS[i % MARKET_COLORS.size()])
 			if p.id == p.market:
 				return mc.lightened(0.45)
 			return mc if p.owner == game.player else mc.darkened(0.35)
-		6:
-			return war_color(p)
-	var c: Color = game.nations[p.owner].color
+	var n = game.nations[p.owner]
+	var c: Color = n.color
+	# subjects read as part of their overlord's realm, with a hint of their own colour
+	if n.overlord != "" and game.nations.has(n.overlord):
+		c = c.lerp(game.nations[n.overlord].color, 0.55)
 	if p.owner == game.player:
 		c = c.lightened(0.1)
 	return c
-
-
-## War map: your side green/blue, enemies red, fronts (occupations) bright; everyone else grey.
-func war_color(p) -> Color:
-	var me: String = game.player
-	if me == "":
-		return Color("5a5a52")
-	var owner_enemy: bool = game.at_war(me, p.owner)
-	var ctrl_enemy: bool = game.at_war(me, p.controller)
-	if p.owner == me:
-		return Color("e67e22") if ctrl_enemy else Color("3a9d4a")
-	if owner_enemy:
-		return Color("f1c40f") if not ctrl_enemy else Color("b03a2e")
-	var mine_or_ally: bool = game.is_allied(me, p.owner) or game.nations[p.owner].overlord == me
-	if mine_or_ally:
-		for w in game.wars_of(me):
-			if game.side_tags(w, game.is_attacker(w, me)).has(p.owner):
-				return Color("e67e22") if ctrl_enemy else Color("4a7fd0")
-	return Color("5a5a52")
 
 
 func _draw_hatch(poly: PackedVector2Array, bb: Rect2, c: Color) -> void:
@@ -564,6 +644,12 @@ func _gui_input(event: InputEvent) -> void:
 				if not _moved:
 					_release_tap(event.position)
 		accept_event()
+	elif event is InputEventMouseMotion and not _mouse_down and event.device != InputEvent.DEVICE_ID_EMULATION and not _touch_used:
+		_hover_pos = event.position
+		var pid := province_at(event.position)
+		if pid != hover_pid or pid >= 0:
+			hover_pid = pid
+			queue_redraw()
 	elif event is InputEventMouseMotion and _mouse_down and event.device != InputEvent.DEVICE_ID_EMULATION:
 		if _moved or event.position.distance_to(_press_pos) > 6.0:
 			_moved = true
@@ -632,3 +718,9 @@ func _draw_counter(a, s: Vector2, c: Color, counter: Texture2D) -> void:
 	var tp := Vector2(cx - w / 2, s.y + fs * 0.36)
 	draw_string_outline(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 2 if compact else 3, Color.BLACK)
 	draw_string(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_MOUSE_EXIT and hover_pid >= 0:
+		hover_pid = -1
+		queue_redraw()

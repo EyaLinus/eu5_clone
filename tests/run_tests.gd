@@ -16,7 +16,7 @@ func _init() -> void:
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_economy_goods_and_trade", "test_buildings", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
-		"test_missions_complete", "test_long_run_no_softlock",
+		"test_missions_complete", "test_long_run_no_softlock", "test_emoji_coverage",
 	]:
 		var before := failures
 		call(t)
@@ -548,3 +548,26 @@ func test_long_run_no_softlock() -> void:
 		if g.month - w.start > int(g.bal.war_timeout_months):
 			stuck += 1
 	check(stuck == 0, "no war older than the timeout")
+
+
+## Every emoji in UI code and data/*.json needs a pixel glyph (scripts/ui/pixel_emoji.gd); there is no emoji font.
+## Nation emoji are exempt (nations show their flag) but every nation needs one.
+func test_emoji_coverage() -> void:
+	var have: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/art/emoji/emoji.json"))
+	var files := []
+	for f in DirAccess.get_files_at("res://data"):
+		# nation emoji are replaced by flags; the map has no text
+		if f.ends_with(".json") and f != "nations.json" and f != "map.json":
+			files.append("res://data/" + f)
+	for f in DirAccess.get_files_at("res://scripts/ui"):
+		if f.ends_with(".gd"):
+			files.append("res://scripts/ui/" + f)
+	for path in files:
+		var text := FileAccess.get_file_as_string(path)
+		for i in text.length():
+			var c := text.unicode_at(i)
+			# emoji blocks; leaves arrows, maths signs, box drawing and the variation selector alone
+			if (c >= 0x2300 and c < 0x2500) or (c >= 0x25A0 and c < 0x2C00) or c >= 0x1F000:
+				check(have.has("%x" % c), "%s: no pixel glyph for %s (U+%X), add it in tools/art/emoji_icons.py" % [path, char(c), c])
+	for tag in data.nations:
+		check(ResourceLoader.exists("res://assets/art/icons/flag_%s.png" % tag), "nation %s has no flag" % tag)
