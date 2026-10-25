@@ -1638,6 +1638,39 @@ func recruit(tag: String, pid: int, count: int) -> String:
 	return ""
 
 
+## Mercenaries: up to merc_regs regiments without manpower, for merc_cost_mult × the gold, once per merc_cooldown months.
+func merc_cost(tag: String) -> float:
+	return float(bal.merc_regs) * float(bal.regiment_cost) * float(bal.merc_cost_mult)
+
+
+func merc_ready_in(tag: String) -> int:
+	return maxi(0, int(nations[tag].flags.get("merc_month", -9999)) + int(bal.merc_cooldown) - month)
+
+
+func hire_mercs(tag: String, pid: int) -> String:
+	var n: Nation = nations[tag]
+	if provinces[pid].owner != tag or provinces[pid].controller != tag:
+		return "Nur in eigenen, unbesetzten Provinzen."
+	if merc_ready_in(tag) > 0:
+		return "Neue Söldner erst in %d Monaten." % merc_ready_in(tag)
+	var room: int = int(force_limit(tag) + 0.01 - army_regs(tag))
+	var count: int = mini(int(bal.merc_regs), room)
+	if count < 1:
+		return "Truppenlimit erreicht (%d)." % int(force_limit(tag))
+	var cost: float = merc_cost(tag) * count / float(bal.merc_regs)
+	if n.gold < cost:
+		return "Zu wenig Gold (%d benötigt)." % int(cost)
+	n.gold -= cost
+	n.flags["merc_month"] = month
+	for a in armies_in(pid):
+		if a.owner == tag:
+			a.regs += count
+			a.full += count
+			return ""
+	spawn_army(tag, pid, count)
+	return ""
+
+
 func disband(army: Army, count: float) -> void:
 	army.regs -= count
 	army.full = maxf(army.regs, army.full - count)

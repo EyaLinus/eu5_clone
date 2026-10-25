@@ -1354,6 +1354,10 @@ func _panel_province(pid: int) -> void:
 		side_box.add_child(_row([
 			_btn("⚔️ +1 Reg. (%d💰)" % c, func(): _act(game.recruit(me, pid, 1), "⚔️ Rekrutiert")),
 			_btn("⚔️ +5 (%d💰)" % (c * 5), func(): _act(game.recruit(me, pid, 5), "⚔️ Rekrutiert"))]))
+		var wait: int = game.merc_ready_in(me)
+		side_box.add_child(_btn("💰 Söldner: %d Reg. (%d💰)%s" % [int(game.bal.merc_regs), int(game.merc_cost(me)), (" · in %d Mon." % wait) if wait > 0 else ""],
+				func(): _act(game.hire_mercs(me, pid), "💰 Söldner angeworben"),
+				"Sofort %d Regimenter ohne Mannschaften, kostet aber das %d-fache Gold. Einmal alle %d Monate." % [int(game.bal.merc_regs), int(game.bal.merc_cost_mult), int(game.bal.merc_cooldown)], wait > 0))
 	else:
 		if not p.buildings.is_empty():
 			var bl := []

@@ -83,6 +83,11 @@ func _spend_gold(g, n) -> void:
 	var cost := float(g.bal.regiment_cost)
 	var reserve: float = 10.0 + n.expenses * 4.0
 	var k: int = int(minf(minf((n.gold - reserve) / cost, want - regs), n.manpower))
+	# out of manpower in a war: hire mercenaries if the chest allows
+	if war and n.manpower < 1.0 and regs < want - 2.0 and n.gold >= g.merc_cost(tag) + reserve and g.merc_ready_in(tag) == 0 \
+			and g.provinces[n.capital].controller == tag:
+		g.hire_mercs(tag, n.capital)
+		return
 	if k >= 1:
 		var where: int = n.capital
 		if g.provinces[where].controller != tag:
