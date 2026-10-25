@@ -6,6 +6,7 @@ const Game = preload("res://scripts/core/game.gd")
 const Data = preload("res://scripts/core/data.gd")
 const MapView = preload("res://scripts/ui/map_view.gd")
 const Icons = preload("res://scripts/ui/icons.gd")
+const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
 const SAVE_PATH := "user://save.json"
 const SETTINGS_PATH := "user://settings.json"
 const UI_SCALES := [0.85, 1.0, 1.2, 1.4]
@@ -123,13 +124,7 @@ func _cycle_ui_scale() -> void:
 func _setup_theme() -> void:
 	var t := Theme.new()
 	t.default_font_size = 20
-	var emoji = load("res://assets/fonts/NotoColorEmoji.ttf")
-	if emoji is FontFile:
-		emoji.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_ENABLED
-		var base: Font = ThemeDB.fallback_font
-		var fb: Array[Font] = base.fallbacks
-		fb.append(emoji)
-		base.fallbacks = fb
+	PixelEmoji.install()  # all emoji in UI strings are drawn as pixel glyphs
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.09, 0.1, 0.13, 0.94)
 	sb.set_corner_radius_all(10)
@@ -395,7 +390,7 @@ func _act(err: String, ok_text: String = "") -> void:
 
 func nname(tag: String) -> String:
 	var n = game.nations[tag]
-	return "%s %s" % [n.emoji, n.name]
+	return "%s %s" % [PixelEmoji.nation(tag, n.emoji), n.name]
 
 
 ## Button for a nation: pixel flag as icon when available, emoji otherwise.
@@ -422,7 +417,7 @@ func _show_start_menu() -> void:
 		if tag == EXTRA_PLAYABLE[0]:
 			modal_box.add_child(_lbl("Weitere Nationen (weniger Missionen und Events):", 16, Color(0.85, 0.75, 0.5)))
 		var nd: Dictionary = data.nations[tag]
-		var b := _btn("%s %s" % [nd.emoji, nd.name], _start_game.bind(tag))
+		var b := _btn("%s %s" % [PixelEmoji.nation(tag, nd.emoji), nd.name], _start_game.bind(tag))
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		modal_box.add_child(b)
 		modal_box.add_child(_lbl(nd.get("idea", ""), 15, Color(0.7, 0.75, 0.8)))
@@ -479,7 +474,7 @@ func _after_game_loaded() -> void:
 func _show_intro() -> void:
 	var n = game.nations[game.player]
 	_open_modal()
-	modal_box.add_child(_lbl("%s %s, %s" % [n.emoji, n.name, game.date_string()], 30))
+	modal_box.add_child(_lbl("%s, %s" % [nname(game.player), game.date_string()], 30))
 	modal_box.add_child(_lbl(n.idea, 18, Color(0.8, 0.85, 0.7)))
 	modal_box.add_child(_lbl("So spielst du:\n• Zeit läuft mit ▶/➕ oben rechts, ⏸ pausiert.\n• Tippe auf eine Provinz für Infos und Aktionen (Entwickeln, Rekrutieren, Krieg).\n• Tippe auf eine Armee (Kreis mit Zahl) und dann auf ein Ziel, um sie zu bewegen. 🤖 lässt sie automatisch kämpfen.\n• 📜 Admin, 🕊️ Diplomatie und ⚔️ Militär sammeln sich monatlich: für Technologie, Entwicklung, Bündnisse und Kriegsgründe.\n• 😠 Aggressive Expansion steigt bei Eroberungen. Ab %d bilden Nachbarn Koalitionen gegen dich.\n• ✊ Frisch eroberte Provinzen sind unruhig, Kriegsmüdigkeit verstärkt das. Garnisonen und Unterdrückung helfen.\n• Am PC: Leertaste = Pause, 1–5 = Tempo, Esc = Panel schließen." % int(game.bal.ae_coalition_threshold), 17))
 	modal_box.add_child(_btn("Los geht's ▶", func(): _close_modal(); _set_speed(2)))
@@ -1279,9 +1274,9 @@ func _panel_wars() -> void:
 		var us := []
 		var them := []
 		for t in game.side_tags(w, att):
-			us.append(game.nations[t].emoji + game.nations[t].name)
+			us.append(nname(t))
 		for t in game.side_tags(w, not att):
-			them.append(game.nations[t].emoji + game.nations[t].name)
+			them.append(nname(t))
 		side_box.add_child(_lbl("🔥 " + w.name, 20, Color(1, 0.8, 0.6)))
 		side_box.add_child(_lbl("Wir: %s\nGegner: %s\nKriegspunkte: %+d · Dauer: %d Monate" % [", ".join(us), ", ".join(them), int(ws), game.month - w.start], 16))
 		if game.side_tags(w, att)[0] == me:

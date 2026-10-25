@@ -1,0 +1,24 @@
+# gold – HUD resource icon, anchor 1/3. 16x16 grid, export x2 = 32 px
+legend:
+. = transparent
+k = ink
+D = gold_dark
+G = gold
+L = gold_light
+---
+................
+........kkkkkk..
+.......kLLLGGGk.
+.......kGGGGGDk.
+.......kDDDDDDk.
+....kkkkLGGGGDk.
+..kkLLLLkkDDDDk.
+..kLLGGGGkGGGDk.
+.kLGGDDGGDkDDDk.
+.kLGDGGDGDkGGDk.
+.kLGDGGDGDkDDDk.
+.kGGGDDGDDkkkk..
+..kGGGGDDk......
+..kkDDDDkk......
+....kkkk........
+................
