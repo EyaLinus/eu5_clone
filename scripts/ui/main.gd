@@ -538,6 +538,8 @@ func _cycle_map_mode() -> void:
 		legend = " (dunkel = arm, gelb = reich)"
 	elif map.map_mode == 3:
 		legend = " (eigene Provinzen: grün = ruhig, rot = Aufstand droht)"
+	elif map.map_mode == map.MODE_WAR:
+		legend = " (🟩 du, 🟦 Mitkämpfer, 🟥 Feinde, Streifen = besetzt)" if not game.wars_of(game.player).is_empty() else " (du führst gerade keinen Krieg)"
 	_toast("🗺️ Kartenmodus: " + map.MODE_NAMES[map.map_mode] + legend)
 
 
