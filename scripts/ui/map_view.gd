@@ -163,7 +163,7 @@ func province_color(p) -> Color:
 				return Color("9aa7b0")
 			return Color("6b6b62")
 		2:
-			var t := clampf((p.dev - 3.0) / 22.0, 0.0, 1.0)
+			var t := clampf((p.dev - 3.0) / 37.0, 0.0, 1.0)
 			return Color("2d1b4e").lerp(Color("f4d35e"), t)
 		3:
 			if p.owner != game.player:

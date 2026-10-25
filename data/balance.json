@@ -27,7 +27,7 @@
   "develop_step": 4.0,
   "build_base": 40.0,
   "build_step": 6.0,
-  "max_dev": 30,
+  "max_dev": 99,
   "battle_loser_loss": 0.35,
   "battle_winner_loss": 0.12,
   "home_defense": 0.1,
@@ -84,5 +84,7 @@
   "revolt_chance": 0.01,
   "vassal_liberty_threshold": 1.0,
   "emperor_dip": 1.0,
-  "emperor_incumbency": 25.0
+  "emperor_incumbency": 25.0,
+  "dev_soft_cap": 25,
+  "dev_over_mult": 0.08
 }

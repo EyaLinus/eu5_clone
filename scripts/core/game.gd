@@ -436,12 +436,17 @@ func tech_cost(tag: String, kind: String) -> float:
 	return round((float(bal.tech_base) + float(bal.tech_step) * lvl) * (1.0 + ahead * float(bal.tech_ahead_penalty)))
 
 
+## Soft cap: above `dev_soft_cap` every further point gets `dev_over_mult` more expensive (hard cap `max_dev`).
+func _dev_mult(pid: int) -> float:
+	return 1.0 + maxf(0.0, provinces[pid].dev - float(bal.dev_soft_cap)) * float(bal.dev_over_mult)
+
+
 func develop_cost(pid: int) -> float:
-	return float(bal.develop_base) + float(bal.develop_step) * provinces[pid].dev
+	return (float(bal.develop_base) + float(bal.develop_step) * provinces[pid].dev) * _dev_mult(pid)
 
 
 func build_cost(pid: int) -> float:
-	return float(bal.build_base) + float(bal.build_step) * provinces[pid].dev
+	return (float(bal.build_base) + float(bal.build_step) * provinces[pid].dev) * _dev_mult(pid)
 
 
 func score(tag: String) -> float:
