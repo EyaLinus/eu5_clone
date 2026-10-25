@@ -1276,19 +1276,28 @@ func _panel_province(pid: int) -> void:
 	side_box.add_child(owner_btn)
 	var gd: Dictionary = game.goods_def[p.good]
 	var price: float = game.prices[p.good]
-	var info := "🏘️ Entwicklung: %d\n%s %s: %.1f × %.2f 💰 = %.2f/Monat\n💰 Steuer: %.2f/Monat" % [p.dev, gd.emoji, gd.name,
-			Eco.units(game, p), price, Eco.production_value(game, p), Eco.tax(game, p)]
-	info += "\n🏬 Markt %s · Handelsmacht %.0f" % [game.provinces[p.market].name, Eco.province_trade_power(game, p)]
+	# one line per fact, each with an explanation (hover / long press)
+	var rows: Array = []
+	rows.append(["🏘️ Entwicklung: %d · %d Bauplätze" % [p.dev, Eco.slots(game, p)],
+			"Entwicklung erhöht Steuern, Güterproduktion, Handelsmacht und Mannschaften. Alle %d Stufen gibt es einen Bauplatz mehr (höchstens %d)." % [int(game.bal.dev_per_building_slot), int(game.bal.building_slots_max)]])
+	rows.append(["%s %s: %.1f × %.2f 💰 = %.2f/Monat" % [gd.emoji, gd.name, Eco.units(game, p), price, Eco.production_value(game, p)],
+			"Produktion × Marktpreis. Die Menge wächst mit Entwicklung, Werkstatt, Manufaktur und Hafen; der Preis ändert sich jährlich mit Angebot und Nachfrage. Marktführer bei %s erhält: %s." % [gd.name, gd.bonus_text]])
+	rows.append(["💰 Steuer: %.2f/Monat" % Eco.tax(game, p), "Steuern steigen mit Entwicklung und Marktplatz, Gesetze und Techs geben weitere Prozente."])
+	rows.append(["🏬 Markt %s · Handelsmacht %.0f" % [game.provinces[p.market].name, Eco.province_trade_power(game, p)],
+			"Die Handelsmacht zählt im Markt %s. Dein Anteil an allen Handelsmächten dort ergibt deinen Anteil am Marktwert. Marktplatz und Hafen steigern sie, Händler im Markt noch mehr." % game.provinces[p.market].name])
+	if p.coastal:
+		rows.append(["⚓ Küstenprovinz", "Hier kann ein Hafen gebaut werden."])
 	if Eco.fort_level(game, p) > 0:
-		info += "\n🏰 Festung Stufe %d (Belagerung dauert länger)" % Eco.fort_level(game, p)
+		rows.append(["🏰 Festung Stufe %d" % Eco.fort_level(game, p), "Belagerungen dauern deutlich länger."])
 	if p.core_months > 0:
-		info += "\n🔨 Wird integriert: noch %d Monate (%d %% Einkommen)" % [p.core_months, int(Eco.uncored_mult(game, p) * 100)]
+		rows.append(["🔨 Wird integriert: noch %d Monate (%d %% Einkommen)" % [p.core_months, int(Eco.uncored_mult(game, p) * 100)],
+				"Frisch erobertes Land bringt weniger Einkommen und mehr Unruhe, bis es integriert ist. Ein Gerichtshof hilft."])
 	if p.controller != p.owner:
-		info += "\n🔥 Besetzt von " + game.nations[p.controller].name
+		rows.append(["🔥 Besetzt von " + game.nations[p.controller].name, "Besetzte Provinzen bringen ihrem Besitzer nichts ein."])
 	if p.siege > 0:
-		info += "\n🔥 Belagerung: %d%%" % int(p.siege)
+		rows.append(["🔥 Belagerung: %d%%" % int(p.siege), "Bei 100 % fällt die Provinz an den Belagerer (bis zum Frieden)."])
 	if n.claims.has(pid):
-		info += "\n📜 Du hast einen Anspruch (Kriegsgrund)"
+		rows.append(["📜 Du hast einen Anspruch", "Ein Anspruch ist ein Kriegsgrund und macht die Provinz im Frieden billiger."])
 	if p.owner == me:
 		var u: Dictionary = game.unrest_parts(pid)
 		var why := []
@@ -1304,10 +1313,16 @@ func _panel_province(pid: int) -> void:
 			why.append("Gebäude %.1f" % u.buildings)
 		if absf(u.policy) >= 0.05:
 			why.append("Regierung & Technik %+.1f" % u.policy)
-		info += "\n✊ Unruhe %.1f / %d%s" % [u.total, int(game.bal.revolt_threshold), (" (" + ", ".join(why) + ")") if not why.is_empty() else ""]
+		rows.append(["✊ Unruhe %.1f / %d%s" % [u.total, int(game.bal.revolt_threshold), (" (" + ", ".join(why) + ")") if not why.is_empty() else ""],
+				"Ab %d Unruhe drohen Aufstände. Senken: Truppen in der Provinz, Unterdrücken, Gerichtshof, Festung, Gesetze." % int(game.bal.revolt_threshold)])
 		if p.prev_owner != "" and p.core_months > 0 and game.nations[p.prev_owner].alive:
-			info += "\n⚠️ Bei einem Aufstand fällt die Provinz an %s zurück." % game.nations[p.prev_owner].name
-	side_box.add_child(_lbl(info))
+			rows.append(["⚠️ Bei einem Aufstand fällt die Provinz an %s zurück." % game.nations[p.prev_owner].name, ""])
+	for r in rows:
+		var l := _lbl(r[0])
+		if r[1] != "":
+			l.tooltip_text = r[1]
+			l.mouse_filter = Control.MOUSE_FILTER_STOP
+		side_box.add_child(l)
 	if p.owner == me:
 		if game.unrest(pid) > 0.0 and p.suppress_months == 0:
 			side_box.add_child(_btn("✊ Unruhe unterdrücken (%d ⚔️)" % int(game.suppress_cost(pid)), func(): _act(game.suppress_unrest(me, pid), "✊ Ruhe wiederhergestellt")))
