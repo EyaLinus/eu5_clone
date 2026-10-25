@@ -50,6 +50,7 @@ var _war_side := {}
 var font: Font
 ## 0 political, 1 diplomatic (player view), 2 development, 3 unrest, 4 war, 5 goods, 6 trade (markets)
 var map_mode := 0
+var label_scale := 1.0  # >1 on phones / big UI: larger map text
 const MODE_NAMES := ["Politisch", "Diplomatisch", "Entwicklung", "Unruhe", "Krieg", "Güter", "Handel"]
 const MODE_WAR := 4
 const MODE_GOODS := 5
@@ -451,7 +452,7 @@ func _draw_hatch(poly: PackedVector2Array, bb: Rect2, c: Color) -> void:
 
 func _draw_labels() -> void:
 	if zoom >= 1.1:
-		var fs := int(clampf(11.0 * zoom, 11.0, 18.0))
+		var fs := int(clampf(11.0 * zoom, 12.0, 18.0) * label_scale)
 		for p in game.provinces:
 			var s := to_screen(p.center)
 			if not Rect2(Vector2.ZERO, size).has_point(s):
@@ -461,7 +462,7 @@ func _draw_labels() -> void:
 				txt += " 🔥%d%%" % int(p.siege)
 			var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 			var pos := s + Vector2(-w / 2, -ARMY_R - 4)
-			draw_string_outline(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color(0, 0, 0, 0.7))
+			draw_string_outline(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0, 0, 0, 0.85))
 			draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
 	else:
 		var fs := int(clampf(16.0 * zoom + 4.0, 10.0, 22.0))
@@ -473,14 +474,14 @@ func _draw_labels() -> void:
 			var s := to_screen(_realm_center(tag, owned))
 			var txt: String = n.name
 			var big := clampf(sqrt(float(owned.size())) / 3.0, 1.0, 1.6)
-			fs = int(clampf((16.0 * zoom + 4.0) * big, 10.0, 30.0))
+			fs = int(clampf((16.0 * zoom + 4.0) * big, 12.0, 30.0) * label_scale)
 			var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 			var pos := s + Vector2(-w / 2, -ARMY_R - 4)
 			var flag := Icons.flag(tag)
 			if flag != null:
 				var fsz := Vector2(fs * 1.5, fs)
 				draw_texture_rect(flag, Rect2(pos + Vector2(-fsz.x - 4, -fs * 0.85), fsz), false)
-			draw_string_outline(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color(0, 0, 0, 0.8))
+			draw_string_outline(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0, 0, 0, 0.9))
 			draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
 
 

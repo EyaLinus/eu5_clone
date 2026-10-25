@@ -68,6 +68,12 @@ func _spend_gold(g, n) -> void:
 	var upkeep: float = float(g.bal.regiment_maintenance) * (1.0 if war else float(g.bal.peace_maintenance_mult))
 	var affordable: float = maxf(1.0, n.income * (0.85 if war else 0.7) / maxf(upkeep, 0.001))
 	want = minf(want, affordable)
+	var Eco = g.Economy
+	# loans bridge a war chest gap; pay them back in peace when the treasury allows
+	if war and n.gold < 0.0 and n.loans.size() < 2 and n.income > n.expenses * 0.6:
+		Eco.take_loan(g, tag)
+	elif not war and not n.loans.is_empty() and n.gold > float(n.loans[n.loans.size() - 1]) + 40.0:
+		Eco.repay_loan(g, tag)
 	if n.gold < -5.0 or (not war and regs > minf(fl, affordable) + 1.0):
 		var arms: Array = g.armies_of(tag)
 		if not arms.is_empty():

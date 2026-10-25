@@ -89,6 +89,7 @@ func _ready() -> void:
 	map.province_tapped.connect(_on_province_tapped)
 	map.army_tapped.connect(_on_army_tapped)
 	map.province_long_pressed.connect(_on_province_info)
+	map.label_scale = 1.2 if _big() else 1.0
 	hud = Control.new()
 	hud.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -282,6 +283,16 @@ func _build_hud() -> void:
 	toast.add_theme_color_override("font_outline_color", Color.BLACK)
 	toast.add_theme_constant_override("outline_size", 6)
 	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tsb := StyleBoxFlat.new()
+	tsb.bg_color = Color(0.05, 0.06, 0.09, 0.82)
+	tsb.set_corner_radius_all(8)
+	tsb.content_margin_left = 14
+	tsb.content_margin_right = 14
+	tsb.content_margin_top = 4
+	tsb.content_margin_bottom = 4
+	toast.add_theme_stylebox_override("normal", tsb)
+	toast.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	toast.visible = false
 	hud.add_child(toast)
 
 
@@ -389,6 +400,12 @@ func _row(children: Array) -> HBoxContainer:
 
 func _toast(text: String) -> void:
 	toast.text = text
+	toast.visible = text != ""
+	# box hugs the text (max 840 px wide, wraps beyond)
+	var f: Font = toast.get_theme_font("font")
+	var w: float = minf(840.0, f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, toast.get_theme_font_size("font_size")).x + 40.0)
+	toast.offset_left = -w / 2.0
+	toast.offset_right = w / 2.0
 	toast_time = 4.0
 
 
@@ -631,6 +648,7 @@ func _process(delta: float) -> void:
 		toast_time -= delta
 		if toast_time <= 0.0:
 			toast.text = ""
+			toast.visible = false
 	if game == null or modal.visible or speed == 0 or game.game_over:
 		return
 	acc += delta
@@ -821,6 +839,16 @@ func _update_top() -> void:
 	top_labels.ae.add_theme_color_override("font_color", Color.TOMATO if n.ae >= game.bal.ae_coalition_threshold * 0.7 else Color.WHITE)
 	top_labels.gold.add_theme_color_override("font_color", Color.TOMATO if n.gold < 0 else Color.WHITE)
 	top_labels.date.text = Icons.prefix("date") + game.date_string()
+	# live tooltips (long press on mobile)
+	var trib: float = game.tribute_income(game.player)
+	top_labels.gold.tooltip_text = "Gold %d · Bilanz %+.2f/Monat\nEinnahmen %.2f (Steuern %.2f, Güter %.2f, Handel %.2f)\nAusgaben %.2f%s" % [
+			n.gold, net, n.income, n.tax_income, n.prod_income, n.trade_income, n.expenses, ("\nTribut %+.2f" % trib) if trib != 0.0 else ""]
+	var cap := int(game.bal.power_cap)
+	for k in ["adm", "dip", "mil"]:
+		top_labels[k].tooltip_text = "%s\n%+.1f pro Monat, Obergrenze %d" % [HUD_TIPS[k], game.monthly_power(n, k), cap]
+	top_labels.manpower.tooltip_text = "Mannschaften %.0f / %.0f\nFüllen sich jeden Monat auf; Gutshöfe und Kasernen erhöhen das Maximum." % [n.manpower, n.max_manpower]
+	top_labels.army.tooltip_text = "Regimenter / Truppenlimit\nMehr Regimenter als das Limit kannst du nicht ausheben. Kasernen, Technik und Ränge erhöhen es."
+	top_labels.ae.tooltip_text = "Aggressive Expansion %d (Koalitionsgrenze %d)\nSinkt langsam; hohe Werte machen Nachbarn feindlich." % [n.ae, int(game.bal.ae_coalition_threshold)]
 	speed_label.text = "⏸" if speed == 0 else "▶".repeat(speed)
 	_update_badges()
 
@@ -1349,12 +1377,31 @@ func _panel_economy() -> void:
 	var Eco = game.Economy
 	side_title.text = "💰 Wirtschaft"
 	var trib: float = game.tribute_income(me)
-	var army_cost: float = n.expenses - Eco.upkeep(game, me)
+	var intr: float = Eco.interest(game, n)
+	var army_cost: float = n.expenses - Eco.upkeep(game, me) - intr
 	var lines := "Einnahmen %.2f/Monat\n  💰 Steuern %.2f\n  🏭 Güter %.2f\n  🏬 Handel %.2f" % [n.income, n.tax_income, n.prod_income, n.trade_income]
 	if trib != 0.0:
 		lines += "\n  ⛓️ Tribut %+.2f" % trib
 	lines += "\nAusgaben %.2f/Monat\n  🛡️ Armee %.2f\n  🏰 Gebäude %.2f" % [n.expenses, army_cost, Eco.upkeep(game, me)]
+	if intr > 0.0:
+		lines += "\n  🏦 Zinsen %.2f" % intr
 	side_box.add_child(_lbl(lines))
+	# loans
+	var lrow := HBoxContainer.new()
+	var lsize: float = Eco.loan_size(game, n)
+	lrow.add_child(_btn("🏦 Kredit +%d💰 (%d%%)" % [int(lsize), int(round(Eco.loan_rate(game, n) * 100))], func():
+		_act(Eco.take_loan(game, me), "🏦 Kredit aufgenommen"),
+		"Sofort %d Gold. Zinsen %.1f%% pro Jahr, jeder weitere Kredit wird teurer. Höchstens %d Kredite." % [int(lsize), Eco.loan_rate(game, n) * 100, int(game.bal.max_loans)],
+		n.loans.size() >= int(game.bal.max_loans)))
+	if not n.loans.is_empty():
+		var last: float = n.loans[n.loans.size() - 1]
+		lrow.add_child(_btn("↩ Tilgen %d💰" % int(last), func(): _act(Eco.repay_loan(game, me), "🏦 Kredit getilgt"),
+				"Zahlt den teuersten Kredit zurück.", n.gold < last))
+	for c in lrow.get_children():
+		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	side_box.add_child(lrow)
+	if not n.loans.is_empty():
+		side_box.add_child(_lbl("🏦 %d Kredite · Schulden %d💰 · Zinsen %.2f/Monat" % [n.loans.size(), int(Eco.debt(n)), intr], 16, Color(0.95, 0.75, 0.5)))
 	var best: Array = Eco.best_building(game, n, game.is_at_war(me))
 	if not best.is_empty():
 		var bd: Dictionary = game.buildings_def[best[1]]
@@ -1421,6 +1468,10 @@ func _panel_economy() -> void:
 		if leader != "":
 			txt += " · 👑 " + game.nations[leader].name
 		var why := "%s %s: Marktführer (meiste Produktion, mind. %d %% der Welt) erhält %s." % [gd.emoji, gd.name, int(float(game.bal.goods_leader_share) * 100), gd.bonus_text]
+		if game.shocks.has(k):
+			var sh: Dictionary = game.shocks[k]
+			txt += " · ⚠️"
+			why += "\n%s noch %d Jahre: Preis ×%.1f." % ["Knappheit" if float(sh.mult) > 1.0 else "Überangebot", int(sh.years), float(sh.mult)]
 		var b := _btn(txt, _toast.bind(why), why)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		if leader == me:

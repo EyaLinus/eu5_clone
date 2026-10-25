@@ -23,6 +23,7 @@ static func setup(g, data: Dictionary) -> void:
 	for k in g.goods_def:
 		g.prices[k] = float(g.goods_def[k].price)
 	g.prev_prices = g.prices.duplicate()
+	g.shocks = {}
 	g.base_supply = supply(g)
 
 
@@ -215,18 +216,47 @@ static func supply(g) -> Dictionary:
 ## Yearly: prices follow world supply against slowly growing demand; the biggest producer of a good
 ## (at least `goods_leader_share` of world output) gets that good's bonus.
 static func yearly(g) -> void:
+	_shocks_yearly(g)
 	var s := supply(g)
 	var years: float = g.year() - int(g.bal.start_year)
 	g.prev_prices = g.prices.duplicate()
 	for k in g.goods_def:
 		var demand: float = float(g.base_supply.get(k, 1.0)) * (1.0 + float(g.bal.demand_growth) * years)
 		var ratio: float = sqrt(demand / maxf(0.01, s[k]))
-		g.prices[k] = snappedf(float(g.goods_def[k].price) * clampf(ratio, float(g.bal.price_min), float(g.bal.price_max)), 0.001)
+		var shock: float = float(g.shocks[k].mult) if g.shocks.has(k) else 1.0
+		g.prices[k] = snappedf(float(g.goods_def[k].price) * clampf(ratio, float(g.bal.price_min), float(g.bal.price_max)) * shock, 0.001)
 	refresh_goods_leaders(g)
 	for tag in g.order:
 		var n = g.nations[tag]
 		if n.alive and (n.merchant_auto or tag != g.player):
 			auto_merchants(g, n)
+
+
+## Market shocks: now and then a good gets scarce (harvest failure, war, plague) or floods the market
+## for a few years. Ages existing shocks; at most one new shock per year.
+static func _shocks_yearly(g) -> void:
+	for k in g.shocks.keys():
+		g.shocks[k].years -= 1
+		if g.shocks[k].years <= 0:
+			g.shocks.erase(k)
+			g.log_msg("⚖️ Der Markt für %s %s hat sich beruhigt." % [g.goods_def[k].emoji, g.goods_def[k].name])
+	if g.rng.randf() >= float(g.bal.shock_chance):
+		return
+	var free: Array = []
+	for k in g.goods_def:
+		if not g.shocks.has(k):
+			free.append(k)
+	if free.is_empty():
+		return
+	var k: String = free[g.rng.randi() % free.size()]
+	var up: bool = g.rng.randf() < 0.5
+	var years: int = g.rng.randi_range(int(g.bal.shock_years_min), int(g.bal.shock_years_max))
+	g.shocks[k] = {"mult": float(g.bal.shock_up) if up else float(g.bal.shock_down), "years": years}
+	var gd: Dictionary = g.goods_def[k]
+	if up:
+		g.log_msg("📈 Knappheit: %s %s wird für %d Jahre deutlich teurer. Wer es herstellt, verdient mehr." % [gd.emoji, gd.name, years])
+	else:
+		g.log_msg("📉 Überangebot: %s %s wird für %d Jahre billiger." % [gd.emoji, gd.name, years])
 
 
 static func goods_output(g, tag: String) -> Dictionary:
@@ -361,6 +391,56 @@ static func recall_merchant(g, tag: String, m: int) -> void:
 	n.merchant_auto = false
 	n.merchants.erase(m)
 	update_markets(g)
+
+
+# ---------------------------------------------------------------- loans
+
+## Size of one loan: a year of income, at least loan_min.
+static func loan_size(g, n) -> float:
+	return maxf(float(g.bal.loan_min), roundf(n.income * float(g.bal.loan_months_income)))
+
+
+## Yearly interest rate of the next loan: base plus a step for every loan already taken.
+static func loan_rate(g, n) -> float:
+	return float(g.bal.loan_interest) + float(g.bal.loan_interest_step) * n.loans.size()
+
+
+## Monthly interest on all open loans (later loans cost more).
+static func interest(g, n) -> float:
+	var v := 0.0
+	for i in n.loans.size():
+		v += float(n.loans[i]) * (float(g.bal.loan_interest) + float(g.bal.loan_interest_step) * i) / 12.0
+	return v
+
+
+static func debt(n) -> float:
+	var v := 0.0
+	for l in n.loans:
+		v += float(l)
+	return v
+
+
+static func take_loan(g, tag: String) -> String:
+	var n = g.nations[tag]
+	if n.loans.size() >= int(g.bal.max_loans):
+		return "Keine Bank leiht dir mehr (höchstens %d Kredite)." % int(g.bal.max_loans)
+	var amt := loan_size(g, n)
+	n.loans.append(amt)
+	n.gold += amt
+	return ""
+
+
+## Pays back the most expensive (last) loan.
+static func repay_loan(g, tag: String) -> String:
+	var n = g.nations[tag]
+	if n.loans.is_empty():
+		return "Keine offenen Kredite."
+	var amt: float = n.loans[n.loans.size() - 1]
+	if n.gold < amt:
+		return "Zu wenig Gold (%d benötigt)." % int(amt)
+	n.gold -= amt
+	n.loans.pop_back()
+	return ""
 
 
 # ---------------------------------------------------------------- AI

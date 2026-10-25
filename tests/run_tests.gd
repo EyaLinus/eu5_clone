@@ -15,7 +15,7 @@ func _init() -> void:
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
-		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures",
@@ -437,6 +437,42 @@ func test_harbor() -> void:
 	check(Eco.province_trade_power(g, london) > tp0 + 2.9, "harbor adds trade power")
 	g._update_cached(n)
 	check(g.mod(n, "trade") >= 0.02, "harbor raises national trade income")
+
+
+func test_loans_and_shocks() -> void:
+	var g = new_game("FRA", 5)
+	var Eco = g.Economy
+	var n = g.nations.FRA
+	n.gold = 0.0
+	var size: float = Eco.loan_size(g, n)
+	check(size >= float(g.bal.loan_min), "a loan is at least the minimum")
+	check(Eco.take_loan(g, "FRA") == "" and n.gold == size, "taking a loan pays out gold")
+	check(Eco.interest(g, n) > 0.0, "loans cost interest")
+	var r1: float = Eco.loan_rate(g, n)
+	Eco.take_loan(g, "FRA")
+	check(Eco.loan_rate(g, n) > r1, "every further loan is more expensive")
+	for i in 10:
+		Eco.take_loan(g, "FRA")
+	check(n.loans.size() == int(g.bal.max_loans), "loans are capped")
+	n.gold = 0.0
+	check(Eco.repay_loan(g, "FRA") != "", "repaying needs gold")
+	n.gold = 100000.0
+	check(Eco.repay_loan(g, "FRA") == "" and n.loans.size() == int(g.bal.max_loans) - 1, "repaying removes a loan")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.FRA.loans.size() == n.loans.size(), "loans are saved")
+	# market shocks: price follows the shock, shocks expire
+	var k: String = g.goods_def.keys()[0]
+	g.shocks = {k: {"mult": 1.4, "years": 2}}
+	g.bal.shock_chance = 0.0
+	var base: float = g.prices[k]
+	Eco.yearly(g)
+	check(g.prices[k] > base * 1.2, "a scarcity shock raises the price")
+	Eco.yearly(g)
+	check(not g.shocks.has(k), "shocks expire")
+	g.bal.shock_chance = 1.0
+	Eco.yearly(g)
+	check(g.shocks.size() == 1, "new shocks appear")
 
 
 func test_autobuild() -> void:

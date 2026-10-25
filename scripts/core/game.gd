@@ -83,6 +83,7 @@ class Nation:
 	var trade_income: float = 0.0
 	var merchants: Array = []  # market center pids
 	var merchant_auto: bool = true
+	var loans: Array = []  # loan amounts (gold) still owed
 	var autobuild: bool = false  # player: build the best building whenever the treasury stays above the reserve
 	var autobuild_reserve: float = 100.0
 	var army_stance: String = ""  # player's default for new armies: "" manual, "attack" or "defend"
@@ -149,6 +150,7 @@ var prices := {}
 var prev_prices := {}
 var base_supply := {}
 var goods_leader := {}
+var shocks := {}  # good -> {"mult": price factor, "years": left}: harvest failures, gluts
 var market_cache := {}
 
 
@@ -592,7 +594,7 @@ func _economy(n: Nation) -> void:
 		maint *= float(bal.peace_maintenance_mult)
 	n.we = clampf(n.we + (float(bal.we_monthly) if war else -float(bal.we_decay)), 0.0, float(bal.we_max))
 	_unrest_tick(n)
-	n.expenses = maint + Economy.upkeep(self, n.tag)
+	n.expenses = maint + Economy.upkeep(self, n.tag) + Economy.interest(self, n)
 	if n.overlord != "":
 		var tribute: float = maxf(0.0, n.income * float(bal.vassal_tribute))
 		n.expenses += tribute
@@ -621,7 +623,7 @@ func _economy(n: Nation) -> void:
 			if arms[0].regs < 0.5:
 				armies.erase(arms[0])
 			if n.tag == player:
-				log_msg("💸 Bankrott! Truppen desertieren.")
+				log_msg("💸 Bankrott! Truppen desertieren. Ein Kredit (💰 Wirtschaft) kann die Kasse retten.")
 		if n.gold < -100.0:
 			n.gold = -100.0
 
@@ -2018,7 +2020,7 @@ func to_dict() -> Dictionary:
 	var d := {"month": month, "player": player, "rng_state": str(rng.state), "rng_seed": str(rng.seed),
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
 			"pending_peace": pending_peace, "log": log_lines, "stats": stats, "game_over": game_over, "emperor": emperor,
-			"history": history, "prices": prices, "prev_prices": prev_prices}
+			"history": history, "prices": prices, "prev_prices": prev_prices, "shocks": shocks}
 	var ps := []
 	for p in provinces:
 		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort, p.prev_owner, p.suppress_months,
@@ -2036,7 +2038,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans,
 				"techs": tree.to_save(n), "gov": govt.to_save(n)}
 	d.nations = ns
 	var ar := []
@@ -2079,6 +2081,9 @@ func from_dict(d: Dictionary) -> void:
 		prices[k] = float(d.prices[k])
 	for k in d.get("prev_prices", {}):
 		prev_prices[k] = float(d.prev_prices[k])
+	shocks = {}
+	for k in d.get("shocks", {}):
+		shocks[k] = {"mult": float(d.shocks[k].mult), "years": int(d.shocks[k].years)}
 	for i in provinces.size():
 		var e: Array = d.provinces[i]
 		var p: Province = provinces[i]
@@ -2135,6 +2140,9 @@ func from_dict(d: Dictionary) -> void:
 		n.merchant_auto = e.get("merchant_auto", true)
 		n.army_stance = e.get("army_stance", "")
 		n.autobuild = bool(e.get("autobuild", false))
+		n.loans = []
+		for l in e.get("loans", []):
+			n.loans.append(float(l))
 		n.autobuild_reserve = float(e.get("autobuild_reserve", 100.0))
 		tree.load_save(n, e.get("techs", {}))
 		govt.load_save(n, e.get("gov", {}))

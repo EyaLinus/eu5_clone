@@ -102,5 +102,15 @@
   "dev_per_building_level": 6,
   "max_merchants": 5,
   "building_dev": 1,
-  "building_level_exp": 1.5
+  "building_level_exp": 1.5,
+  "loan_months_income": 12,
+  "loan_min": 50,
+  "loan_interest": 0.05,
+  "loan_interest_step": 0.01,
+  "max_loans": 5,
+  "shock_chance": 0.35,
+  "shock_up": 1.4,
+  "shock_down": 0.7,
+  "shock_years_min": 3,
+  "shock_years_max": 6
 }
