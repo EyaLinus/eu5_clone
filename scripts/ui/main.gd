@@ -654,7 +654,10 @@ func _process(delta: float) -> void:
 	acc += delta
 	var spm: float = SPEEDS[speed]
 	var steps := 0
-	while acc >= spm and steps < 4:
+	# frame budget: slow devices run fewer months per second instead of stuttering, and never try to catch up
+	var t0 := Time.get_ticks_msec()
+	acc = minf(acc, spm * 2.0)
+	while acc >= spm and steps < 4 and (steps == 0 or Time.get_ticks_msec() - t0 < 12):
 		acc -= spm
 		game.tick()
 		steps += 1

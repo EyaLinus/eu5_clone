@@ -32,7 +32,7 @@ func _spend_power(g, n) -> void:
 			g.develop(n.tag, best)
 	# keep the realm calm: suppress provinces about to revolt, calm the people when exhausted
 	var thr: float = float(g.bal.revolt_threshold)
-	for pid in g.provinces_of(n.tag):
+	for pid in (g.provinces_of(n.tag) if n.mil >= 30.0 else []):
 		if g.provinces[pid].suppress_months == 0 and g.unrest(pid) >= thr and n.mil >= g.suppress_cost(pid) + 20.0:
 			g.suppress_unrest(n.tag, pid)
 	if n.we >= 6.0 and n.dip >= float(g.bal.we_reduce_cost) + 40.0:
@@ -98,11 +98,21 @@ func _spend_gold(g, n) -> void:
 	if (g.month + n.capital) % 3 != 0:
 		return
 	var margin: float = 20.0 if (not war and regs >= want - 1.0) else 120.0
+	if n.gold <= reserve + margin + _cheapest_building_cost(g, n):
+		return  # nothing affordable: skip the expensive search
 	for i in 3:
 		var best: Array = g.Economy.best_building(g, n, war)
 		if best.is_empty() or n.gold <= g.Economy.building_cost(g, tag, best[0], best[1]) + reserve + margin:
 			break
 		g.construct(tag, best[0], best[1])
+
+
+## Lower bound for any building cost of `n` (Economy.building_cost never goes below it).
+func _cheapest_building_cost(g, n) -> float:
+	var c := 1e9
+	for bid in g.buildings_def:
+		c = minf(c, float(g.buildings_def[bid].cost))
+	return c * maxf(0.3, 1.0 + g.mod(n, "build_cost")) - 1.0
 
 
 # ---------------------------------------------------------------- diplomacy
