@@ -1300,5 +1300,137 @@
    "options": [
      {"text": "Lazarette außerhalb der Stadt.", "effects": {"gold": -40, "dev_random": -1}, "ai": 30},
      {"text": "Die Tore schließen.", "effects": {"dip": -20, "dev_random": -1}, "ai": 40},
-     {"text": "Prozessionen und Gebete.", "effects": {"prestige": 5, "dev_random": -2}, "ai": 30}]}
+     {"text": "Prozessionen und Gebete.", "effects": {"prestige": 5, "dev_random": -2}, "ai": 30}]},
+  {"id": "sco_flodden", "tag": "SCO", "title": "Flodden Field", "text": "Frankreich bittet um Hilfe gegen England. Der König will über die Grenze marschieren.",
+   "trigger": {"year_min": 1500, "year_max": 1530, "alive": "ENG", "at_peace": true},
+   "options": [
+     {"text": "Für die Auld Alliance!", "effects": {"war": "ENG", "relations": {"FRA": 40}}, "ai": 30},
+     {"text": "Nur Truppen an die Grenze.", "effects": {"mil": 30, "relations": {"FRA": 20}}, "ai": 40},
+     {"text": "Frieden mit England.", "effects": {"relations": {"ENG": 40}, "prestige": -5}, "ai": 30}]},
+  {"id": "sco_knox", "tag": "SCO", "title": "John Knox", "text": "Ein Prediger aus Genf ruft zum Bildersturm. Die Lords der Kongregation stehen hinter ihm.",
+   "trigger": {"year_min": 1550, "year_max": 1575},
+   "options": [
+     {"text": "Die Kirk reformieren.", "effects": {"gold": 60, "relations": {"PAP": -40, "ENG": 20}}, "ai": 50},
+     {"text": "Beim alten Glauben bleiben.", "effects": {"relations": {"PAP": 30, "FRA": 30}, "prestige": 5}},
+     {"text": "Die Königin soll entscheiden.", "effects": {"dip": 20}}]},
+  {"id": "ire_kildare", "tag": "IRE", "title": "Die Geraldines von Kildare", "text": "Der mächtigste Lord des Landes bietet an, für die irischen Clans zu sprechen, gegen die englische Krone.",
+   "trigger": {"year_min": 1470, "year_max": 1540},
+   "options": [
+     {"text": "Ein Bund der Clans.", "effects": {"mods": {"manpower": 0.03}, "relations": {"ENG": -30}}, "ai": 50},
+     {"text": "Mit Dublin verhandeln.", "effects": {"relations": {"ENG": 30}, "dip": 20}},
+     {"text": "Gälische Gesetze für alle.", "effects": {"adm": 30}}]},
+  {"id": "por_henry", "tag": "POR", "title": "Heinrich der Seefahrer", "text": "Der Infant schickt jedes Jahr Karavellen weiter die afrikanische Küste hinab.",
+   "trigger": {"year_max": 1465},
+   "options": [
+     {"text": "Die Fahrten finanzieren.", "effects": {"gold": -40, "prestige": 10, "flag": "por_explorers"}, "ai": 60},
+     {"text": "Lieber Ceuta befestigen.", "effects": {"mil": 30}},
+     {"text": "Gold aus Guinea genügt.", "effects": {"gold": 50}}]},
+  {"id": "por_tordesillas", "tag": "POR", "title": "Der Vertrag von Tordesillas", "text": "Der Papst teilt die Welt: Eine Linie im Atlantik trennt Portugal und Kastilien.",
+   "trigger": {"year_min": 1490, "year_max": 1500, "flag": "por_explorers", "alive": "SPA"},
+   "options": [
+     {"text": "Die Linie weiter nach Westen!", "effects": {"mods": {"income": 0.03}, "relations": {"SPA": -20}}, "ai": 60},
+     {"text": "Den Vertrag annehmen.", "effects": {"relations": {"SPA": 40, "PAP": 20}}},
+     {"text": "Die Linie ignorieren.", "effects": {"gold": 60, "relations": {"PAP": -30}}}]},
+  {"id": "por_alcacer", "tag": "POR", "title": "Alcácer-Quibir", "text": "Der junge König Sebastian will Marokko erobern. Der Adel folgt ihm in die Wüste.",
+   "trigger": {"year_min": 1570, "year_max": 1585},
+   "options": [
+     {"text": "Den Kreuzzug wagen.", "effects": {"manpower": -3, "prestige": -10, "ruler": {"adm": -1}}, "ai": 30},
+     {"text": "Den König zurückhalten.", "effects": {"dip": 30, "prestige": -5}, "ai": 40},
+     {"text": "Ein kleiner Feldzug, sorgfältig geplant.", "effects": {"mil": 30, "gold": -40}, "ai": 30}]},
+  {"id": "gra_boabdil", "tag": "GRA", "title": "Boabdil", "text": "Der junge Emir rebelliert gegen seinen Vater. Kastilien wartet nur auf diesen Streit.",
+   "trigger": {"year_min": 1470, "year_max": 1495},
+   "options": [
+     {"text": "Den Vater stützen.", "effects": {"mil": 30, "prestige": 5}, "ai": 50},
+     {"text": "Den Sohn stützen, Frieden mit Kastilien.", "effects": {"relations": {"SPA": 40}, "prestige": -10}},
+     {"text": "Hilfe aus Nordafrika erbitten.", "effects": {"regs": 2, "gold": -40}}]},
+  {"id": "ara_remensa", "tag": "ARA", "title": "Die Remença-Bauern", "text": "In Katalonien erheben sich die leibeigenen Bauern gegen die bösen Bräuche ihrer Herren.",
+   "trigger": {"year_min": 1460, "year_max": 1490},
+   "options": [
+     {"text": "Die Bauern befreien.", "effects": {"dev_random": 1, "relations": {"SPA": 10}, "prestige": 5}, "ai": 50},
+     {"text": "Mit dem Adel gegen die Bauern.", "effects": {"mil": 30, "dev_random": -1}},
+     {"text": "Ablösung gegen Geld.", "effects": {"gold": 60, "adm": -20}}]},
+  {"id": "hun_hunyadi", "tag": "HUN", "title": "Johann Hunyadi", "text": "Der Reichsverweser will die Türken vor Belgrad schlagen. Ein Franziskaner predigt dazu den Kreuzzug.",
+   "trigger": {"year_max": 1460, "alive": "TUR"},
+   "options": [
+     {"text": "Belgrad entsetzen!", "effects": {"prestige": 20, "manpower": -2, "relations": {"TUR": -40, "PAP": 30}}, "ai": 60},
+     {"text": "Die Grenze befestigen.", "effects": {"gold": -40, "manpower": 2}},
+     {"text": "Waffenstillstand mit dem Sultan.", "effects": {"relations": {"TUR": 30}, "prestige": -10}}]},
+  {"id": "hun_dozsa", "tag": "HUN", "title": "Der Dózsa-Aufstand", "text": "Ein Kreuzzugsheer aus Bauern wendet sich gegen die eigenen Herren.",
+   "trigger": {"year_min": 1505, "year_max": 1525},
+   "options": [
+     {"text": "Den Aufstand niederschlagen.", "effects": {"mil": -30, "dev_random": -1}, "ai": 50},
+     {"text": "Den Bauern Land geben.", "effects": {"adm": -30, "mods": {"manpower": 0.03}}},
+     {"text": "Die Werbung abbrechen.", "effects": {"prestige": -10, "dip": 20}}]},
+  {"id": "lit_grunwald_legacy", "tag": "LIT", "title": "Das Erbe Vytautas'", "text": "Die Bojaren der Rus fragen, ob der Großfürst ihre Rechte und ihren Glauben schützt.",
+   "trigger": {"year_max": 1500},
+   "options": [
+     {"text": "Gleiche Rechte für die Orthodoxen.", "effects": {"dip": 30, "mods": {"manpower": 0.03}, "relations": {"PAP": -10}}, "ai": 50},
+     {"text": "Nur katholische Herren.", "effects": {"relations": {"PAP": 30, "POL": 20}, "prestige": 5}},
+     {"text": "Steuerfreiheit für die Grenzfürsten.", "effects": {"gold": -40, "manpower": 2}}]},
+  {"id": "nov_marfa", "tag": "NOV", "title": "Marfa Boretskaja", "text": "Die Witwe des Bürgermeisters will Nowgorod an Litauen binden, um Moskau zu entgehen.",
+   "trigger": {"year_max": 1480, "alive": "LIT"},
+   "options": [
+     {"text": "Ein Bündnis mit Litauen.", "effects": {"alliance": "LIT", "relations": {"RUS": -40}}, "ai": 50},
+     {"text": "Moskau Tribut zahlen.", "effects": {"gold": -50, "relations": {"RUS": 40}}},
+     {"text": "Die Volksversammlung entscheidet.", "effects": {"dip": 30}}]},
+  {"id": "cri_mengli", "tag": "CRI", "title": "Mengli Giray", "text": "Der Khan muss wählen: Bündnis mit Moskau gegen die Goldene Horde oder mit Litauen gegen Moskau.",
+   "trigger": {"year_max": 1515},
+   "options": [
+     {"text": "Mit Moskau gegen die Horde.", "effects": {"relations": {"RUS": 40, "LIT": -30}, "mil": 20}, "ai": 40},
+     {"text": "Mit Litauen gegen Moskau.", "effects": {"relations": {"LIT": 40, "RUS": -30}, "mil": 20}, "ai": 30},
+     {"text": "Vasall des Sultans werden.", "effects": {"relations": {"TUR": 50}, "prestige": -5}, "ai": 30}]},
+  {"id": "wal_dracula", "tag": "WAL", "title": "Vlad der Pfähler", "text": "Der Woiwode verweigert den Knabenzins an den Sultan und lässt die Gesandten pfählen.",
+   "trigger": {"year_min": 1455, "year_max": 1480, "alive": "TUR"},
+   "options": [
+     {"text": "Krieg dem Sultan!", "effects": {"prestige": 15, "relations": {"TUR": -60, "HUN": 30}, "mil": 30}, "ai": 40},
+     {"text": "Den Tribut zahlen.", "effects": {"gold": -40, "relations": {"TUR": 30}}, "ai": 40},
+     {"text": "Ungarn um Schutz bitten.", "effects": {"relations": {"HUN": 50}, "dip": -20}}]},
+  {"id": "mol_stephen", "tag": "MOL", "title": "Stephan der Große", "text": "Nach jedem Sieg gegen die Türken lässt der Fürst ein Kloster bauen.",
+   "trigger": {"year_min": 1457, "year_max": 1505},
+   "options": [
+     {"text": "Ein neues Kloster.", "effects": {"prestige": 10, "gold": -30}, "ai": 50},
+     {"text": "Die Festungen am Dnjestr.", "effects": {"manpower": 2, "gold": -30}},
+     {"text": "Beim Papst um Hilfe werben.", "effects": {"relations": {"PAP": 40}, "dip": 20}}]},
+  {"id": "alb_skanderbeg_league", "tag": "ALB", "title": "Die Liga von Lezha", "text": "Die albanischen Fürsten wählen Skanderbeg zu ihrem Anführer gegen die Osmanen.",
+   "trigger": {"year_max": 1470},
+   "options": [
+     {"text": "Die Liga führen.", "effects": {"mods": {"combat": 0.03}, "relations": {"TUR": -40}}, "ai": 60},
+     {"text": "Venedig um Schiffe bitten.", "effects": {"relations": {"VEN": 40}, "gold": -30}},
+     {"text": "Jeder Fürst für sich.", "effects": {"gold": 40, "prestige": -10}}]},
+  {"id": "ser_smederevo", "tag": "SER", "title": "Die Festung Smederevo", "text": "Der Despot hat eine gewaltige Festung an der Donau gebaut. Ob sie dem Sultan standhält?",
+   "trigger": {"year_max": 1465, "alive": "TUR"},
+   "options": [
+     {"text": "Die Mauern verstärken.", "effects": {"gold": -40, "manpower": 2}, "ai": 50},
+     {"text": "Ungarn als Schutzherr.", "effects": {"relations": {"HUN": 50, "TUR": -20}}},
+     {"text": "Dem Sultan huldigen.", "effects": {"relations": {"TUR": 40}, "prestige": -10}}]},
+  {"id": "sax_luther", "tag": "SAX", "title": "Der Mönch von Wittenberg", "text": "Ein Professor der kurfürstlichen Universität hat Thesen gegen den Ablass veröffentlicht. Rom verlangt seine Auslieferung.",
+   "trigger": {"year_min": 1515, "year_max": 1530},
+   "options": [
+     {"text": "Ihn auf der Wartburg verstecken.", "effects": {"prestige": 10, "relations": {"PAP": -40, "HAB": -20}, "adm": 20}, "ai": 60},
+     {"text": "Ihn nach Rom ausliefern.", "effects": {"relations": {"PAP": 40}, "prestige": -10}},
+     {"text": "Ein Reichstag soll entscheiden.", "effects": {"dip": 30}}]},
+  {"id": "bra_hohenzollern", "tag": "BRA", "title": "Das Haus Hohenzollern", "text": "Die Hohenzollern in Franken und Brandenburg könnten ihre Länder durch Erbverträge verbinden.",
+   "trigger": {"year_min": 1470, "year_max": 1600},
+   "options": [
+     {"text": "Ein Erbvertrag mit Preußen.", "effects": {"relations": {"TEU": 40}, "dip": 20}, "ai": 50},
+     {"text": "Die Mark zuerst.", "effects": {"adm": 30, "mods": {"manpower": 0.03}}},
+     {"text": "Gold für die Kurwürde.", "effects": {"gold": -40, "prestige": 10}}]},
+  {"id": "bav_reinheitsgebot", "tag": "BAV", "title": "Das Reinheitsgebot", "text": "Das Bier soll nur aus Gerste, Hopfen und Wasser bestehen. Die Brauer murren, die Trinker jubeln.",
+   "trigger": {"year_min": 1500, "year_max": 1530},
+   "options": [
+     {"text": "Das Gebot erlassen.", "effects": {"prestige": 5, "mods": {"income": 0.02}}, "ai": 60},
+     {"text": "Lieber eine Biersteuer.", "effects": {"gold": 60}},
+     {"text": "Die Brauer entscheiden lassen.", "effects": {"dip": 20}}]},
+  {"id": "hsa_wars", "once": false, "tag": "HSA", "title": "Der Kampf um die Ostsee", "text": "Holländische Kaufleute dringen in die Ostsee vor. Die Hanse verliert ihr Monopol.",
+   "trigger": {"year_min": 1480},
+   "options": [
+     {"text": "Ein Handelskrieg gegen die Holländer.", "effects": {"mil": 30, "gold": -30}, "ai": 40},
+     {"text": "Neue Kontore im Osten.", "effects": {"mods": {"income": 0.03}, "gold": -40}, "ai": 40},
+     {"text": "Mit den Holländern teilen.", "effects": {"dip": 30, "prestige": -5}, "ai": 20}]},
+  {"id": "teu_secularize", "tag": "TEU", "title": "Der Ordensstaat wird Herzogtum", "text": "Der Hochmeister erwägt, lutherisch zu werden und den Orden in ein weltliches Herzogtum zu verwandeln.",
+   "trigger": {"year_min": 1515, "year_max": 1545},
+   "options": [
+     {"text": "Herzogtum Preußen unter polnischer Lehenshoheit.", "effects": {"relations": {"POL": 50, "PAP": -40}, "adm": 40}, "ai": 50},
+     {"text": "Der Orden bleibt.", "effects": {"prestige": 10, "relations": {"PAP": 30}}},
+     {"text": "Schutz beim Kaiser suchen.", "effects": {"relations": {"HAB": 40}, "dip": -20}}]}
 ]
