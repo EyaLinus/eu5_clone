@@ -29,6 +29,7 @@ func _run(m) -> void:
 	await create_timer(0.5).timeout
 	await _shot("01_start")
 	m._start_game("FRA")
+	m.settings.tips = false
 	await _shot("02_intro")
 	m._close_modal()
 	for i in 60:
@@ -77,6 +78,28 @@ func _run(m) -> void:
 	m.map.map_mode = 0
 	m._open_panel("hre")
 	await _shot("14_hre")
+	# economy: a few buildings in Paris, the economy panel, goods / trade / war map modes
+	var paris: int = g.key_to_pid["paris"]
+	g.nations.FRA.gold = 2000.0
+	g.provinces[paris].buildings = {"workshop": 2, "marketplace": 1}
+	g.Economy.refresh_local(g, g.provinces[paris])
+	g.construct("FRA", paris, "manufactory")
+	m._on_province_tapped(paris)
+	await _shot("16_province_buildings")
+	m._open_panel("economy")
+	await _shot("17_economy")
+	m._open_panel("mapmodes")
+	m._set_map_mode(4)
+	await _shot("18_goods_map")
+	m._set_map_mode(5)
+	await _shot("19_trade_map")
+	g.nations.FRA.truces.erase("ENG")
+	g.nations.ENG.truces.erase("FRA")
+	g.declare_war("FRA", "ENG")
+	m._set_map_mode(6)
+	await _shot("20_war_map")
+	m._set_map_mode(0)
+	m._close_panel()
 	for i in 240:
 		g.tick()
 	g.pending_events.clear()

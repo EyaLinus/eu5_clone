@@ -7,7 +7,8 @@
     "manpower": 0.1
    },
    "bonus_text": "+10 % Mannschaften",
-   "emoji": "🌾"
+   "emoji": "🌾",
+   "color": "#e3c35a"
   },
   "wine": {
    "name": "Wein",
@@ -16,7 +17,8 @@
     "dip": 0.5
    },
    "bonus_text": "+0,5 Diplomatie/Monat",
-   "emoji": "🍷"
+   "emoji": "🍷",
+   "color": "#8e2b4f"
   },
   "wool": {
    "name": "Wolle",
@@ -25,7 +27,8 @@
     "tax": 0.1
    },
    "bonus_text": "+10 % Steuern",
-   "emoji": "🐑"
+   "emoji": "🐑",
+   "color": "#e8e4d8"
   },
   "cloth": {
    "name": "Tuch",
@@ -34,7 +37,8 @@
     "production": 0.1
    },
    "bonus_text": "+10 % Produktion",
-   "emoji": "🧵"
+   "emoji": "🧵",
+   "color": "#4a6fb5"
   },
   "fish": {
    "name": "Fisch",
@@ -43,7 +47,8 @@
     "maintenance": -0.1
    },
    "bonus_text": "-10 % Armeeunterhalt",
-   "emoji": "🐟"
+   "emoji": "🐟",
+   "color": "#5ab0c8"
   },
   "salt": {
    "name": "Salz",
@@ -52,7 +57,8 @@
     "trade": 0.1
    },
    "bonus_text": "+10 % Handelseinnahmen",
-   "emoji": "🧂"
+   "emoji": "🧂",
+   "color": "#f4f4f4"
   },
   "iron": {
    "name": "Eisen",
@@ -61,7 +67,8 @@
     "combat": 0.05
    },
    "bonus_text": "+5 % Kampfkraft",
-   "emoji": "⛏️"
+   "emoji": "⛏️",
+   "color": "#6d7480"
   },
   "copper": {
    "name": "Kupfer",
@@ -70,7 +77,8 @@
     "develop_cost": -0.1
    },
    "bonus_text": "-10 % Entwicklungskosten",
-   "emoji": "🟠"
+   "emoji": "🟠",
+   "color": "#c8743a"
   },
   "silver": {
    "name": "Silber",
@@ -79,7 +87,8 @@
     "income": 0.05
    },
    "bonus_text": "+5 % Einkommen",
-   "emoji": "🪙"
+   "emoji": "🪙",
+   "color": "#b9c3cc"
   },
   "timber": {
    "name": "Holz",
@@ -88,7 +97,8 @@
     "build_cost": -0.1
    },
    "bonus_text": "-10 % Baukosten",
-   "emoji": "🪵"
+   "emoji": "🪵",
+   "color": "#5d7a3a"
   },
   "furs": {
    "name": "Pelze",
@@ -97,7 +107,8 @@
     "adm": 0.5
    },
    "bonus_text": "+0,5 Admin/Monat",
-   "emoji": "🦊"
+   "emoji": "🦊",
+   "color": "#8a5a32"
   },
   "livestock": {
    "name": "Vieh",
@@ -106,7 +117,8 @@
     "force_limit": 2.0
    },
    "bonus_text": "+2 Truppenlimit",
-   "emoji": "🐄"
+   "emoji": "🐄",
+   "color": "#a3c25a"
   }
  },
  "provinces": {

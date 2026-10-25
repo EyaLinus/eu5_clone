@@ -199,9 +199,9 @@ func _build_hud() -> void:
 	left.position = Vector2(8, 68)
 	left.add_theme_constant_override("separation", 8)
 	hud.add_child(left)
-	for e in [["nation", "Nation"], ["diplomacy", "Diplomatie"], ["wars", "Kriege"],
+	for e in [["nation", "Nation"], ["economy", "Wirtschaft"], ["diplomacy", "Diplomatie"], ["wars", "Kriege"],
 			["missions", "Missionen"], ["log", "Chronik"], ["mapmode", "Kartenmodus"]]:
-		var cb: Callable = _cycle_map_mode if e[0] == "mapmode" else _open_panel.bind(e[0])
+		var cb: Callable = _open_panel.bind("mapmodes") if e[0] == "mapmode" else _open_panel.bind(e[0])
 		var tb := _tab_button("tab_" + e[0], cb, e[1])
 		var badge := Label.new()
 		badge.text = "●"
@@ -533,17 +533,34 @@ func _after_tick() -> void:
 		_refresh()
 
 
+const MODE_LEGENDS := [
+	"Jede Nation in ihrer Farbe.",
+	"Deine Beziehungen zu allen Nationen.",
+	"Dunkel = arm, gelb = reich.",
+	"Eigene Provinzen: grün = ruhig, rot = Aufstand droht.",
+	"Welches Gut jede Provinz herstellt (eigene Provinzen hell).",
+	"Einzugsgebiete der Märkte, das Zentrum leuchtet hell (eigene Provinzen hell).",
+	"Deine Kriege auf einen Blick.",
+]
+## Color keys per map mode: [color, text]
+const MODE_KEYS := {
+	1: [["3a9d4a", "du"], ["7fc98a", "deine Vasallen"], ["4a7fd0", "Verbündete"], ["c0392b", "Feinde"],
+		["e0a030", "Ansprüche"], ["8e3a8e", "Koalition gegen dich"], ["9aa7b0", "Waffenstillstand"]],
+	6: [["3a9d4a", "dein Land"], ["4a7fd0", "Verbündete im Krieg"], ["b03a2e", "Feind"],
+		["f1c40f", "Feindesland, das du besetzt"], ["e67e22", "dein/verbündetes Land in Feindeshand"]],
+}
+
+
 func _cycle_map_mode() -> void:
-	map.map_mode = (map.map_mode + 1) % map.MODE_NAMES.size()
+	_set_map_mode((map.map_mode + 1) % map.MODE_NAMES.size())
+
+
+func _set_map_mode(i: int) -> void:
+	map.map_mode = i
 	map.queue_redraw()
-	var legend := ""
-	if map.map_mode == 1:
-		legend = " (🟩 du, 🟦 Verbündete, 🟥 Feinde, 🟧 Ansprüche, 🟪 Koalition)"
-	elif map.map_mode == 2:
-		legend = " (dunkel = arm, gelb = reich)"
-	elif map.map_mode == 3:
-		legend = " (eigene Provinzen: grün = ruhig, rot = Aufstand droht)"
-	_toast("🗺️ Kartenmodus: " + map.MODE_NAMES[map.map_mode] + legend)
+	_toast("🗺️ Kartenmodus: " + map.MODE_NAMES[i])
+	if panel_mode == "mapmodes":
+		_refresh()
 
 
 ## Pops up things that directly affect the player. Returns true if a popup was shown.
@@ -994,6 +1011,10 @@ func _refresh() -> void:
 			_panel_ranking()
 		"hre":
 			_panel_hre()
+		"economy":
+			_panel_economy()
+		"mapmodes":
+			_panel_mapmodes()
 	side_scroll.set_deferred("scroll_vertical", scroll)
 
 
@@ -1045,18 +1066,23 @@ func _panel_province(pid: int) -> void:
 	var p = game.provinces[pid]
 	var me: String = game.player
 	var n = game.nations[me]
+	var Eco = game.Economy
 	side_title.text = "📍 " + p.name
-	var owner_btn := _btn("Besitzer: " + nname(p.owner), _open_panel.bind("other", p.owner))
+	var owner_btn := _nation_btn(p.owner, "", _open_panel.bind("other", p.owner), "Besitzer: ")
 	if p.owner == me:
 		owner_btn.disabled = true
 	side_box.add_child(owner_btn)
-	var info := "🏘️ Entwicklung: %d\n💰 Steuer: %.2f/Monat" % [p.dev, p.dev * float(game.bal.income_per_dev)]
-	if p.fort > 0:
-		info += "\n🏰 Festung (Belagerung dauert länger)"
+	var gd: Dictionary = game.goods_def[p.good]
+	var price: float = game.prices[p.good]
+	var info := "🏘️ Entwicklung: %d\n%s %s: %.1f × %.2f 💰 = %.2f/Monat\n💰 Steuer: %.2f/Monat" % [p.dev, gd.emoji, gd.name,
+			Eco.units(game, p), price, Eco.production_value(game, p), Eco.tax(game, p)]
+	info += "\n🏬 Markt %s · Handelsmacht %.0f" % [game.provinces[p.market].name, Eco.province_trade_power(game, p)]
+	if Eco.fort_level(game, p) > 0:
+		info += "\n🏰 Festung Stufe %d (Belagerung dauert länger)" % Eco.fort_level(game, p)
 	if p.core_months > 0:
-		info += "\n🔨 Wird integriert: noch %d Monate (halbes Einkommen)" % p.core_months
+		info += "\n🔨 Wird integriert: noch %d Monate (%d %% Einkommen)" % [p.core_months, int(Eco.uncored_mult(game, p) * 100)]
 	if p.controller != p.owner:
-		info += "\n🔥 Besetzt von " + nname(p.controller)
+		info += "\n🔥 Besetzt von " + game.nations[p.controller].name
 	if p.siege > 0:
 		info += "\n🔥 Belagerung: %d%%" % int(p.siege)
 	if n.claims.has(pid):
@@ -1072,6 +1098,8 @@ func _panel_province(pid: int) -> void:
 			why.append("Garnison %.0f" % u.garrison)
 		if u.suppressed < 0:
 			why.append("unterdrückt %.0f (%d Mon.)" % [u.suppressed, p.suppress_months])
+		if u.buildings < 0:
+			why.append("Gebäude %.1f" % u.buildings)
 		info += "\n✊ Unruhe %.1f / %d%s" % [u.total, int(game.bal.revolt_threshold), (" (" + ", ".join(why) + ")") if not why.is_empty() else ""]
 		if p.prev_owner != "" and p.core_months > 0 and game.nations[p.prev_owner].alive:
 			info += "\n⚠️ Bei einem Aufstand fällt die Provinz an %s zurück." % game.nations[p.prev_owner].name
@@ -1079,13 +1107,19 @@ func _panel_province(pid: int) -> void:
 	if p.owner == me:
 		if game.unrest(pid) > 0.0 and p.suppress_months == 0:
 			side_box.add_child(_btn("✊ Unruhe unterdrücken (%d ⚔️)" % int(game.suppress_cost(pid)), func(): _act(game.suppress_unrest(me, pid), "✊ Ruhe wiederhergestellt")))
-		side_box.add_child(_btn("📜 Entwickeln (%d Admin)" % game.develop_cost(pid), func(): _act(game.develop(me, pid), "🏘️ Entwicklung erhöht")))
-		side_box.add_child(_btn("💰 Bauen (%d Gold)" % game.build_cost(pid), func(): _act(game.build(me, pid), "🏗️ Gebaut")))
+		side_box.add_child(_btn("📜 Entwickeln (%d Admin)" % game.develop_cost(pid), func(): _act(game.develop(me, pid), "🏘️ Entwicklung erhöht"),
+				"+1 Entwicklung: mehr Steuer, Güter, Handelsmacht und Mannschaften. Alle %d Stufen ein Bauplatz mehr." % int(game.bal.dev_per_building_slot)))
+		_province_buildings(p)
 		var c := int(game.bal.regiment_cost)
 		side_box.add_child(_row([
 			_btn("⚔️ +1 Reg. (%d💰)" % c, func(): _act(game.recruit(me, pid, 1), "⚔️ Rekrutiert")),
 			_btn("⚔️ +5 (%d💰)" % (c * 5), func(): _act(game.recruit(me, pid, 5), "⚔️ Rekrutiert"))]))
 	else:
+		if not p.buildings.is_empty():
+			var bl := []
+			for b in p.buildings:
+				bl.append("%s %s %d" % [game.buildings_def[b].emoji, game.buildings_def[b].name, p.buildings[b]])
+			side_box.add_child(_lbl("Gebäude: " + ", ".join(bl), 16, Color(0.75, 0.8, 0.85)))
 		var borders := false
 		for a in p.adj:
 			if game.provinces[a].owner == me:
@@ -1098,7 +1132,124 @@ func _panel_province(pid: int) -> void:
 	if not here.is_empty():
 		side_box.add_child(_lbl("Armeen hier:", 18, Color(0.7, 0.8, 0.9)))
 		for a in here:
-			side_box.add_child(_btn("%s %.1f Reg." % [nname(a.owner), a.regs], _on_army_tapped.bind(a.id)))
+			side_box.add_child(_nation_btn(a.owner, "  %.1f Reg." % a.regs, _on_army_tapped.bind(a.id)))
+
+
+## Building list of an own province: one row per building with level and a build/upgrade button.
+func _province_buildings(p) -> void:
+	var me: String = game.player
+	var Eco = game.Economy
+	side_box.add_child(_lbl("🏗️ Gebäude (%d / %d Plätze)" % [p.buildings.size(), Eco.slots(game, p)], 20))
+	if not p.constructing.is_empty():
+		var cd: Dictionary = game.buildings_def[p.constructing.id]
+		side_box.add_child(_lbl("🏗️ Im Bau: %s %s Stufe %d, noch %d Monate" % [cd.emoji, cd.name, Eco.level(p, p.constructing.id) + 1, p.constructing.months], 16, Color(0.95, 0.8, 0.4)))
+	for bid in game.buildings_def:
+		var d: Dictionary = game.buildings_def[bid]
+		var lvl: int = Eco.level(p, bid)
+		var maxl: int = Eco.max_level(game, bid)
+		var reason: String = Eco.build_block_reason(game, me, p.id, bid)
+		# hide what cannot matter right now: unbuilt buildings without a free slot
+		if lvl == 0 and reason.begins_with("Keine freien"):
+			continue
+		var label := "%s %s %d/%d" % [d.emoji, d.name, lvl, maxl]
+		var txt: String
+		if lvl >= maxl:
+			txt = label + "  (max.)"
+		else:
+			txt = "%s  %s %d💰" % [label, "⬆" if lvl > 0 else "+", int(Eco.building_cost(game, me, p.id, bid))]
+		var b := _btn(txt, func(): _act(game.construct(me, p.id, bid), "🏗️ Bau begonnen: " + d.name), d.text + (("\n⛔ " + reason) if reason != "" else ""), reason != "")
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		side_box.add_child(b)
+		if reason != "" and lvl < maxl and not reason.begins_with("Hier wird") and not reason.begins_with("Höchste"):
+			side_box.add_child(_lbl("   " + reason, 14, Color(0.75, 0.6, 0.5)))
+	side_box.add_child(_lbl("Jede fertige Stufe: +1 Entwicklung.", 14, Color(0.7, 0.75, 0.8)))
+
+
+func _panel_economy() -> void:
+	var me: String = game.player
+	var n = game.nations[me]
+	var Eco = game.Economy
+	side_title.text = "💰 Wirtschaft"
+	var trib: float = game.tribute_income(me)
+	var army_cost: float = n.expenses - Eco.upkeep(game, me)
+	var lines := "Einnahmen %.2f/Monat\n  💰 Steuern %.2f\n  📦 Güter %.2f\n  🏬 Handel %.2f" % [n.income, n.tax_income, n.prod_income, n.trade_income]
+	if trib != 0.0:
+		lines += "\n  ⛓️ Tribut %+.2f" % trib
+	lines += "\nAusgaben %.2f/Monat\n  🛡️ Armee %.2f\n  🏰 Gebäude %.2f" % [n.expenses, army_cost, Eco.upkeep(game, me)]
+	side_box.add_child(_lbl(lines))
+	var best: Array = Eco.best_building(game, n, game.is_at_war(me))
+	if not best.is_empty():
+		var bd: Dictionary = game.buildings_def[best[1]]
+		var bp = game.provinces[best[0]]
+		side_box.add_child(_btn("✨ Bauvorschlag: %s %s in %s (%d💰)" % [bd.emoji, bd.name, bp.name, int(Eco.building_cost(game, me, best[0], best[1]))],
+				func(): _act(game.construct(me, best[0], best[1]), "🏗️ Bau begonnen: " + bd.name), "Das Gebäude mit dem besten Ertrag pro Gold."))
+	var building := 0
+	for pid in game.provinces_of(me):
+		if not game.provinces[pid].constructing.is_empty():
+			building += 1
+	if building > 0:
+		side_box.add_child(_lbl("🏗️ %d Bauprojekte laufen." % building, 16, Color(0.95, 0.8, 0.4)))
+
+	side_box.add_child(_lbl("🏬 Handel · Händler %d / %d" % [n.merchants.size(), Eco.merchant_count(game, n)], 22))
+	side_box.add_child(_btn("🤖 Händler automatisch: " + ("AN" if n.merchant_auto else "AUS"), func():
+		n.merchant_auto = not n.merchant_auto
+		if n.merchant_auto:
+			Eco.auto_merchants(game, n)
+			Eco.update_markets(game)
+		_refresh(), "Automatisch schickt die Händler jedes Jahr in die lohnendsten Märkte."))
+	var rows: Array = []
+	for m in game.markets:
+		rows.append([m, Eco.trade_share(game, me, m), game.market_cache[m].value])
+	rows.sort_custom(func(a, b): return a[1] * a[2] > b[1] * b[2] or (a[1] * a[2] == b[1] * b[2] and a[2] > b[2]))
+	for r in rows:
+		var m: int = r[0]
+		var has: bool = n.merchants.has(m)
+		var txt := "%s %s  %.1f💰 · Anteil %d%%" % ["🛒" if has else "🏬", game.provinces[m].name, r[2], int(r[1] * 100)]
+		var gain: float = Eco.merchant_gain(game, me, m)
+		var tip := "Marktwert %.2f/Monat. Ein Händler hier brächte etwa +%.2f/Monat." % [r[2], gain]
+		var b: Button
+		if has:
+			b = _btn(txt + "  ↩", func(): Eco.recall_merchant(game, me, m); _refresh(), tip + " Antippen: Händler zurückrufen.")
+		else:
+			b = _btn(txt + "  +%.2f" % gain, func(): _act(Eco.send_merchant(game, me, m), "🛒 Händler entsandt"), tip + " Antippen: Händler schicken.")
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		side_box.add_child(b)
+
+	side_box.add_child(_lbl("📦 Güter und Preise", 22))
+	var out: Dictionary = Eco.goods_output(game, me)
+	var world: Dictionary = Eco.supply(game)
+	for k in game.goods_def:
+		var gd: Dictionary = game.goods_def[k]
+		var pr: float = game.prices[k]
+		var trend := "📈" if pr > game.prev_prices.get(k, pr) + 0.0005 else ("📉" if pr < game.prev_prices.get(k, pr) - 0.0005 else "")
+		var share: float = out.get(k, 0.0) / maxf(0.01, world[k])
+		var leader: String = game.goods_leader.get(k, "")
+		var txt := "%s %s %.2f💰%s · du: %d%%" % [gd.emoji, gd.name, pr, trend, int(share * 100)]
+		if leader != "":
+			txt += " · 👑 " + game.nations[leader].name
+		var why := "%s %s: Marktführer (meiste Produktion, mind. %d %% der Welt) erhält %s." % [gd.emoji, gd.name, int(float(game.bal.goods_leader_share) * 100), gd.bonus_text]
+		var b := _btn(txt, _toast.bind(why), why)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		if leader == me:
+			b.add_theme_color_override("font_color", Color(0.6, 0.95, 0.6))
+		side_box.add_child(b)
+	side_box.add_child(_lbl("Antippen zeigt den Bonus des Marktführers. Preise ändern sich jährlich mit Angebot und Nachfrage.", 14, Color(0.7, 0.75, 0.8)))
+
+
+func _panel_mapmodes() -> void:
+	side_title.text = "🗺️ Kartenmodus"
+	for i in map.MODE_NAMES.size():
+		var b := _btn(("▶ " if map.map_mode == i else "") + map.MODE_NAMES[i], _set_map_mode.bind(i), MODE_LEGENDS[i])
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		side_box.add_child(b)
+	side_box.add_child(_lbl(MODE_LEGENDS[map.map_mode], 16, Color(0.8, 0.85, 0.7)))
+	for k in MODE_KEYS.get(map.map_mode, []):
+		side_box.add_child(_lbl("■ " + k[1], 16, Color(k[0])))
+	if map.map_mode == 4:
+		for k in game.goods_def:
+			var gd: Dictionary = game.goods_def[k]
+			var l := _lbl("■ %s %s" % [gd.emoji, gd.name], 16, Color(gd.color))
+			side_box.add_child(l)
 
 
 func _panel_army(id: int) -> void:

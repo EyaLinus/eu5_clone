@@ -54,7 +54,7 @@ func _run(tags: Array, years: int) -> void:
 
 func _all_panels(m, g, tag: String, month: int) -> int:
 	var n := 0
-	for mode in ["nation", "diplomacy", "wars", "missions", "log", "ranking", "hre"]:
+	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "missions", "log", "ranking", "hre"]:
 		m._open_panel(mode)
 		n += 1
 	var others: Array = g.order.filter(func(t): return t != tag and g.nations[t].alive)
@@ -76,10 +76,19 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 	if not arms.is_empty():
 		m._on_army_tapped(arms[0].id)
 		n += 1
-	for mode in range(4):
-		m.map.map_mode = mode
-		m.map.queue_redraw()
+	for mode in range(m.map.MODE_NAMES.size()):
+		m._set_map_mode(mode)
 	m._cycle_map_mode()
+	# play the economy like a player: best building, move a merchant around
+	var nat = g.nations[tag]
+	var best: Array = g.Economy.best_building(g, nat, g.is_at_war(tag))
+	if not best.is_empty():
+		g.construct(tag, best[0], best[1])
+	if not nat.merchants.is_empty() and month % 36 == 0:
+		var mk: int = nat.merchants[0]
+		g.Economy.recall_merchant(g, tag, mk)
+		g.Economy.send_merchant(g, tag, g.markets[month % g.markets.size()])
+		m._open_panel("economy")
 	m._show_menu()
 	m._close_modal()
 	m._close_panel()
