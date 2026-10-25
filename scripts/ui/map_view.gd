@@ -164,13 +164,13 @@ func _build_edges() -> void:
 		var b := edge_pts[e * 2 + 1]
 		var nrm := (b - a).orthogonal().normalized() * 1.5
 		for probe in [(a + b) / 2 + nrm, (a + b) / 2 - nrm]:
-			var q := province_at(probe)
+			var q := world_province_at(probe)
 			if q >= 0 and q != edge_l[e]:
 				edge_r[e] = q
 				break
 
 
-func province_at(w: Vector2) -> int:
+func world_province_at(w: Vector2) -> int:
 	for pid in polys.size():
 		if not bboxes[pid].has_point(w):
 			continue
