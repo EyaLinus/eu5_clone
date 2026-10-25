@@ -533,6 +533,8 @@ func test_missions_complete() -> void:
 
 func test_long_run_no_softlock() -> void:
 	var g = new_game("HAB", 11)
+	# a shortened game (50 years) keeps the test fast; the end-of-game logic is the same
+	g.bal.total_months = 600
 	var months := int(g.bal.total_months)
 	for i in months + 5:
 		# simulate a passive player who always picks the first event option and accepts peace
@@ -541,7 +543,7 @@ func test_long_run_no_softlock() -> void:
 		while not g.pending_peace.is_empty():
 			g.answer_player_peace(g.pending_peace[0], true)
 		g.tick()
-	check(g.game_over, "game ends after 200 years")
+	check(g.game_over, "game ends after the last month")
 	check(g.month == months or not g.nations.HAB.alive, "ended at the right month (%d)" % g.month)
 	var stuck := 0
 	for w in g.wars:

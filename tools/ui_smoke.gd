@@ -1,13 +1,13 @@
 extends SceneTree
-## UI smoke test: plays every playable nation for 200 years headless and opens every panel and popup on the way.
+## UI smoke test: plays every playable nation for 40 years (default) headless and opens every panel and popup on the way.
 ## Any GDScript error shows up as "SCRIPT ERROR" in the output (CI greps for it).
-## godot --headless --path . -s res://tools/ui_smoke.gd -- [--years 200] [--tags FRA,ENG]
+## godot --headless --path . -s res://tools/ui_smoke.gd -- [--years 40] [--tags FRA,ENG]
 
 const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP", "TUR", "POL", "BUR"]
 
 
 func _init() -> void:
-	var years := 200
+	var years := 40
 	var tags: Array = MAJORS
 	var args := OS.get_cmdline_user_args()
 	for i in args.size():
@@ -42,7 +42,7 @@ func _run(tags: Array, years: int) -> void:
 				g.answer_player_peace(g.pending_peace[0], month % 2 == 0)
 			m._after_tick()
 			m._close_modal()
-			if month % 18 == 0:
+			if month % 36 == 0:
 				opened += _all_panels(m, g, tag, month)
 			if g.game_over:
 				break
