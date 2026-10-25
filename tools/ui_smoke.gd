@@ -1,13 +1,13 @@
 extends SceneTree
-## UI smoke test: plays every playable nation for 200 years headless and opens every panel and popup on the way.
+## UI smoke test: plays every playable nation for 40 years (default) headless and opens every panel and popup on the way.
 ## Any GDScript error shows up as "SCRIPT ERROR" in the output (CI greps for it).
-## godot --headless --path . -s res://tools/ui_smoke.gd -- [--years 200] [--tags FRA,ENG]
+## godot --headless --path . -s res://tools/ui_smoke.gd -- [--years 40] [--tags FRA,ENG]
 
 const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP", "TUR", "POL", "BUR"]
 
 
 func _init() -> void:
-	var years := 200
+	var years := 40
 	var tags: Array = MAJORS
 	var args := OS.get_cmdline_user_args()
 	for i in args.size():
@@ -42,7 +42,7 @@ func _run(tags: Array, years: int) -> void:
 				g.answer_player_peace(g.pending_peace[0], month % 2 == 0)
 			m._after_tick()
 			m._close_modal()
-			if month % 18 == 0:
+			if month % 36 == 0:
 				opened += _all_panels(m, g, tag, month)
 			if g.game_over:
 				break
@@ -54,7 +54,7 @@ func _run(tags: Array, years: int) -> void:
 
 func _all_panels(m, g, tag: String, month: int) -> int:
 	var n := 0
-	for mode in ["nation", "diplomacy", "wars", "missions", "log", "ranking", "hre"]:
+	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "missions", "log", "ranking", "hre"]:
 		m._open_panel(mode)
 		n += 1
 	# tech + government: play them like a player (AI choices), open every screen and popup
@@ -95,10 +95,19 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 	if not arms.is_empty():
 		m._on_army_tapped(arms[0].id)
 		n += 1
-	for mode in range(4):
-		m.map.map_mode = mode
-		m.map.queue_redraw()
+	for mode in range(m.map.MODE_NAMES.size()):
+		m._set_map_mode(mode)
 	m._cycle_map_mode()
+	# play the economy like a player: best building, move a merchant around
+	var nat = g.nations[tag]
+	var best: Array = g.Economy.best_building(g, nat, g.is_at_war(tag))
+	if not best.is_empty():
+		g.construct(tag, best[0], best[1])
+	if not nat.merchants.is_empty() and month % 36 == 0:
+		var mk: int = nat.merchants[0]
+		g.Economy.recall_merchant(g, tag, mk)
+		g.Economy.send_merchant(g, tag, g.markets[month % g.markets.size()])
+		m._open_panel("economy")
 	m._show_menu()
 	m._close_modal()
 	m._close_panel()

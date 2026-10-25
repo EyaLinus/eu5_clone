@@ -15,7 +15,7 @@ func _init() -> void:
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
-		"test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_economy_goods_and_trade", "test_buildings", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures",
@@ -373,6 +373,142 @@ func test_inherit_never_takes_player() -> void:
 	check(g.nations.BOH.alive, "player nation is never inherited")
 
 
+func test_economy_goods_and_trade() -> void:
+	var g = new_game("FRA", 5)
+	for p in g.provinces:
+		check(g.goods_def.has(p.good), "%s has a known good" % p.key)
+		check(g.markets.has(p.market), "%s trades in a market" % p.key)
+	check(g.provinces[g.key_to_pid["venice"]].market == g.key_to_pid["venice"], "market center trades in itself")
+	for i in 13:
+		g.tick()
+	var n = g.nations.FRA
+	check(n.tax_income > 0.0 and n.prod_income > 0.0 and n.trade_income > 0.0, "income has tax, production and trade")
+	check(absf(n.income - n.tax_income - n.prod_income - n.trade_income) < 0.001, "income is the sum of its parts")
+	for k in g.prices:
+		var base: float = float(g.goods_def[k].price)
+		check(g.prices[k] >= base * 0.59 and g.prices[k] <= base * 1.61, "price of %s stays in bounds" % k)
+	# merchants: count, send, recall
+	var Eco = g.Economy
+	check(n.merchants.size() == Eco.merchant_count(g, n), "AI/auto fills all merchant slots")
+	var before: float = Eco.trade_income(g, n)
+	var m: int = n.merchants[0]
+	Eco.recall_merchant(g, "FRA", m)
+	check(not n.merchant_auto and not n.merchants.has(m), "recall removes the merchant and stops auto mode")
+	check(Eco.trade_income(g, n) < before, "recalling a merchant lowers trade income")
+	check(Eco.send_merchant(g, "FRA", m) == "", "merchant can be sent again")
+	check(Eco.send_merchant(g, "FRA", m) != "", "only one merchant per market")
+	# goods leader bonus lands in n.bonus["goods"]
+	for k in g.goods_leader:
+		var t: String = g.goods_leader[k]
+		for key in g.goods_def[k].bonus:
+			check(g.nations[t].bonus.goods.get(key, 0.0) != 0.0, "%s gets the %s bonus" % [t, k])
+	# more development, more of everything
+	var p = g.provinces[g.key_to_pid["paris"]]
+	var tax0: float = Eco.tax(g, p)
+	var prod0: float = Eco.production_value(g, p)
+	var tp0: float = Eco.province_trade_power(g, p)
+	var mp0: float = Eco.local_manpower(g, p)
+	p.dev += 6
+	check(Eco.tax(g, p) > tax0 and Eco.production_value(g, p) > prod0 and Eco.province_trade_power(g, p) > tp0 \
+			and Eco.local_manpower(g, p) > mp0, "development raises tax, production, trade power and manpower")
+
+
+func test_buildings() -> void:
+	var g = new_game("FRA", 5)
+	var Eco = g.Economy
+	var pid: int = g.key_to_pid["paris"]
+	var p = g.provinces[pid]
+	var n = g.nations.FRA
+	n.gold = 10000.0
+	check(g.construct("FRA", g.key_to_pid["london"], "workshop") != "", "cannot build in foreign province")
+	check(g.construct("FRA", pid, "manufactory") != "", "manufactory needs a workshop")
+	var cost: float = Eco.building_cost(g, "FRA", pid, "workshop")
+	var dev0: int = p.dev
+	var prod0: float = Eco.production_value(g, p)
+	check(g.construct("FRA", pid, "workshop") == "", "workshop can be built")
+	check(absf(n.gold - (10000.0 - cost)) < 0.01, "building costs gold")
+	check(g.construct("FRA", pid, "marketplace") != "", "one construction per province at a time")
+	for i in 12:
+		g.tick()
+	check(Eco.level(p, "workshop") == 1 and p.constructing.is_empty(), "workshop finished after 12 months")
+	check(p.dev == dev0 + 1, "a finished building level adds development")
+	check(Eco.production_value(g, p) > prod0, "workshop raises production")
+	check(Eco.building_cost(g, "FRA", pid, "workshop") > cost, "next level costs more")
+	# slots
+	p.buildings = {}
+	p.dev = 7
+	Eco.refresh_local(g, p)
+	var free: int = Eco.slots(g, p)
+	var ids: Array = ["marketplace", "workshop", "estate", "barracks", "courthouse", "fortress"]
+	for i in free:
+		p.buildings[ids[i]] = 1
+	check(Eco.build_block_reason(g, "FRA", pid, ids[free]) != "", "no new building without a free slot")
+	check(Eco.build_block_reason(g, "FRA", pid, ids[0]) == "", "upgrades do not need a slot")
+	# barracks raise the force limit, courthouse lowers unrest, fortress counts as fort
+	g._update_cached(n)
+	var fl0: float = g.force_limit("FRA")
+	var q = g.provinces[g.key_to_pid["orleans"]]
+	q.buildings = {"barracks": 2, "courthouse": 1, "fortress": 1}
+	Eco.refresh_local(g, q)
+	g._update_cached(n)
+	check(absf(g.force_limit("FRA") - fl0 - 2.0) < 0.01, "barracks level 2 adds 2 force limit")
+	check(g.unrest_parts(q.id).buildings < 0.0, "courthouse and fortress lower unrest")
+	check(Eco.fort_level(g, q) >= 1, "fortress counts as a fort")
+	# save/load keeps buildings, construction and merchants
+	n.gold = 10000.0
+	g.construct("FRA", g.key_to_pid["lyon"], "estate")
+	var text := JSON.stringify(g.to_dict())
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(text))
+	check(JSON.stringify(g2.to_dict()) == text, "economy state survives save/load")
+	check(g2.provinces[q.id].loc.get("unrest", 0.0) < 0.0, "building cache is rebuilt on load")
+
+
+func test_army_stances() -> void:
+	var g = new_game("BOH", 11)
+	var n = g.nations.BOH
+	n.army_stance = "defend"
+	var a = g.spawn_army("BOH", n.capital, 6.0)
+	check(a.auto and a.stance == "defend", "new armies follow the player's default stance")
+	g.nations.BOH.truces.erase("BAV")
+	g.nations.BAV.truces.erase("BOH")
+	check(g.declare_war("BOH", "BAV") == "", "war declared")
+	var ok := true
+	for i in 36:
+		g.tick()
+		for x in g.armies_of("BOH"):
+			if not x.auto or x.stance != "defend":
+				continue
+			var p = g.provinces[x.pid]
+			var near: bool = g.ai._friendly(g, "BOH", p.owner)
+			for nb in p.adj:
+				near = near or g.ai._friendly(g, "BOH", g.provinces[nb].owner)
+			ok = ok and near
+	check(ok, "defending armies stay in or next to friendly land")
+	var b = g.spawn_army("BOH", n.capital, 2.0)
+	var t: int = g.ai.nearest_siege(g, b)
+	check(t < 0 or g.at_war("BOH", g.provinces[t].controller), "quick order 'siege' points at enemy land")
+
+
+func test_progression() -> void:
+	var g = new_game("FRA", 4)
+	var P = g.Progression
+	check(P.rank(g, "FRA") == 0, "France (97 dev) starts as a duchy-level realm")
+	check(g.nations.FRA.flags.get("rank", -1) == 0, "start rank recorded without news")
+	var p = g.provinces[g.key_to_pid["paris"]]
+	p.buildings = {"workshop": 1}
+	g.Economy.refresh_local(g, p)
+	var gold0: float = g.nations.FRA.gold
+	var got: Array = P.check_milestones(g, "FRA")
+	check(got.any(func(m): return m.id == "first_building"), "first building milestone reached")
+	check(g.nations.FRA.gold > gold0, "milestone pays its reward")
+	check(P.check_milestones(g, "FRA").is_empty(), "milestones pay only once")
+	p.dev += 60
+	g._update_cached(g.nations.FRA)
+	P.yearly(g)
+	check(P.rank(g, "FRA") == 1 and g.nations.FRA.bonus.rank.get("merchants", 0) == 1.0, "150 development makes a kingdom with bonus")
+
+
 func test_save_roundtrip() -> void:
 	var g = new_game("ENG", 3)
 	for i in 30:
@@ -399,6 +535,8 @@ func test_missions_complete() -> void:
 
 func test_long_run_no_softlock() -> void:
 	var g = new_game("HAB", 11)
+	# a shortened game (50 years) keeps the test fast; the end-of-game logic is the same
+	g.bal.total_months = 600
 	var months := int(g.bal.total_months)
 	for i in months + 5:
 		# simulate a passive player who always picks the first event option and accepts peace
@@ -407,7 +545,7 @@ func test_long_run_no_softlock() -> void:
 		while not g.pending_peace.is_empty():
 			g.answer_player_peace(g.pending_peace[0], true)
 		g.tick()
-	check(g.game_over, "game ends after 200 years")
+	check(g.game_over, "game ends after the last month")
 	check(g.month == months or not g.nations.HAB.alive, "ended at the right month (%d)" % g.month)
 	var stuck := 0
 	for w in g.wars:

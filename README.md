@@ -30,9 +30,15 @@ aus echten Küstenlinien (Natural Earth, Public Domain).
 ## Mechaniken (bewusst minimal)
 
 - **Zeit:** 1 Tick = 1 Monat, 2400 Ticks. Pause und 5 Geschwindigkeiten.
-- **Währungen:** 💰 Gold aus Provinzentwicklung; 📜 Admin, 🕊️ Diplomatie, ⚔️ Militär
+- **Währungen:** 💰 Gold aus Steuern, Gütern und Handel; 📜 Admin, 🕊️ Diplomatie, ⚔️ Militär
   (2 + Herrscherwert + Boni pro Monat, Obergrenze 999).
-- **Ausgaben:** Technologie, Berater und Gesetze (Punkte), Entwickeln (Admin) oder Bauen (Gold), Rekrutieren (Gold + Mannschaften),
+- **Wirtschaft:** Jede Provinz stellt eines von 12 Gütern her, Preise folgen jährlich Angebot und Nachfrage, der
+  größte Hersteller eines Guts erhält dessen Bonus. 13 Märkte verteilen Handelseinnahmen nach Handelsmacht,
+  Händler verstärken sie. Gebäude (Marktplatz, Werkstatt, Manufaktur, Gutshof, Kaserne, Festung, Gerichtshof)
+  haben Stufen, jede fertige Stufe bringt +1 Entwicklung. Entwicklung erhöht Steuern, Güter, Handelsmacht,
+  Mannschaften und Bauplätze.
+- **Fortschritt:** Rang Herzogtum, Königreich, Imperium (nach Entwicklung) mit Boni und 13 Meilensteine.
+- **Ausgaben:** Technologie, Berater und Gesetze (Punkte), Entwickeln (Admin), Gebäude (Gold), Rekrutieren (Gold + Mannschaften),
   Beziehungen/Bündnisse/Ansprüche (Diplomatie), Integration eroberter Provinzen (Admin).
 - **Krieg:** Armeen ziehen eine Provinz pro Monat, Schlachten bei Kontakt, Belagerung besetzt Provinzen.
   Kriegspunkte aus Besetzung, Schlachten und Hauptstadt. Frieden: besetzte Provinzen fordern, weißer Frieden
@@ -71,7 +77,7 @@ Siehe [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/ROADMAP.md](docs/ROADM
   und läuft headless identisch zur UI.
 - `tools/gen_map.py` erzeugt `data/map.json` (Voronoi-Zellen auf Natural-Earth-Landmasse, Nachbarschaften).
 - Tests: `godot --headless --path . -s res://tests/run_tests.gd`
-- UI-Rauchtest (alle 10 spielbaren Nationen, alle Panels, 200 Jahre): `godot --headless --path . -s res://tools/ui_smoke.gd`
+- UI-Rauchtest (alle 10 spielbaren Nationen, alle Panels, 40 Jahre): `godot --headless --path . -s res://tools/ui_smoke.gd`
 - Headless-Simulation: `godot --headless --path . -s res://tools/sim.gd -- --runs 10 --years 200`
 - **Auto-Balance:** `python3 tools/balance_loop.py --godot <godot-binary> --runs 16 --iters 10`
   spielt parallele KI-Partien über 200 Jahre, misst Auslöschungen, Größe der stärksten Nation,

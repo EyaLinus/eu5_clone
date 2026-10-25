@@ -1,0 +1,407 @@
+extends RefCounted
+## Economy: goods produced by every province, dynamic prices, markets with trade power and merchants,
+## and buildings (EU5-inspired, simple). Static helpers on the game `g` (untyped to avoid a cyclic preload).
+##
+## Monthly income of a province = tax + production value; trade income comes from the share of trade power
+## a nation holds in each market (merchants raise it). Development raises all of these plus building slots.
+
+
+static func setup(g, data: Dictionary) -> void:
+	var gd: Dictionary = data.get("goods", {})
+	g.goods_def = gd.get("goods", {})
+	g.buildings_def = data.get("buildings", {})
+	var by_key: Dictionary = gd.get("provinces", {})
+	for p in g.provinces:
+		p.good = by_key.get(p.key, "grain")
+	g.markets = []
+	for k in gd.get("markets", []):
+		g.markets.append(g.key_to_pid[k])
+	_assign_markets(g)
+	g.prices = {}
+	for k in g.goods_def:
+		g.prices[k] = float(g.goods_def[k].price)
+	g.prev_prices = g.prices.duplicate()
+	g.base_supply = supply(g)
+
+
+## Every province trades in the market center that is the fewest steps away (ties: earlier market).
+static func _assign_markets(g) -> void:
+	var dist := {}
+	var frontier: Array = []
+	for m in g.markets:
+		dist[m] = 0
+		g.provinces[m].market = m
+		frontier.append(m)
+	while not frontier.is_empty():
+		var nxt: Array = []
+		for pid in frontier:
+			for a in g.provinces[pid].adj:
+				if not dist.has(a):
+					dist[a] = dist[pid] + 1
+					g.provinces[a].market = g.provinces[pid].market
+					nxt.append(a)
+		frontier = nxt
+	for p in g.provinces:
+		if p.market < 0:
+			p.market = g.markets[0]
+
+
+# ---------------------------------------------------------------- buildings
+
+static func level(p, bid: String) -> int:
+	return int(p.buildings.get(bid, 0))
+
+
+## Sum of a local building effect in province `p` (finished buildings, scaled by level). Cached in p.loc.
+static func local(_g, p, key: String) -> float:
+	return p.loc.get(key, 0.0)
+
+
+static func refresh_local(g, p) -> void:
+	var c := {}
+	for b in p.buildings:
+		var loc: Dictionary = g.buildings_def[b].get("local", {})
+		for k in loc:
+			c[k] = c.get(k, 0.0) + float(loc[k]) * int(p.buildings[b])
+	p.loc = c
+
+
+static func slots(g, p) -> int:
+	return mini(int(g.bal.building_slots_max), 2 + p.dev / int(g.bal.dev_per_building_slot))
+
+
+## Cost of the next level of `bid` in `pid` (level 1 = new building).
+static func building_cost(g, tag: String, pid: int, bid: String) -> float:
+	var n = g.nations[tag]
+	var p = g.provinces[pid]
+	var dev_mult: float = 1.0 + p.dev * float(g.bal.building_cost_per_dev)
+	var lvl: int = level(p, bid) + 1
+	return round(float(g.buildings_def[bid].cost) * pow(lvl, float(g.bal.building_level_exp)) * dev_mult * maxf(0.3, 1.0 + g.mod(n, "build_cost")))
+
+
+static func max_level(g, bid: String) -> int:
+	return int(g.buildings_def[bid].get("max_level", g.bal.building_max_level))
+
+
+## Development needed for the next level of `bid`.
+static func level_dev(g, p, bid: String) -> int:
+	var lvl: int = level(p, bid) + 1
+	return maxi(int(g.buildings_def[bid].get("min_dev", 0)), (lvl - 1) * int(g.bal.dev_per_building_level))
+
+
+## "" if `tag` may start building `bid` in `pid`, else the reason.
+static func build_block_reason(g, tag: String, pid: int, bid: String) -> String:
+	var p = g.provinces[pid]
+	var d: Dictionary = g.buildings_def.get(bid, {})
+	if d.is_empty():
+		return "Unbekanntes Gebäude."
+	if p.owner != tag:
+		return "Nicht deine Provinz."
+	if p.controller != tag:
+		return "Provinz ist besetzt."
+	if level(p, bid) >= max_level(g, bid):
+		return "Höchste Stufe erreicht."
+	if not p.constructing.is_empty():
+		return "Hier wird schon gebaut."
+	if not p.buildings.has(bid) and p.buildings.size() >= slots(g, p):
+		return "Keine freien Bauplätze (mehr Entwicklung = mehr Plätze)."
+	if d.has("requires") and not p.buildings.has(d.requires):
+		return "Braucht zuerst: %s." % g.buildings_def[d.requires].name
+	if p.dev < level_dev(g, p, bid):
+		return "Braucht Entwicklung %d." % level_dev(g, p, bid)
+	if g.nations[tag].gold < building_cost(g, tag, pid, bid):
+		return "Zu wenig Gold (%d benötigt)." % building_cost(g, tag, pid, bid)
+	return ""
+
+
+static func construct(g, tag: String, pid: int, bid: String) -> String:
+	var r := build_block_reason(g, tag, pid, bid)
+	if r != "":
+		return r
+	g.nations[tag].gold -= building_cost(g, tag, pid, bid)
+	g.provinces[pid].constructing = {"id": bid, "months": int(g.buildings_def[bid].months) * (level(g.provinces[pid], bid) + 1)}
+	return ""
+
+
+static func construction_tick(g, n) -> void:
+	for pid in g.provinces_of(n.tag):
+		var p = g.provinces[pid]
+		if p.constructing.is_empty() or p.controller != n.tag:
+			continue
+		p.constructing.months -= 1
+		if p.constructing.months <= 0:
+			var bid: String = p.constructing.id
+			p.constructing = {}
+			p.buildings[bid] = mini(level(p, bid) + 1, max_level(g, bid))
+			# every finished level also grows the province (more tax, goods, manpower and slots)
+			p.dev = mini(int(g.bal.max_dev), p.dev + int(g.bal.building_dev))
+			refresh_local(g, p)
+			if n.tag == g.player:
+				g.log_msg("%s %s (Stufe %d) in %s fertig." % [g.buildings_def[bid].emoji, g.buildings_def[bid].name, p.buildings[bid], p.name])
+
+
+static func fort_level(g, p) -> int:
+	return p.fort + int(local(g, p, "fort"))
+
+
+static func upkeep(g, tag: String) -> float:
+	var v := 0.0
+	for pid in g.provinces_of(tag):
+		var p = g.provinces[pid]
+		for b in p.buildings:
+			v += float(g.buildings_def[b].get("upkeep", 0.0)) * int(p.buildings[b])
+	return v
+
+
+## Nation-wide effects of buildings (e.g. barracks -> force limit), stored in n.bonus["buildings"].
+static func refresh_building_bonus(g, n) -> void:
+	var b := {}
+	for pid in g.provinces_of(n.tag):
+		var p = g.provinces[pid]
+		for bid in p.buildings:
+			var nat: Dictionary = g.buildings_def[bid].get("nation", {})
+			for k in nat:
+				b[k] = b.get(k, 0.0) + float(nat[k]) * int(p.buildings[bid])
+	n.bonus["buildings"] = b
+
+
+# ---------------------------------------------------------------- production and tax
+
+static func units(g, p) -> float:
+	var n = g.nations[p.owner]
+	var m: float = 1.0 + local(g, p, "production") + g.mod(n, "production") + g.mod(n, "goods_" + p.good)
+	return p.dev * float(g.bal.production_per_dev) * maxf(0.1, m)
+
+
+static func production_value(g, p) -> float:
+	return units(g, p) * float(g.prices[p.good])
+
+
+static func tax(g, p) -> float:
+	var n = g.nations[p.owner]
+	return p.dev * float(g.bal.tax_per_dev) * maxf(0.1, 1.0 + local(g, p, "tax") + g.mod(n, "tax"))
+
+
+static func uncored_mult(g, p) -> float:
+	if p.core_months <= 0:
+		return 1.0
+	return minf(1.0, float(g.bal.uncored_income_mult) + local(g, p, "uncored_income"))
+
+
+## Local income (tax + production) before nation-wide income modifiers.
+static func province_income(g, p) -> float:
+	return (tax(g, p) + production_value(g, p)) * uncored_mult(g, p)
+
+
+static func local_manpower(g, p) -> float:
+	return p.dev * float(g.bal.manpower_per_dev) * (1.0 + local(g, p, "manpower"))
+
+
+# ---------------------------------------------------------------- goods and prices
+
+static func supply(g) -> Dictionary:
+	var s := {}
+	for k in g.goods_def:
+		s[k] = 0.0
+	for p in g.provinces:
+		s[p.good] = s.get(p.good, 0.0) + units(g, p)
+	return s
+
+
+## Yearly: prices follow world supply against slowly growing demand; the biggest producer of a good
+## (at least `goods_leader_share` of world output) gets that good's bonus.
+static func yearly(g) -> void:
+	var s := supply(g)
+	var years: float = g.year() - int(g.bal.start_year)
+	g.prev_prices = g.prices.duplicate()
+	for k in g.goods_def:
+		var demand: float = float(g.base_supply.get(k, 1.0)) * (1.0 + float(g.bal.demand_growth) * years)
+		var ratio: float = sqrt(demand / maxf(0.01, s[k]))
+		g.prices[k] = snappedf(float(g.goods_def[k].price) * clampf(ratio, float(g.bal.price_min), float(g.bal.price_max)), 0.001)
+	refresh_goods_leaders(g)
+	for tag in g.order:
+		var n = g.nations[tag]
+		if n.alive and (n.merchant_auto or tag != g.player):
+			auto_merchants(g, n)
+
+
+static func goods_output(g, tag: String) -> Dictionary:
+	var r := {}
+	for pid in g.provinces_of(tag):
+		var p = g.provinces[pid]
+		r[p.good] = r.get(p.good, 0.0) + units(g, p)
+	return r
+
+
+static func refresh_goods_leaders(g) -> void:
+	var s := supply(g)
+	var best := {}
+	var best_v := {}
+	for tag in g.order:
+		if not g.nations[tag].alive:
+			continue
+		var out := goods_output(g, tag)
+		for k in out:
+			if out[k] > best_v.get(k, 0.0):
+				best_v[k] = out[k]
+				best[k] = tag
+	g.goods_leader = {}
+	for k in best:
+		if best_v[k] >= float(g.bal.goods_leader_share) * maxf(0.01, s[k]):
+			g.goods_leader[k] = best[k]
+	for tag in g.order:
+		var b := {}
+		for k in g.goods_leader:
+			if g.goods_leader[k] == tag:
+				var gb: Dictionary = g.goods_def[k].get("bonus", {})
+				for m in gb:
+					b[m] = b.get(m, 0.0) + float(gb[m])
+		g.nations[tag].bonus["goods"] = b
+
+
+# ---------------------------------------------------------------- trade
+
+static func merchant_count(g, n) -> int:
+	return mini(int(g.bal.max_merchants), 1 + int(n.tech.dip / int(g.bal.dip_tech_per_merchant)) + int(g.mod(n, "merchants")))
+
+
+static func province_trade_power(g, p) -> float:
+	var v: float = p.dev * (1.0 + local(g, p, "trade_power"))
+	if p.market == p.id:
+		v *= float(g.bal.market_center_power)
+	return v
+
+
+## Recomputed every month: value and trade power per nation in every market.
+static func update_markets(g) -> void:
+	var c := {}
+	for m in g.markets:
+		c[m] = {"value": 0.0, "power": {}, "total": 0.0}
+	for p in g.provinces:
+		var e: Dictionary = c[p.market]
+		e.value += production_value(g, p) * float(g.bal.trade_value_mult)
+		if p.controller == p.owner:
+			e.power[p.owner] = e.power.get(p.owner, 0.0) + province_trade_power(g, p)
+	for tag in g.order:
+		var n = g.nations[tag]
+		if not n.alive:
+			continue
+		for m in n.merchants:
+			if c.has(m):
+				var own: float = c[m].power.get(tag, 0.0)
+				c[m].power[tag] = own * (1.0 + float(g.bal.merchant_mult)) + float(g.bal.merchant_flat)
+	for m in c:
+		var t := 0.0
+		for tag in c[m].power:
+			t += c[m].power[tag]
+		c[m].total = t
+	g.market_cache = c
+
+
+static func trade_share(g, tag: String, m: int) -> float:
+	var e: Dictionary = g.market_cache.get(m, {})
+	if e.is_empty() or e.total <= 0.0:
+		return 0.0
+	return e.power.get(tag, 0.0) / e.total
+
+
+static func trade_income(g, n) -> float:
+	var v := 0.0
+	for m in g.market_cache:
+		var e: Dictionary = g.market_cache[m]
+		if e.total > 0.0 and e.power.has(n.tag):
+			v += e.value * e.power[n.tag] / e.total
+	return v * maxf(0.0, 1.0 + g.mod(n, "trade"))
+
+
+## Gain in monthly trade income if `tag` sent one (more) merchant to market `m`.
+static func merchant_gain(g, tag: String, m: int) -> float:
+	var e: Dictionary = g.market_cache.get(m, {})
+	if e.is_empty():
+		return 0.0
+	var own: float = e.power.get(tag, 0.0)
+	var boosted: float = own * (1.0 + float(g.bal.merchant_mult)) + float(g.bal.merchant_flat)
+	var before: float = own / maxf(0.001, e.total)
+	var after: float = boosted / maxf(0.001, e.total - own + boosted)
+	return (after - before) * e.value
+
+
+static func auto_merchants(g, n) -> void:
+	n.merchants = []
+	if g.market_cache.is_empty():
+		update_markets(g)
+	var options: Array = []
+	for m in g.markets:
+		options.append([merchant_gain(g, n.tag, m), m])
+	options.sort_custom(func(a, b): return a[0] > b[0])
+	for i in mini(merchant_count(g, n), options.size()):
+		n.merchants.append(options[i][1])
+
+
+static func send_merchant(g, tag: String, m: int) -> String:
+	var n = g.nations[tag]
+	if not g.markets.has(m):
+		return "Kein Markt."
+	if n.merchants.has(m):
+		return "Dort ist schon ein Händler."
+	if n.merchants.size() >= merchant_count(g, n):
+		return "Alle Händler sind unterwegs. Rufe zuerst einen zurück."
+	n.merchant_auto = false
+	n.merchants.append(m)
+	update_markets(g)
+	return ""
+
+
+static func recall_merchant(g, tag: String, m: int) -> void:
+	var n = g.nations[tag]
+	n.merchant_auto = false
+	n.merchants.erase(m)
+	update_markets(g)
+
+
+# ---------------------------------------------------------------- AI
+
+## Best building for the AI: highest extra monthly value per gold. Returns [pid, bid] or [].
+static func best_building(g, n, war: bool) -> Array:
+	var best: Array = []
+	var best_score := 0.0
+	for pid in g.provinces_of(n.tag):
+		var p = g.provinces[pid]
+		if p.controller != n.tag or not p.constructing.is_empty():
+			continue
+		for bid in g.buildings_def:
+			if build_block_reason(g, n.tag, pid, bid) != "":
+				continue
+			var s := _building_value(g, n, p, bid, war) / building_cost(g, n.tag, pid, bid)
+			if not p.buildings.has(bid):
+				s *= 0.8  # a new building uses up a slot
+			if s > best_score:
+				best_score = s
+				best = [pid, bid]
+	return best
+
+
+static func _building_value(g, n, p, bid: String, war: bool) -> float:
+	var d: Dictionary = g.buildings_def[bid]
+	var loc: Dictionary = d.get("local", {})
+	var v := 0.0
+	var prod: float = p.dev * float(g.bal.production_per_dev) * float(g.prices[p.good])
+	v += float(loc.get("production", 0.0)) * prod
+	v += float(loc.get("tax", 0.0)) * p.dev * float(g.bal.tax_per_dev)
+	v += float(loc.get("trade_power", 0.0)) * p.dev * 0.01
+	v += float(loc.get("manpower", 0.0)) * p.dev * 0.01
+	if p.core_months > 0:
+		v += float(loc.get("uncored_income", 0.0)) * prod + absf(float(loc.get("unrest", 0.0))) * 0.03
+	elif g.unrest(p.id) > 1.0:
+		v += absf(float(loc.get("unrest", 0.0))) * 0.03
+	v += float(d.get("nation", {}).get("force_limit", 0.0)) * (0.08 if war else 0.03)
+	if loc.has("fort"):
+		# forts only where it matters: the capital or a border province next to a strong neighbor
+		var exposed: bool = p.id == n.capital
+		for a in p.adj:
+			var o: String = g.provinces[a].owner
+			if o != n.tag and g.strength(o) > g.strength(n.tag) * 1.2:
+				exposed = true
+		v += 0.05 if exposed else 0.0
+		v -= float(d.get("upkeep", 0.0))
+	return v

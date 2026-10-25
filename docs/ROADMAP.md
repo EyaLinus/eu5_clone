@@ -1,6 +1,6 @@
 # Roadmap
 
-> Stand 2026-10-25: v0.6.0 (Kartenkunst, Mobile-Bedienung, Soft-Cap Entwicklung, 10 spielbare Nationen, 258 Events). v0.6.1: TUR/POL/BUR mit vollem Content.
+> Stand 2026-10-25: v0.7.0 (Wirtschaft mit Gütern, Handel und Gebäuden, Technologiebaum, Regierung, Armeeführung, Progression, Pixel-Art).
 
 Priorisiert nach Nutzen für den Spieler pro Aufwand. Status: ✅ fertig, 🔨 in Arbeit, ⏳ geplant.
 

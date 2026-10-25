@@ -48,10 +48,14 @@ var _hover_pos := Vector2.ZERO
 ## war map mode: tag -> 1 us, 2 co-belligerent, -1 enemy (rebuilt every draw)
 var _war_side := {}
 var font: Font
-## 0 = political, 1 = diplomatic (player view), 2 = development, 3 = unrest, 4 = war
+## 0 political, 1 diplomatic (player view), 2 development, 3 unrest, 4 war, 5 goods, 6 trade (markets)
 var map_mode := 0
-const MODE_NAMES := ["Politisch", "Diplomatisch", "Entwicklung", "Unruhe", "Krieg"]
+const MODE_NAMES := ["Politisch", "Diplomatisch", "Entwicklung", "Unruhe", "Krieg", "Güter", "Handel"]
 const MODE_WAR := 4
+const MODE_GOODS := 5
+const MODE_TRADE := 6
+const MARKET_COLORS := ["c0392b", "2e5bd4", "e3b21b", "1e8449", "8e44ad", "d35400", "16a085", "7f8c8d", "e84393",
+		"6c5ce7", "00b894", "fdcb6e", "a0522d"]
 
 var _touches := {}
 var _pinch_dist := 0.0
@@ -414,6 +418,15 @@ func province_color(p) -> Color:
 			return Color("3a9d4a").lerp(Color("d03a2a"), u)
 		MODE_WAR:
 			return _war_color(p.owner)
+		MODE_GOODS:
+			var gc := Color(game.goods_def[p.good].get("color", "#888888"))
+			return gc if p.owner == game.player or game.player == "" else gc.darkened(0.25)
+		MODE_TRADE:
+			var i: int = game.markets.find(p.market)
+			var mc := Color(MARKET_COLORS[i % MARKET_COLORS.size()])
+			if p.id == p.market:
+				return mc.lightened(0.45)
+			return mc if p.owner == game.player else mc.darkened(0.35)
 	var n = game.nations[p.owner]
 	var c: Color = n.color
 	# subjects read as part of their overlord's realm, with a hint of their own colour
@@ -454,10 +467,13 @@ func _draw_labels() -> void:
 		var fs := int(clampf(16.0 * zoom + 4.0, 10.0, 22.0))
 		for tag in game.order:
 			var n = game.nations[tag]
-			if not n.alive or game.provinces_of(tag).size() < 2:
+			var owned: Array = game.provinces_of(tag)
+			if not n.alive or owned.size() < 2:
 				continue
-			var s := to_screen(game.provinces[n.capital].center)
+			var s := to_screen(_realm_center(tag, owned))
 			var txt: String = n.name
+			var big := clampf(sqrt(float(owned.size())) / 3.0, 1.0, 1.6)
+			fs = int(clampf((16.0 * zoom + 4.0) * big, 10.0, 30.0))
 			var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 			var pos := s + Vector2(-w / 2, -ARMY_R - 4)
 			var flag := Icons.flag(tag)
@@ -466,6 +482,26 @@ func _draw_labels() -> void:
 				draw_texture_rect(flag, Rect2(pos + Vector2(-fsz.x - 4, -fs * 0.85), fsz), false)
 			draw_string_outline(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color(0, 0, 0, 0.8))
 			draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+
+
+## Label anchor for a nation: the owned province closest to the development-weighted center of its land
+## (so the label sits on the realm even for crescent-shaped or split territories).
+func _realm_center(tag: String, owned: Array) -> Vector2:
+	var sum := Vector2.ZERO
+	var w := 0.0
+	for pid in owned:
+		var p = game.provinces[pid]
+		sum += p.center * (p.dev + 5.0)
+		w += p.dev + 5.0
+	var c := sum / maxf(w, 0.001)
+	var best: Vector2 = game.provinces[game.nations[tag].capital].center
+	var best_d := INF
+	for pid in owned:
+		var d: float = game.provinces[pid].center.distance_squared_to(c)
+		if d < best_d:
+			best_d = d
+			best = game.provinces[pid].center
+	return best
 
 
 func army_positions() -> Dictionary:

@@ -1,0 +1,84 @@
+{
+ "marketplace": {
+  "name": "Marktplatz",
+  "emoji": "🏪",
+  "cost": 50,
+  "months": 12,
+  "local": {
+   "trade_power": 0.3,
+   "tax": 0.1
+  },
+  "text": "je Stufe: +30 % Handelsmacht, +10 % Steuern der Provinz"
+ },
+ "workshop": {
+  "name": "Werkstatt",
+  "emoji": "🔨",
+  "cost": 60,
+  "months": 12,
+  "local": {
+   "production": 0.2
+  },
+  "text": "je Stufe: +20 % Produktion der Provinz"
+ },
+ "manufactory": {
+  "name": "Manufaktur",
+  "emoji": "🏭",
+  "cost": 140,
+  "months": 24,
+  "requires": "workshop",
+  "min_dev": 12,
+  "local": {
+   "production": 0.35
+  },
+  "text": "je Stufe: +35 % Produktion (braucht Werkstatt, Entwicklung 12)"
+ },
+ "estate": {
+  "name": "Gutshof",
+  "emoji": "🌾",
+  "cost": 40,
+  "months": 12,
+  "local": {
+   "production": 0.05,
+   "manpower": 0.3
+  },
+  "text": "je Stufe: +5 % Produktion, +30 % Mannschaften der Provinz"
+ },
+ "barracks": {
+  "name": "Kaserne",
+  "emoji": "⚔️",
+  "cost": 60,
+  "months": 12,
+  "local": {
+   "manpower": 0.15
+  },
+  "nation": {
+   "force_limit": 1.0
+  },
+  "text": "je Stufe: +1 Truppenlimit, +15 % Mannschaften der Provinz"
+ },
+ "fortress": {
+  "name": "Festung",
+  "emoji": "🏰",
+  "cost": 90,
+  "months": 24,
+  "upkeep": 0.15,
+  "local": {
+   "fort": 1,
+   "unrest": -1.0
+  },
+  "text": "je Stufe: Belagerung dauert viel länger, -1 Unruhe. Unterhalt 0,15 Gold/Monat je Stufe",
+  "max_level": 2
+ },
+ "courthouse": {
+  "name": "Gerichtshof",
+  "emoji": "⚖️",
+  "cost": 50,
+  "months": 12,
+  "local": {
+   "unrest": -1.5,
+   "uncored_income": 0.15
+  },
+  "text": "je Stufe: -1,5 Unruhe, frisch eroberte Provinzen bringen +15 % Einkommen",
+  "max_level": 2
+ }
+}

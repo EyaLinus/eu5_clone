@@ -3,6 +3,8 @@ extends RefCounted
 ## (balance runs, tests) exactly like in the UI. One tick = one month.
 
 const AI = preload("res://scripts/core/ai.gd")
+const Economy = preload("res://scripts/core/economy.gd")
+const Progression = preload("res://scripts/core/progression.gd")
 const Tech = preload("res://scripts/core/tech.gd")
 const Government = preload("res://scripts/core/government.gd")
 
@@ -24,6 +26,11 @@ class Province:
 	var fort: int = 0
 	var prev_owner: String = ""  # conquered from; an unruly uncored province may defect back
 	var suppress_months: int = 0
+	var good: String = "grain"
+	var market: int = -1  # pid of the market center this province trades in
+	var buildings := {}  # building id -> level
+	var constructing := {}  # {"id": building, "months": left}
+	var loc := {}  # cached local building effects (Economy.refresh_local)
 
 
 class Nation:
@@ -70,6 +77,12 @@ class Nation:
 	var income: float = 0.0
 	var expenses: float = 0.0
 	var max_manpower: float = 0.0
+	var tax_income: float = 0.0
+	var prod_income: float = 0.0
+	var trade_income: float = 0.0
+	var merchants: Array = []  # market center pids
+	var merchant_auto: bool = true
+	var army_stance: String = ""  # player's default for new armies: "" manual, "attack" or "defend"
 
 
 class Army:
@@ -80,6 +93,7 @@ class Army:
 	var full: float
 	var target: int = -1
 	var auto: bool = true
+	var stance: String = "attack"  # when auto: "attack" (seek battles and sieges) or "defend" (own and allied land)
 	var path: Array = []
 
 
@@ -124,6 +138,15 @@ var hre: Array = []
 var emperor: String = ""
 var electors: Array = []
 var history: Array = []  # player's yearly snapshot: [year, dev, rank, provinces]
+# economy (scripts/core/economy.gd)
+var goods_def := {}
+var buildings_def := {}
+var markets: Array = []
+var prices := {}
+var prev_prices := {}
+var base_supply := {}
+var goods_leader := {}
+var market_cache := {}
 
 
 func _init() -> void:
@@ -178,12 +201,19 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		order.append(tag)
 		provinces[n.capital].fort = 1
 	_rebuild_owned()
+	Economy.setup(self, data)
+	Economy.refresh_goods_leaders(self)
+	Economy.update_markets(self)
+	for tag in order:
+		Economy.auto_merchants(self, nations[tag])
+	Economy.update_markets(self)
 	for tag in order:
 		var n: Nation = nations[tag]
 		_update_cached(n)
 		n.manpower = n.max_manpower
 		var regs: float = round(force_limit(tag) * 0.6)
 		spawn_army(tag, n.capital, regs)
+	Progression.refresh(self)
 	event_defs = data.get("events", [])
 	for e in event_defs:
 		event_by_id[e.id] = e
@@ -476,11 +506,10 @@ func _dev_mult(pid: int) -> float:
 
 
 func develop_cost(pid: int) -> float:
-	return (float(bal.develop_base) + float(bal.develop_step) * provinces[pid].dev) * _dev_mult(pid)
-
-
-func build_cost(pid: int) -> float:
-	return (float(bal.build_base) + float(bal.build_step) * provinces[pid].dev) * _dev_mult(pid)
+	var m: float = 1.0
+	if nations.has(provinces[pid].owner):
+		m = maxf(0.3, 1.0 + mod(nations[provinces[pid].owner], "develop_cost"))
+	return round((float(bal.develop_base) + float(bal.develop_step) * provinces[pid].dev) * _dev_mult(pid) * m)
 
 
 func score(tag: String) -> float:
@@ -502,6 +531,7 @@ func log_msg(text: String, tags: Array = []) -> void:
 func tick() -> void:
 	if game_over:
 		return
+	Economy.update_markets(self)
 	for tag in order:
 		var n: Nation = nations[tag]
 		if n.alive:
@@ -526,29 +556,39 @@ func tick() -> void:
 
 func _update_cached(n: Nation) -> void:
 	n.dev_total = nation_dev(n.tag)
-	n.max_manpower = 3.0 + n.dev_total * float(bal.manpower_per_dev) * (1.0 + mod(n, "manpower"))
+	Economy.refresh_building_bonus(self, n)
+	var mp := 0.0
+	for pid in provinces_of(n.tag):
+		mp += Economy.local_manpower(self, provinces[pid])
+	n.max_manpower = 3.0 + mp * (1.0 + mod(n, "manpower"))
 
 
 func _economy(n: Nation) -> void:
 	_update_cached(n)
-	var inc := 0.0
+	var tax := 0.0
+	var prod := 0.0
 	for pid in provinces_of(n.tag):
 		var p: Province = provinces[pid]
 		if p.controller != n.tag:
 			continue
-		var v: float = p.dev * float(bal.income_per_dev)
+		var um: float = Economy.uncored_mult(self, p)
+		tax += Economy.tax(self, p) * um
+		prod += Economy.production_value(self, p) * um
 		if p.core_months > 0:
-			v *= float(bal.uncored_income_mult)
 			p.core_months -= 1
-		inc += v
-	n.income = inc * (1.0 + n.tech.adm * float(bal.adm_tech_income) + mod(n, "income"))
-	var maint: float = army_regs(n.tag) * float(bal.regiment_maintenance)
+	var inc_mult: float = 1.0 + n.tech.adm * float(bal.adm_tech_income) + mod(n, "income")
+	n.tax_income = tax * inc_mult
+	n.prod_income = prod * inc_mult
+	n.trade_income = Economy.trade_income(self, n) * inc_mult
+	n.income = n.tax_income + n.prod_income + n.trade_income
+	Economy.construction_tick(self, n)
+	var maint: float = army_regs(n.tag) * float(bal.regiment_maintenance) * maxf(0.2, 1.0 + mod(n, "maintenance"))
 	var war := is_at_war(n.tag)
 	if not war:
 		maint *= float(bal.peace_maintenance_mult)
 	n.we = clampf(n.we + (float(bal.we_monthly) if war else -float(bal.we_decay)), 0.0, float(bal.we_max))
 	_unrest_tick(n)
-	n.expenses = maint
+	n.expenses = maint + Economy.upkeep(self, n.tag)
 	if n.overlord != "":
 		var tribute: float = maxf(0.0, n.income * float(bal.vassal_tribute))
 		n.expenses += tribute
@@ -590,7 +630,8 @@ func unrest(pid: int) -> float:
 func unrest_parts(pid: int) -> Dictionary:
 	var p: Province = provinces[pid]
 	var n: Nation = nations[p.owner]
-	var r := {"uncored": 0.0, "war": n.we * float(bal.unrest_per_we), "garrison": 0.0, "suppressed": 0.0}
+	var r := {"uncored": 0.0, "war": n.we * float(bal.unrest_per_we), "garrison": 0.0, "suppressed": 0.0,
+			"buildings": Economy.local(self, p, "unrest")}
 	if p.core_months > 0:
 		r.uncored = float(bal.unrest_uncored)
 	for a in armies:
@@ -600,7 +641,7 @@ func unrest_parts(pid: int) -> Dictionary:
 	if p.suppress_months > 0:
 		r.suppressed = -float(bal.unrest_suppress)
 	r.policy = mod(n, "unrest")  # techs, advisors, laws
-	r.total = maxf(0.0, r.uncored + r.war + r.garrison + r.suppressed + r.policy)
+	r.total = maxf(0.0, r.uncored + r.war + r.garrison + r.suppressed + r.policy + r.buildings)
 	return r
 
 
@@ -703,6 +744,8 @@ func _yearly() -> void:
 			for m in available_missions(tag):
 				if mission_ready(tag, m):
 					complete_mission(tag, m.id)
+	Economy.yearly(self)
+	Progression.yearly(self)
 	_coalitions_yearly()
 	_liberty_yearly()
 	_record_history()
@@ -834,7 +877,9 @@ func spawn_army(tag: String, pid: int, regs: float) -> Army:
 	a.pid = pid
 	a.regs = regs
 	a.full = regs
-	a.auto = tag != player
+	a.auto = tag != player or nations[tag].army_stance != ""
+	if tag == player and nations[tag].army_stance != "":
+		a.stance = nations[tag].army_stance
 	armies.append(a)
 	return a
 
@@ -994,7 +1039,7 @@ func _siege(p: Province) -> void:
 	var regs := 0.0
 	for b in besiegers:
 		regs += b.regs
-	var prog: float = float(bal.siege_base) * minf(regs, 20.0) / (sqrt(p.dev) + 2.0) / (1.0 + p.fort * float(bal.fort_siege_mult))
+	var prog: float = float(bal.siege_base) * minf(regs, 20.0) / (sqrt(p.dev) + 2.0) / (1.0 + Economy.fort_level(self, p) * float(bal.fort_siege_mult))
 	p.siege += prog * maxf(0.2, 1.0 + mod(nations[besiegers[0].owner], "siege"))
 	if p.siege >= 100.0:
 		p.siege = 0.0
@@ -1545,20 +1590,9 @@ func develop(tag: String, pid: int) -> String:
 	return ""
 
 
-func build(tag: String, pid: int) -> String:
-	var n: Nation = nations[tag]
-	var p: Province = provinces[pid]
-	if p.owner != tag:
-		return "Nicht deine Provinz."
-	if p.dev >= int(bal.max_dev):
-		return "Maximale Entwicklung erreicht."
-	var c := build_cost(pid)
-	if n.gold < c:
-		return "Zu wenig Gold (%d benötigt)." % c
-	n.gold -= c
-	p.dev += 1
-	_update_cached(n)
-	return ""
+## Starts a building (gold, takes months). See scripts/core/economy.gd.
+func construct(tag: String, pid: int, bid: String) -> String:
+	return Economy.construct(self, tag, pid, bid)
 
 
 ## Researches the best available tech of `kind` (AI path; the player picks in the tech screen).
@@ -1622,6 +1656,7 @@ func split_army(army: Army) -> Army:
 	army.full = maxf(army.regs, army.full - half)
 	var b := spawn_army(army.owner, army.pid, half)
 	b.auto = army.auto
+	b.stance = army.stance
 	return b
 
 
@@ -1979,10 +2014,11 @@ func to_dict() -> Dictionary:
 	var d := {"month": month, "player": player, "rng_state": str(rng.state), "rng_seed": str(rng.seed),
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
 			"pending_peace": pending_peace, "log": log_lines, "stats": stats, "game_over": game_over, "emperor": emperor,
-			"history": history}
+			"history": history, "prices": prices, "prev_prices": prev_prices}
 	var ps := []
 	for p in provinces:
-		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort, p.prev_owner, p.suppress_months])
+		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort, p.prev_owner, p.suppress_months,
+				p.buildings, p.constructing])
 	d.provinces = ps
 	var ns := {}
 	for tag in order:
@@ -1995,12 +2031,13 @@ func to_dict() -> Dictionary:
 				"ruler": n.ruler, "ruler_name": n.ruler_name, "name_counts": n.name_counts, "mods": n.mods, "relations": n.relations, "allies": n.allies,
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
+				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
 				"techs": tree.to_save(n), "gov": govt.to_save(n)}
 	d.nations = ns
 	var ar := []
 	for a in armies:
 		ar.append({"id": a.id, "owner": a.owner, "pid": a.pid, "regs": a.regs, "full": a.full,
-				"target": a.target, "auto": a.auto})
+				"target": a.target, "auto": a.auto, "stance": a.stance})
 	d.armies = ar
 	var ws := []
 	for w in wars:
@@ -2033,6 +2070,10 @@ func from_dict(d: Dictionary) -> void:
 		history.append([int(h[0]), int(h[1]), int(h[2]), int(h[3])])
 	for k in d.stats:
 		stats[k] = d.stats[k]
+	for k in d.get("prices", {}):
+		prices[k] = float(d.prices[k])
+	for k in d.get("prev_prices", {}):
+		prev_prices[k] = float(d.prev_prices[k])
 	for i in provinces.size():
 		var e: Array = d.provinces[i]
 		var p: Province = provinces[i]
@@ -2044,6 +2085,14 @@ func from_dict(d: Dictionary) -> void:
 		p.fort = int(e[5])
 		p.prev_owner = e[6] if e.size() > 6 else ""
 		p.suppress_months = int(e[7]) if e.size() > 7 else 0
+		p.buildings = {}
+		if e.size() > 8:
+			for b in e[8]:
+				p.buildings[b] = int(e[8][b])
+		Economy.refresh_local(self, p)
+		p.constructing = {}
+		if e.size() > 9 and not e[9].is_empty():
+			p.constructing = {"id": e[9].id, "months": int(e[9].months)}
 	for tag in d.nations:
 		var e: Dictionary = d.nations[tag]
 		var n: Nation = nations[tag]
@@ -2075,6 +2124,11 @@ func from_dict(d: Dictionary) -> void:
 		n.overlord = e.get("overlord", "")
 		n.vassal_since = int(e.get("vassal_since", 0))
 		n.we = float(e.get("we", 0.0))
+		n.merchants = []
+		for m in e.get("merchants", []):
+			n.merchants.append(int(m))
+		n.merchant_auto = e.get("merchant_auto", true)
+		n.army_stance = e.get("army_stance", "")
 		tree.load_save(n, e.get("techs", {}))
 		govt.load_save(n, e.get("gov", {}))
 	armies.clear()
@@ -2087,6 +2141,7 @@ func from_dict(d: Dictionary) -> void:
 		a.full = float(e.full)
 		a.target = int(e.target)
 		a.auto = e.auto
+		a.stance = e.get("stance", "attack")
 		armies.append(a)
 	wars.clear()
 	for e in d.wars:
@@ -2103,3 +2158,6 @@ func from_dict(d: Dictionary) -> void:
 	_rebuild_owned()
 	for tag in order:
 		_update_cached(nations[tag])
+	Economy.refresh_goods_leaders(self)
+	Economy.update_markets(self)
+	Progression.refresh(self)

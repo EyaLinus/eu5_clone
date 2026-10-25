@@ -88,13 +88,15 @@ func _spend_gold(g, n) -> void:
 		if where >= 0:
 			g.recruit(tag, where, k)
 		return
-	# surplus gold becomes development (several buildings per month when rich)
-	var margin: float = 40.0 if (not war and regs >= want - 1.0) else 150.0
+	# surplus gold goes into buildings (best value per gold first)
+	if (g.month + n.capital) % 3 != 0:
+		return
+	var margin: float = 20.0 if (not war and regs >= want - 1.0) else 120.0
 	for i in 3:
-		var best := _cheapest_province(g, tag)
-		if best < 0 or n.gold <= g.build_cost(best) + reserve + margin:
+		var best: Array = g.Economy.best_building(g, n, war)
+		if best.is_empty() or n.gold <= g.Economy.building_cost(g, tag, best[0], best[1]) + reserve + margin:
 			break
-		g.build(tag, best)
+		g.construct(tag, best[0], best[1])
 
 
 # ---------------------------------------------------------------- diplomacy
@@ -322,8 +324,14 @@ func control_armies(g, tag: String) -> void:
 		_command(g, a, enemies, enemy_power)
 
 
+## Provinces an army in "defend" stance may fight in: own, allied and vassal land.
+func _friendly(g, tag: String, owner: String) -> bool:
+	return owner == tag or g.is_allied(tag, owner) or g.nations[owner].overlord == tag or g.nations[tag].overlord == owner
+
+
 func _command(g, a, enemies: Array, enemy_power: Dictionary) -> void:
 	var tag: String = a.owner
+	var defend: bool = a.stance == "defend"
 	var my_power: float = a.regs * g.combat_mult(tag)
 	# flee if a much stronger enemy stands next to us
 	for nb in g.provinces[a.pid].adj:
@@ -345,7 +353,16 @@ func _command(g, a, enemies: Array, enemy_power: Dictionary) -> void:
 		var p = g.provinces[cur]
 		var ep: float = enemy_power.get(cur, 0.0)
 		var s := -1e9
-		if ep > 0.0:
+		var allowed: bool = not defend or _friendly(g, tag, p.owner)
+		if not allowed:
+			# defenders still strike enemy armies standing right at the border
+			for nb in p.adj:
+				if _friendly(g, tag, g.provinces[nb].owner):
+					allowed = ep > 0.0
+					break
+		if not allowed:
+			s = -1e9
+		elif ep > 0.0:
 			if ep < my_power * 0.9:
 				s = 80.0 + ep - d * 6.0
 		elif enemies.has(p.controller):
@@ -368,11 +385,52 @@ func _command(g, a, enemies: Array, enemy_power: Dictionary) -> void:
 				continue
 			dist[nb] = d + 1
 			queue.append(nb)
-	if best >= 0 and best != a.pid:
+	if best >= 0 and best != a.pid and best_score > -1e8:
 		if a.target != best:
 			g.move_army(a, best)
 	elif best == a.pid:
 		a.target = -1
+	elif defend and a.target < 0:
+		# nothing to do: wait in the capital (or the nearest own province) for the enemy
+		var home: int = g.nations[tag].capital
+		if a.pid != home and g.provinces[home].controller == tag:
+			g.move_army(a, home)
+
+
+## Quick orders for the player's army panel. Each returns a province id or -1.
+func nearest_siege(g, a) -> int:
+	var enemies: Array = g.enemies_of(a.owner)
+	return _nearest(g, a, func(pid): return enemies.has(g.provinces[pid].controller))
+
+
+func nearest_enemy_army(g, a) -> int:
+	var enemies: Array = g.enemies_of(a.owner)
+	var where := {}
+	for e in g.armies:
+		if enemies.has(e.owner):
+			where[e.pid] = where.get(e.pid, 0.0) + e.regs
+	return _nearest(g, a, func(pid): return where.has(pid) and where[pid] < a.regs * 1.2)
+
+
+func nearest_lost_province(g, a) -> int:
+	var tag: String = a.owner
+	return _nearest(g, a, func(pid): return g.provinces[pid].owner == tag and g.provinces[pid].controller != tag)
+
+
+func _nearest(g, a, ok: Callable) -> int:
+	var dist := {a.pid: 0}
+	var queue := [a.pid]
+	var head := 0
+	while head < queue.size():
+		var cur: int = queue[head]
+		head += 1
+		if cur != a.pid and ok.call(cur):
+			return cur
+		for nb in g.provinces[cur].adj:
+			if not dist.has(nb) and g.can_enter(a.owner, nb):
+				dist[nb] = dist[cur] + 1
+				queue.append(nb)
+	return -1
 
 
 func pick_event_option(g, n, e: Dictionary) -> int:
