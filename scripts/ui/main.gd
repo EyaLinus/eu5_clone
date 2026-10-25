@@ -1072,6 +1072,8 @@ func _panel_province(pid: int) -> void:
 			why.append("Garnison %.0f" % u.garrison)
 		if u.suppressed < 0:
 			why.append("unterdrückt %.0f (%d Mon.)" % [u.suppressed, p.suppress_months])
+		if absf(u.policy) >= 0.05:
+			why.append("Regierung & Technik %+.1f" % u.policy)
 		info += "\n✊ Unruhe %.1f / %d%s" % [u.total, int(game.bal.revolt_threshold), (" (" + ", ".join(why) + ")") if not why.is_empty() else ""]
 		if p.prev_owner != "" and p.core_months > 0 and game.nations[p.prev_owner].alive:
 			info += "\n⚠️ Bei einem Aufstand fällt die Provinz an %s zurück." % game.nations[p.prev_owner].name
