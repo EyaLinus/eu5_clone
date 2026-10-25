@@ -148,5 +148,45 @@
      "require": {"tech": {"mil": 10}, "regs": 20}, "reward": {"mods": {"combat": 0.05}, "prestige": 10}},
     {"id": "nap_albania", "after": "nap_adriatic", "title": "Jenseits der Adria", "desc": "Das Erbe Skanderbegs: ein Brückenkopf in Albanien.",
      "require": {"owns_any": ["albania", "dalmatia"]}, "reward": {"prestige": 15, "dip": 40}}
+  ],
+  "TUR": [
+    {"id": "tur_constantinople", "title": "Die Stadt der Kaiser", "desc": "Konstantinopel wird die Hauptstadt eines neuen Weltreichs.",
+     "require": {"owns": ["constantinople"]}, "reward": {"prestige": 25, "mods": {"income": 0.05}}},
+    {"id": "tur_balkans", "title": "Herr des Balkans", "desc": "Serbien und Bosnien unter dem Halbmond.",
+     "require": {"owns_any": ["serbia", "bosnia"]}, "reward": {"mods": {"manpower": 0.05}, "mil": 40}},
+    {"id": "tur_morea", "after": "tur_constantinople", "title": "Morea und Albanien", "desc": "Die letzten Bastionen der Griechen und Skanderbegs.",
+     "require": {"owns_any": ["morea", "albania"]}, "reward": {"dip": 40, "prestige": 10}},
+    {"id": "tur_black_sea", "title": "Das Schwarze Meer, ein türkischer See", "desc": "Die Krim, die Moldau oder die Walachei unter osmanischer Hoheit.",
+     "require": {"owns_any": ["crimea", "moldavia", "wallachia"]}, "reward": {"mods": {"income": 0.05}}},
+    {"id": "tur_hungary", "after": "tur_balkans", "title": "Die Pforte nach Europa", "desc": "Buda oder das Banat sichern den Weg nach Westen.",
+     "require": {"owns_any": ["buda", "temes"]}, "reward": {"mods": {"combat": 0.05}, "prestige": 15}},
+    {"id": "tur_vienna", "after": "tur_hungary", "title": "Der Goldene Apfel", "desc": "Wien, die Hauptstadt der Habsburger.",
+     "require": {"owns_any": ["wien"]}, "reward": {"prestige": 30, "mil": 50}}
+  ],
+  "POL": [
+    {"id": "pol_prussia", "title": "Königlich Preußen", "desc": "Die Städte an der Weichsel gehören zur Krone.",
+     "require": {"owns_any": ["marienburg", "prussia"]}, "reward": {"mods": {"income": 0.05}, "dip": 30}},
+    {"id": "pol_lithuania", "title": "Die Republik beider Völker", "desc": "Polen und Litauen unter einer Krone.",
+     "require": {"owns_any": ["vilnius"]}, "reward": {"prestige": 20, "mods": {"manpower": 0.05}}},
+    {"id": "pol_baltic", "after": "pol_prussia", "title": "Dominium Maris Baltici", "desc": "Ein Hafen an der Ostsee für das Getreide Polens.",
+     "require": {"owns_any": ["riga", "pomerania", "reval"]}, "reward": {"mods": {"income": 0.05}}},
+    {"id": "pol_hussars", "title": "Die Flügelhusaren", "desc": "Die beste Reiterei Europas.",
+     "require": {"tech": {"mil": 8}, "regs": 20}, "reward": {"mods": {"combat": 0.05}}},
+    {"id": "pol_sejm", "title": "Der Sejm", "desc": "Ein Reichstag, der das Land zusammenhält statt es zu lähmen.",
+     "require": {"tech": {"adm": 8}, "min_dev": 80}, "reward": {"adm": 50, "prestige": 10}},
+    {"id": "pol_moscow", "after": "pol_lithuania", "title": "Der Weg nach Osten", "desc": "Smolensk oder gar Moskau für die Jagiellonen.",
+     "require": {"owns_any": ["smolensk", "moscow"]}, "reward": {"prestige": 25}}
+  ],
+  "BUR": [
+    {"id": "bur_lowlands", "title": "Die Niederlande halten", "desc": "Flandern, Brabant, Holland und Luxemburg bleiben burgundisch.",
+     "require": {"year_min": 1460, "at_peace": true, "owns": ["flanders", "brabant", "holland", "luxembourg"]}, "reward": {"mods": {"income": 0.05}}},
+    {"id": "bur_ordonnance", "title": "Die Ordonnanzkompanien", "desc": "Ein stehendes Heer nach französischem Vorbild.",
+     "require": {"tech": {"mil": 6}, "regs": 15}, "reward": {"mods": {"combat": 0.05}}},
+    {"id": "bur_kingdom", "title": "Eine Königskrone", "desc": "Der Kaiser soll Burgund zum Königreich erheben.",
+     "require": {"tech": {"dip": 6}, "allies": 1}, "reward": {"prestige": 20, "dip": 40}},
+    {"id": "bur_somme", "after": "bur_ordonnance", "title": "Die Somme-Städte", "desc": "Die Picardie und die Champagne verbinden Flandern mit dem Herzogtum.",
+     "require": {"owns_any": ["picardy", "champagne"]}, "reward": {"prestige": 15, "mods": {"manpower": 0.05}}},
+    {"id": "bur_rhine", "title": "Zwischen Rhein und Maas", "desc": "Köln oder die Pfalz als Brücke zum Reich.",
+     "require": {"owns_any": ["cologne", "palatinate"]}, "reward": {"mods": {"manpower": 0.05}, "dip": 30}}
   ]
 }

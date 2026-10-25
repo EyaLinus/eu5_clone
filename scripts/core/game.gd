@@ -522,6 +522,8 @@ func _economy(n: Nation) -> void:
 	n.manpower = minf(n.max_manpower, n.manpower + n.max_manpower / (float(bal.manpower_regen_years) * 12.0))
 	var decay: float = float(bal.ae_decay_per_year) * (1.0 + n.mods.ae_decay + 0.05 * n.tech.dip) / 12.0
 	n.ae = maxf(0.0, n.ae - decay)
+	if n.ae < 0.001:
+		n.ae = 0.0
 	for t in n.relations:
 		var r: float = n.relations[t]
 		n.relations[t] = r - signf(r) * minf(absf(r), 0.15)
