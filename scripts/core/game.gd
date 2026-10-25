@@ -48,6 +48,9 @@ class Nation:
 	var ruler_names: Array = []
 	var name_counts := {}
 	var mods := {"income": 0.0, "combat": 0.0, "manpower": 0.0, "adm": 0.0, "dip": 0.0, "mil": 0.0, "ae_decay": 0.0}
+	# derived bonuses per system (e.g. "tech", "gov", "goods", "buildings"): source -> {key: value}.
+	# Not saved: each system recomputes its entry from game state. Read everything through Game.mod().
+	var bonus := {}
 	var relations := {}
 	var allies: Array = []
 	var truces := {}
@@ -280,7 +283,7 @@ func army_regs(tag: String) -> float:
 
 func combat_mult(tag: String) -> float:
 	var n: Nation = nations[tag]
-	return 1.0 + n.tech.mil * float(bal.mil_tech_combat) + n.mods.combat
+	return 1.0 + n.tech.mil * float(bal.mil_tech_combat) + mod(n, "combat")
 
 
 func strength(tag: String) -> float:
@@ -419,12 +422,20 @@ func find_path(tag: String, from: int, to: int) -> Array:
 	return []
 
 
+## Total modifier `key` of a nation: permanent mods (ideas, events, missions) plus all derived bonus sources.
+func mod(n: Nation, key: String) -> float:
+	var v: float = float(n.mods.get(key, 0.0))
+	for src in n.bonus:
+		v += float(n.bonus[src].get(key, 0.0))
+	return v
+
+
 func power_of(n: Nation, kind: String) -> float:
 	return n.get(kind)
 
 
 func monthly_power(n: Nation, kind: String) -> float:
-	var v: float = float(bal.base_power) + n.ruler[kind] + n.mods[kind]
+	var v: float = float(bal.base_power) + n.ruler[kind] + mod(n, kind)
 	if n.tag == emperor and kind == "dip":
 		v += float(bal.emperor_dip)
 	return v
@@ -494,7 +505,7 @@ func tick() -> void:
 
 func _update_cached(n: Nation) -> void:
 	n.dev_total = nation_dev(n.tag)
-	n.max_manpower = 3.0 + n.dev_total * float(bal.manpower_per_dev) * (1.0 + n.mods.manpower)
+	n.max_manpower = 3.0 + n.dev_total * float(bal.manpower_per_dev) * (1.0 + mod(n, "manpower"))
 
 
 func _economy(n: Nation) -> void:
@@ -509,7 +520,7 @@ func _economy(n: Nation) -> void:
 			v *= float(bal.uncored_income_mult)
 			p.core_months -= 1
 		inc += v
-	n.income = inc * (1.0 + n.tech.adm * float(bal.adm_tech_income) + n.mods.income)
+	n.income = inc * (1.0 + n.tech.adm * float(bal.adm_tech_income) + mod(n, "income"))
 	var maint: float = army_regs(n.tag) * float(bal.regiment_maintenance)
 	var war := is_at_war(n.tag)
 	if not war:
@@ -527,7 +538,7 @@ func _economy(n: Nation) -> void:
 	n.dip = minf(cap, n.dip + monthly_power(n, "dip"))
 	n.mil = minf(cap, n.mil + monthly_power(n, "mil"))
 	n.manpower = minf(n.max_manpower, n.manpower + n.max_manpower / (float(bal.manpower_regen_years) * 12.0))
-	var decay: float = float(bal.ae_decay_per_year) * (1.0 + n.mods.ae_decay + 0.05 * n.tech.dip) / 12.0
+	var decay: float = float(bal.ae_decay_per_year) * (1.0 + mod(n, "ae_decay") + 0.05 * n.tech.dip) / 12.0
 	n.ae = maxf(0.0, n.ae - decay)
 	if n.ae < 0.001:
 		n.ae = 0.0
