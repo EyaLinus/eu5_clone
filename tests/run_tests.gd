@@ -16,7 +16,7 @@ func _init() -> void:
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
-		"test_missions_complete", "test_long_run_no_softlock", "test_emoji_coverage",
+		"test_missions_complete", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures",
 	]:
 		var before := failures
 		call(t)
@@ -435,3 +435,11 @@ func test_emoji_coverage() -> void:
 				check(have.has("%x" % c), "%s: no pixel glyph for %s (U+%X), add it in tools/art/emoji_icons.py" % [path, char(c), c])
 	for tag in data.nations:
 		check(ResourceLoader.exists("res://assets/art/icons/flag_%s.png" % tag), "nation %s has no flag" % tag)
+
+
+## Every event's picture (own "image" or the generated motif map) must exist; tools/art/event_motifs.py.
+func test_event_pictures() -> void:
+	var motifs: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/art/events/event_motifs.json"))
+	for e in data.events:
+		var m: String = e.get("image", motifs.get(e.id, "court"))
+		check(ResourceLoader.exists("res://assets/art/events/%s.png" % m), "event %s: picture %s missing" % [e.id, m])
