@@ -52,6 +52,18 @@ var toast_time := 0.0
 var hud: Control
 var settings := {"ui_scale": 1.0, "tips": true, "tips_seen": [], "sound": true}
 var sfx_players: Array = []
+# touch layer: drag-to-scroll over buttons and long-press tooltips (see _input)
+const DRAG_START := 14.0
+const LONG_PRESS := 0.5
+var _scrolls: Array = []
+var _press_pos := Vector2.ZERO
+var _press_time := -1.0
+var _press_scroll: ScrollContainer = null
+var _press_scroll_start := 0
+var _dragging := false
+var _suppress_click := false
+var _tip_panel: PanelContainer
+var _tip_label: Label
 var sfx_streams := {}
 var last_battles := 0
 var tech_screen := TechScreen.new(self)
@@ -252,6 +264,7 @@ func _build_hud() -> void:
 	side_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	side_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	vb.add_child(side_scroll)
+	register_scroll(side_scroll)
 	side_box = VBoxContainer.new()
 	side_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	side_box.add_theme_constant_override("separation", 8)
@@ -291,6 +304,7 @@ func _build_modal() -> void:
 	sc.custom_minimum_size = Vector2(620, 0)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	pc.add_child(sc)
+	register_scroll(sc)
 	modal_box = VBoxContainer.new()
 	modal_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	modal_box.add_theme_constant_override("separation", 10)
@@ -311,8 +325,12 @@ func _btn(text: String, cb: Callable, tip: String = "", disabled: bool = false) 
 	# long labels are trimmed instead of widening the side panel past the screen edge
 	b.clip_text = true
 	b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	b.pressed.connect(func(): _sfx("click", -14.0))
-	b.pressed.connect(cb)
+	# a press that turned into a scroll or a long-press tooltip is not a click
+	b.pressed.connect(func():
+		if _suppress_click:
+			return
+		_sfx("click", -14.0)
+		cb.call())
 	return b
 
 
@@ -487,7 +505,115 @@ func _show_intro() -> void:
 	modal_box.add_child(_btn("Los geht's ▶", func(): _close_modal(); _set_speed(2)))
 
 
+## ScrollContainers that scroll by dragging anywhere on them, also when the finger starts on a button.
+func register_scroll(sc: ScrollContainer) -> void:
+	_scrolls.append(sc)
+
+
+func _scroll_at(pos: Vector2) -> ScrollContainer:
+	for i in range(_scrolls.size() - 1, -1, -1):
+		var sc: ScrollContainer = _scrolls[i]
+		if is_instance_valid(sc) and sc.is_visible_in_tree() and sc.get_global_rect().has_point(pos):
+			return sc
+	return null
+
+
+## Deepest visible control under `pos` that carries a tooltip.
+func _tooltip_at(node: Node, pos: Vector2) -> Control:
+	if node is CanvasItem and not node.visible:
+		return null
+	for i in range(node.get_child_count() - 1, -1, -1):
+		var hit := _tooltip_at(node.get_child(i), pos)
+		if hit != null:
+			return hit
+	if node is Control and node.tooltip_text != "" and node.mouse_filter != Control.MOUSE_FILTER_IGNORE \
+			and node.get_global_rect().has_point(pos):
+		return node
+	return null
+
+
+func _show_tip(text: String, pos: Vector2) -> void:
+	if _tip_panel == null:
+		_tip_panel = PanelContainer.new()
+		_tip_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_tip_label = Label.new()
+		_tip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_tip_label.add_theme_font_size_override("font_size", 20 if _big() else 17)
+		_tip_panel.add_child(_tip_label)
+		add_child(_tip_panel)
+	var w: float = minf(520.0, size.x - 32.0)
+	_tip_label.text = text
+	_tip_label.custom_minimum_size = Vector2(w - 20, 0)
+	_tip_panel.reset_size()
+	_tip_panel.size = Vector2(w, 0)
+	_tip_panel.position = Vector2(clampf(pos.x - w / 2, 16, size.x - w - 16), maxf(16, pos.y - 140))
+	_tip_panel.visible = true
+	_sfx("click", -18.0)
+
+
+func _input(event: InputEvent) -> void:
+	var down := false
+	var up := false
+	var moved := false
+	var pos := Vector2.ZERO
+	if event is InputEventScreenTouch:
+		if event.index != 0:
+			return
+		down = event.pressed
+		up = not event.pressed
+		pos = event.position
+	elif event is InputEventScreenDrag:
+		if event.index != 0:
+			return
+		moved = true
+		pos = event.position
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.is_echo():
+		if DisplayServer.is_touchscreen_available():
+			return  # emulated from touch: the screen events above already handled it
+		down = event.pressed
+		up = not event.pressed
+		pos = event.position
+	elif event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+		if DisplayServer.is_touchscreen_available():
+			return
+		moved = true
+		pos = event.position
+	else:
+		return
+	if down:
+		if _tip_panel != null:
+			_tip_panel.visible = false
+		_suppress_click = false
+		_dragging = false
+		_press_pos = pos
+		_press_time = Time.get_ticks_msec() / 1000.0
+		_press_scroll = _scroll_at(pos)
+		_press_scroll_start = _press_scroll.scroll_vertical if _press_scroll != null else 0
+	elif moved and _press_time >= 0.0:
+		if not _dragging and _press_scroll != null and pos.distance_to(_press_pos) > DRAG_START:
+			_dragging = true
+			_suppress_click = true
+		if _dragging:
+			_press_scroll.scroll_vertical = _press_scroll_start - int(pos.y - _press_pos.y)
+			get_viewport().set_input_as_handled()
+	elif up:
+		_press_time = -1.0
+		_press_scroll = null
+
+
+func _check_long_press() -> void:
+	if _press_time < 0.0 or _dragging or _suppress_click:
+		return
+	if Time.get_ticks_msec() / 1000.0 - _press_time < LONG_PRESS:
+		return
+	var c := _tooltip_at(self, _press_pos)
+	if c != null:
+		_suppress_click = true
+		_show_tip(c.tooltip_text, _press_pos)
+
+
 func _process(delta: float) -> void:
+	_check_long_press()
 	if toast_time > 0.0:
 		toast_time -= delta
 		if toast_time <= 0.0:
