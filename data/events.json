@@ -1432,5 +1432,119 @@
    "options": [
      {"text": "Herzogtum Preußen unter polnischer Lehenshoheit.", "effects": {"relations": {"POL": 50, "PAP": -40}, "adm": 40}, "ai": 50},
      {"text": "Der Orden bleibt.", "effects": {"prestige": 10, "relations": {"PAP": 30}}},
-     {"text": "Schutz beim Kaiser suchen.", "effects": {"relations": {"HAB": 40}, "dip": -20}}]}
+     {"text": "Schutz beim Kaiser suchen.", "effects": {"relations": {"HAB": 40}, "dip": -20}}]},
+  {"id": "kaz_khanate", "tag": "KAZ", "title": "Der Thron von Kasan", "text": "Moskau und die Krim streiten darüber, wer den nächsten Khan von Kasan bestimmt.",
+   "trigger": {"year_min": 1480, "year_max": 1552},
+   "options": [
+     {"text": "Ein Khan aus der Krim.", "effects": {"relations": {"CRI": 50, "RUS": -40}, "mil": 20}, "ai": 50},
+     {"text": "Ein Khan von Moskaus Gnaden.", "effects": {"relations": {"RUS": 50}, "prestige": -10}},
+     {"text": "Die Begs wählen selbst.", "effects": {"adm": 30}}]},
+  {"id": "kaz_volga_trade", "tag": "KAZ", "title": "Der Wolgahandel", "text": "Persische Seide und russische Pelze werden auf dem Markt von Kasan gehandelt.",
+   "trigger": {"year_min": 1450},
+   "options": [
+     {"text": "Zölle erheben.", "effects": {"gold": 60}, "ai": 50},
+     {"text": "Den Händlern Schutz geben.", "effects": {"mods": {"income": 0.02}, "mil": -20}},
+     {"text": "Russische Kaufleute ausschließen.", "effects": {"relations": {"RUS": -30}, "prestige": 5}}]},
+  {"id": "rya_last_prince", "tag": "RYA", "title": "Der letzte Fürst von Rjasan", "text": "Moskau verlangt immer mehr. Der Fürst überlegt, zu Litauen überzulaufen.",
+   "trigger": {"year_min": 1480, "year_max": 1525, "alive": "RUS"},
+   "options": [
+     {"text": "Treu zu Moskau.", "effects": {"relations": {"RUS": 40}, "prestige": -5}, "ai": 50},
+     {"text": "Geheime Briefe nach Vilnius.", "effects": {"relations": {"LIT": 40, "RUS": -40}, "dip": 20}},
+     {"text": "Die Festung an der Oka verstärken.", "effects": {"manpower": 2, "gold": -30}}]},
+  {"id": "liv_plettenberg", "tag": "LIV", "title": "Wolter von Plettenberg", "text": "Der Landmeister will Moskau an der Smolina mit einem kleinen Heer entgegentreten.",
+   "trigger": {"year_min": 1495, "year_max": 1525, "alive": "RUS"},
+   "options": [
+     {"text": "Die Schlacht wagen.", "effects": {"prestige": 15, "manpower": -2, "relations": {"RUS": -30}}, "ai": 50},
+     {"text": "Ein Waffenstillstand für 50 Jahre.", "effects": {"relations": {"RUS": 40}, "dip": 20}},
+     {"text": "Söldner aus dem Reich.", "effects": {"regs": 2, "gold": -40}}]},
+  {"id": "byz_last_emperor", "tag": "BYZ", "title": "Der letzte Kaiser", "text": "Konstantin XI. bittet den Westen um Hilfe. Der Preis ist die Union mit Rom.",
+   "trigger": {"year_max": 1460, "alive": "TUR"},
+   "options": [
+     {"text": "Die Kirchenunion verkünden.", "effects": {"relations": {"PAP": 50, "VEN": 30}, "prestige": -10, "regs": 2}, "ai": 50},
+     {"text": "Lieber den Turban als die Tiara.", "effects": {"prestige": 10, "mil": 30}},
+     {"text": "Genuesische Söldner unter Giustiniani.", "effects": {"regs": 3, "gold": -50, "relations": {"GEN": 30}}}]},
+  {"id": "byz_morea", "tag": "BYZ", "title": "Die Despoten von Morea", "text": "Die Brüder des Kaisers streiten um die Halbinsel, während die Türken einmarschieren.",
+   "trigger": {"year_max": 1470},
+   "options": [
+     {"text": "Die Brüder versöhnen.", "effects": {"dip": 30, "prestige": 5}, "ai": 50},
+     {"text": "Den Hexamilion-Wall reparieren.", "effects": {"manpower": 2, "gold": -40}},
+     {"text": "Nach Italien fliehen, mit den Reliquien.", "effects": {"gold": 60, "prestige": -15}}]},
+  {"id": "bos_church", "tag": "BOS", "title": "Die Bosnische Kirche", "text": "Der König soll den Katholizismus annehmen, um Hilfe aus Ungarn und Rom zu bekommen. Viele seiner Adligen folgen der eigenen Kirche.",
+   "trigger": {"year_max": 1470},
+   "options": [
+     {"text": "Katholisch werden.", "effects": {"relations": {"PAP": 40, "HUN": 30}, "prestige": -5}, "ai": 50},
+     {"text": "Die alte Kirche schützen.", "effects": {"prestige": 10, "dip": -20}},
+     {"text": "Die Adligen selbst entscheiden lassen.", "effects": {"adm": 20}}]},
+  {"id": "sav_shroud", "tag": "SAV", "title": "Das Grabtuch", "text": "Das Haus Savoyen besitzt ein Tuch, das als Grabtuch Christi verehrt wird. Pilger strömen nach Chambéry.",
+   "trigger": {"year_min": 1450, "year_max": 1600},
+   "options": [
+     {"text": "Eine Kapelle für das Tuch.", "effects": {"prestige": 10, "gold": -30}, "ai": 50},
+     {"text": "Pilgerzölle erheben.", "effects": {"gold": 50}},
+     {"text": "Das Tuch nach Turin bringen.", "effects": {"dev_capital": 1, "prestige": 5}}]},
+  {"id": "sav_emmanuel_philibert", "tag": "SAV", "title": "Eisenkopf", "text": "Emmanuel Philibert, ein Feldherr Spaniens, erhält sein Herzogtum zurück und will einen modernen Staat aufbauen.",
+   "trigger": {"year_min": 1555, "year_max": 1580},
+   "options": [
+     {"text": "Ein stehendes Heer.", "effects": {"mods": {"combat": 0.03}, "gold": -40}, "ai": 50},
+     {"text": "Italienisch als Amtssprache.", "effects": {"adm": 40}},
+     {"text": "Neutral zwischen Frankreich und Spanien.", "effects": {"dip": 40}}]},
+  {"id": "genoa_doria", "tag": "GEN", "title": "Andrea Doria", "text": "Der Admiral der Republik wechselt die Seiten: von Frankreich zu Spanien, gegen Freiheit für Genua.",
+   "trigger": {"year_min": 1515, "year_max": 1560},
+   "options": [
+     {"text": "Mit Spanien gegen Frankreich.", "effects": {"relations": {"SPA": 50, "FRA": -40}, "mods": {"income": 0.02}}, "ai": 60},
+     {"text": "Treu zu Frankreich.", "effects": {"relations": {"FRA": 40}, "mil": 20}},
+     {"text": "Neutral bleiben.", "effects": {"dip": 30}}]},
+  {"id": "prv_good_king_rene", "tag": "PRV", "title": "Der gute König René", "text": "Der alte König liebt Dichtung, Malerei und Turniere mehr als die Politik. Sein Erbe ist ungewiss.",
+   "trigger": {"year_max": 1485},
+   "options": [
+     {"text": "Ein Fest der Troubadoure.", "effects": {"prestige": 10, "gold": -30}, "ai": 50},
+     {"text": "Das Erbe Frankreich vermachen.", "effects": {"relations": {"FRA": 50}, "prestige": -5}},
+     {"text": "Ein Neffe aus Lothringen soll erben.", "effects": {"dip": 20}}]},
+  {"id": "bri_francis2", "tag": "BRI", "title": "Herzog Franz II.", "text": "Der Herzog will die Unabhängigkeit der Bretagne gegen Frankreich verteidigen und sucht Verbündete.",
+   "trigger": {"year_max": 1490, "alive": "FRA"},
+   "options": [
+     {"text": "Bündnis mit England.", "effects": {"relations": {"ENG": 50, "FRA": -30}, "dip": 20}, "ai": 40},
+     {"text": "Bündnis mit Habsburg.", "effects": {"relations": {"HAB": 50, "FRA": -30}}, "ai": 30},
+     {"text": "Frankreich nicht reizen.", "effects": {"relations": {"FRA": 30}, "prestige": -5}, "ai": 30}]},
+  {"id": "nav_albret", "tag": "NAV", "title": "Das Haus Albret", "text": "Navarra liegt zwischen Frankreich und Kastilien. Die Königin muss sich entscheiden.",
+   "trigger": {"year_min": 1480, "year_max": 1520},
+   "options": [
+     {"text": "Anschluss an Frankreich.", "effects": {"relations": {"FRA": 50, "SPA": -30}}, "ai": 50},
+     {"text": "Anschluss an Kastilien.", "effects": {"relations": {"SPA": 50, "FRA": -30}}},
+     {"text": "Die Pässe befestigen.", "effects": {"manpower": 2, "gold": -30}}]},
+  {"id": "kol_soest", "tag": "KOL", "title": "Die Soester Fehde", "text": "Die reiche Stadt Soest sagt sich vom Erzbischof los und unterstellt sich dem Herzog von Kleve.",
+   "trigger": {"year_max": 1470},
+   "options": [
+     {"text": "Die Stadt belagern.", "effects": {"mil": -30, "prestige": 5}, "ai": 50},
+     {"text": "Einen Vergleich schließen.", "effects": {"gold": -30, "dip": 20}},
+     {"text": "Die Stadt aufgeben.", "effects": {"prestige": -10, "gold": 40}}]},
+  {"id": "wur_poor_conrad", "tag": "WUR", "title": "Der Arme Konrad", "text": "Neue Steuern auf Fleisch und Wein treiben die Bauern im Remstal zum Aufstand.",
+   "trigger": {"year_min": 1505, "year_max": 1525},
+   "options": [
+     {"text": "Den Tübinger Vertrag schließen.", "effects": {"adm": 30, "gold": -20}, "ai": 50},
+     {"text": "Den Aufstand niederschlagen.", "effects": {"mil": -20, "dev_random": -1}},
+     {"text": "Die Steuern zurücknehmen.", "effects": {"gold": -40, "prestige": 5}}]},
+  {"id": "nur_duerer", "tag": "NUR", "title": "Albrecht Dürer", "text": "Ein Maler aus der Stadt ist in ganz Europa berühmt. Der Rat könnte ihn mit Aufträgen halten.",
+   "trigger": {"year_min": 1490, "year_max": 1530},
+   "options": [
+     {"text": "Das Rathaus ausmalen lassen.", "effects": {"prestige": 10, "gold": -30}, "ai": 50},
+     {"text": "Seine Kupferstiche drucken und verkaufen.", "effects": {"gold": 50}},
+     {"text": "Ihn dem Kaiser empfehlen.", "effects": {"relations": {"HAB": 30}, "dip": 20}}]},
+  {"id": "hes_philip", "tag": "HES", "title": "Philipp der Großmütige", "text": "Der Landgraf gründet eine evangelische Universität und den Schmalkaldischen Bund.",
+   "trigger": {"year_min": 1520, "year_max": 1560},
+   "options": [
+     {"text": "Den Bund anführen.", "effects": {"relations": {"SAX": 40, "HAB": -30}, "prestige": 10}, "ai": 50},
+     {"text": "Die Universität Marburg stiften.", "effects": {"adm": 40, "gold": -30}},
+     {"text": "Beim Kaiser bleiben.", "effects": {"relations": {"HAB": 40}}}]},
+  {"id": "lun_salt", "tag": "LUN", "title": "Das Lüneburger Salz", "text": "Die Saline von Lüneburg versorgt den ganzen Ostseeraum. Die Stadt will weniger Abgaben zahlen.",
+   "trigger": {"year_min": 1450},
+   "options": [
+     {"text": "Abgaben senken, Handel fördern.", "effects": {"mods": {"income": 0.02}}, "ai": 50},
+     {"text": "Die Abgaben erhöhen.", "effects": {"gold": 60, "dip": -20}},
+     {"text": "Die Saline unter fürstliche Verwaltung.", "effects": {"adm": 25}}]},
+  {"id": "pom_bogislaw", "tag": "POM", "title": "Bogislaw der Große", "text": "Der Herzog vereinigt alle pommerschen Teilherzogtümer und reformiert die Verwaltung.",
+   "trigger": {"year_max": 1525},
+   "options": [
+     {"text": "Ein einheitliches Pommern.", "effects": {"adm": 40, "prestige": 5}, "ai": 50},
+     {"text": "Pilgerfahrt nach Jerusalem.", "effects": {"prestige": 15, "gold": -40}},
+     {"text": "Ein Erbvertrag mit Brandenburg.", "effects": {"relations": {"BRA": 50}, "prestige": -5}}]}
 ]

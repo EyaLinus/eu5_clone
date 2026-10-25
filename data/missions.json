@@ -264,5 +264,27 @@
      "require": {"owns_any": ["riga", "crimea", "zaporozhia"]}, "reward": {"mods": {"income": 0.05}, "prestige": 10}},
     {"id": "lit_statute", "title": "Das Litauische Statut", "desc": "Ein Gesetzbuch für das ganze Großfürstentum.",
      "require": {"tech": {"adm": 6}}, "reward": {"adm": 40, "prestige": 10}}
+  ],
+  "SAV": [
+    {"id": "sav_alps", "title": "Die Alpenpässe", "desc": "Savoyen und Piemont halten die Schlüssel zu Italien.",
+     "require": {"year_min": 1450, "at_peace": true, "owns": ["savoy", "piedmont"]}, "reward": {"mods": {"manpower": 0.05}, "dip": 30}},
+    {"id": "sav_turin", "title": "Turin als Hauptstadt", "desc": "Der Hof zieht über die Alpen nach Italien.",
+     "require": {"tech": {"adm": 6}, "min_dev": 25}, "reward": {"dev_random": 2, "prestige": 10}},
+    {"id": "sav_coast", "after": "sav_alps", "title": "Ein Hafen am Meer", "desc": "Nizza ist zu wenig: Genua oder die Provence.",
+     "require": {"owns_any": ["genoa", "provence"]}, "reward": {"mods": {"income": 0.05}}}
+  ],
+  "GEN": [
+    {"id": "genoa_corsica", "title": "Korsika halten", "desc": "Die Insel ist ständig im Aufruhr, aber unverzichtbar.",
+     "require": {"year_min": 1450, "owns": ["genoa", "corsica"]}, "reward": {"mods": {"manpower": 0.05}, "mil": 30}},
+    {"id": "genoa_bankers", "title": "Die Bankiers Spaniens", "desc": "Genuesisches Kapital finanziert die Kriege der Könige.",
+     "require": {"tech": {"dip": 6}, "gold_min": 150}, "reward": {"mods": {"income": 0.05}, "dip": 30}},
+    {"id": "genoa_sardinia", "after": "genoa_corsica", "title": "Sardinien", "desc": "Die Nachbarinsel für Genua.",
+     "require": {"owns_any": ["sardinia"]}, "reward": {"prestige": 15}}
+  ],
+  "LIV": [
+    {"id": "liv_order", "title": "Der Orden hält", "desc": "Riga und Reval gehören dem Orden, nicht dem Erzbischof oder den Städten.",
+     "require": {"year_min": 1450, "owns": ["riga", "reval"]}, "reward": {"mods": {"combat": 0.03}, "adm": 30}},
+    {"id": "liv_walls", "title": "Mauern gegen Moskau", "desc": "Neue Festungen für den Krieg, der kommen wird.",
+     "require": {"tech": {"mil": 6}, "regs": 10}, "reward": {"mods": {"manpower": 0.05}}}
   ]
 }
