@@ -23,6 +23,7 @@ static func load_all() -> Dictionary:
 		"diplomacy": load_json("res://data/diplomacy.json"),
 		"goods": load_json("res://data/goods.json"),
 		"buildings": load_json("res://data/buildings.json"),
+		"coastal": load_json("res://data/coastal.json"),
 		"techs": load_json("res://data/techs.json"),
 		"government": load_json("res://data/government.json"),
 	}

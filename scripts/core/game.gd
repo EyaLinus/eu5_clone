@@ -28,6 +28,7 @@ class Province:
 	var suppress_months: int = 0
 	var good: String = "grain"
 	var market: int = -1  # pid of the market center this province trades in
+	var coastal: bool = false  # touches the sea (data/coastal.json): may build a harbor
 	var buildings := {}  # building id -> level
 	var constructing := {}  # {"id": building, "months": left}
 	var loc := {}  # cached local building effects (Economy.refresh_local)
@@ -82,6 +83,8 @@ class Nation:
 	var trade_income: float = 0.0
 	var merchants: Array = []  # market center pids
 	var merchant_auto: bool = true
+	var autobuild: bool = false  # player: build the best building whenever the treasury stays above the reserve
+	var autobuild_reserve: float = 100.0
 	var army_stance: String = ""  # player's default for new armies: "" manual, "attack" or "defend"
 
 
@@ -544,6 +547,7 @@ func tick() -> void:
 			ai.think(self, n)
 	if player != "" and nations[player].alive:
 		ai.control_armies(self, player)
+		Economy.autobuild(self, nations[player])
 	month += 1
 	if month % 12 == 0:
 		_yearly()
@@ -2032,6 +2036,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve,
 				"techs": tree.to_save(n), "gov": govt.to_save(n)}
 	d.nations = ns
 	var ar := []
@@ -2129,6 +2134,8 @@ func from_dict(d: Dictionary) -> void:
 			n.merchants.append(int(m))
 		n.merchant_auto = e.get("merchant_auto", true)
 		n.army_stance = e.get("army_stance", "")
+		n.autobuild = bool(e.get("autobuild", false))
+		n.autobuild_reserve = float(e.get("autobuild_reserve", 100.0))
 		tree.load_save(n, e.get("techs", {}))
 		govt.load_save(n, e.get("gov", {}))
 	armies.clear()

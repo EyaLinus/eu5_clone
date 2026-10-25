@@ -518,6 +518,18 @@ func _scroll_at(pos: Vector2) -> ScrollContainer:
 	return null
 
 
+## True if a visible Range control (slider, scroll bar, spin box) lies under `pos`.
+func _range_at(node: Node, pos: Vector2) -> bool:
+	if node is CanvasItem and not node.visible:
+		return false
+	if node is Range and node.get_global_rect().has_point(pos):
+		return true
+	for c in node.get_children():
+		if _range_at(c, pos):
+			return true
+	return false
+
+
 ## Deepest visible control under `pos` that carries a tooltip.
 func _tooltip_at(node: Node, pos: Vector2) -> Control:
 	if node is CanvasItem and not node.visible:
@@ -587,7 +599,8 @@ func _input(event: InputEvent) -> void:
 		_dragging = false
 		_press_pos = pos
 		_press_time = Time.get_ticks_msec() / 1000.0
-		_press_scroll = _scroll_at(pos)
+		# sliders and scroll bars keep their own drag
+		_press_scroll = null if _range_at(self, pos) else _scroll_at(pos)
 		_press_scroll_start = _press_scroll.scroll_vertical if _press_scroll != null else 0
 	elif moved and _press_time >= 0.0:
 		if not _dragging and _press_scroll != null and pos.distance_to(_press_pos) > DRAG_START:
@@ -1314,7 +1327,7 @@ func _province_buildings(p) -> void:
 		var maxl: int = Eco.max_level(game, bid)
 		var reason: String = Eco.build_block_reason(game, me, p.id, bid)
 		# hide what cannot matter right now: unbuilt buildings without a free slot
-		if lvl == 0 and reason.begins_with("Keine freien"):
+		if lvl == 0 and (reason.begins_with("Keine freien") or (d.get("coastal", false) and not p.coastal)):
 			continue
 		var label := "%s %s %d/%d" % [d.emoji, d.name, lvl, maxl]
 		var txt: String
@@ -1348,6 +1361,21 @@ func _panel_economy() -> void:
 		var bp = game.provinces[best[0]]
 		side_box.add_child(_btn("✨ Bauvorschlag: %s %s in %s (%d💰)" % [bd.emoji, bd.name, bp.name, int(Eco.building_cost(game, me, best[0], best[1]))],
 				func(): _act(game.construct(me, best[0], best[1]), "🏗️ Bau begonnen: " + bd.name), "Das Gebäude mit dem besten Ertrag pro Gold."))
+	side_box.add_child(_btn("🤖 Autobau: " + ("AN" if n.autobuild else "AUS"), func():
+		n.autobuild = not n.autobuild
+		if n.autobuild:
+			Eco.autobuild(game, n)
+		_refresh(), "Baut automatisch das lohnendste Gebäude, solange die Kasse danach nicht unter die Mindestkasse fällt."))
+	if n.autobuild:
+		var row := HBoxContainer.new()
+		row.add_child(_lbl("Mindestkasse %d💰" % int(n.autobuild_reserve)))
+		for step in [-100, -25, 25, 100]:
+			var st: int = step
+			var b := _btn("%+d" % st, func():
+				n.autobuild_reserve = clampf(n.autobuild_reserve + st, 0.0, 5000.0)
+				_refresh(), "Mindestkasse ändern: Autobau gibt nur Gold darüber aus.")
+			row.add_child(b)
+		side_box.add_child(row)
 	var building := 0
 	for pid in game.provinces_of(me):
 		if not game.provinces[pid].constructing.is_empty():

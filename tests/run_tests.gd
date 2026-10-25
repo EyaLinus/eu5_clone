@@ -15,7 +15,7 @@ func _init() -> void:
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
-		"test_economy_goods_and_trade", "test_buildings", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures",
@@ -411,6 +411,50 @@ func test_economy_goods_and_trade() -> void:
 	p.dev += 6
 	check(Eco.tax(g, p) > tax0 and Eco.production_value(g, p) > prod0 and Eco.province_trade_power(g, p) > tp0 \
 			and Eco.local_manpower(g, p) > mp0, "development raises tax, production, trade power and manpower")
+
+
+func test_harbor() -> void:
+	var g = new_game("ENG", 5)
+	var Eco = g.Economy
+	var n = g.nations.ENG
+	n.gold = 10000.0
+	var london = g.provinces[g.key_to_pid["london"]]
+	check(london.coastal, "London is coastal")
+	var inland := -1
+	for pid in g.provinces_of("ENG"):
+		if not g.provinces[pid].coastal:
+			inland = pid
+	var coastal_count := 0
+	for p in g.provinces:
+		if p.coastal:
+			coastal_count += 1
+	check(coastal_count > 40 and coastal_count < g.provinces.size() - 20, "a plausible share of provinces is coastal")
+	if inland >= 0:
+		check(Eco.build_block_reason(g, "ENG", inland, "harbor") != "", "no harbor inland")
+	var tp0: float = Eco.province_trade_power(g, london)
+	london.buildings["harbor"] = 1
+	Eco.refresh_local(g, london)
+	check(Eco.province_trade_power(g, london) > tp0 + 2.9, "harbor adds trade power")
+	g._update_cached(n)
+	check(g.mod(n, "trade") >= 0.02, "harbor raises national trade income")
+
+
+func test_autobuild() -> void:
+	var g = new_game("FRA", 5)
+	var n = g.nations.FRA
+	n.gold = 150.0
+	n.autobuild_reserve = 140.0
+	check(g.Economy.autobuild(g, n) == 0, "autobuild off by default")
+	n.autobuild = true
+	check(g.Economy.autobuild(g, n) == 0, "autobuild never goes below the reserve")
+	n.autobuild_reserve = 0.0
+	n.gold = 1000.0
+	check(g.Economy.autobuild(g, n) >= 1, "autobuild starts buildings above the reserve")
+	check(n.gold >= 0.0, "autobuild keeps the treasury at or above the reserve")
+	n.autobuild_reserve = 777.0
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.FRA.autobuild and g2.nations.FRA.autobuild_reserve == 777.0, "autobuild is saved")
 
 
 func test_buildings() -> void:

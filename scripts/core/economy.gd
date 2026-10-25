@@ -11,8 +11,10 @@ static func setup(g, data: Dictionary) -> void:
 	g.goods_def = gd.get("goods", {})
 	g.buildings_def = data.get("buildings", {})
 	var by_key: Dictionary = gd.get("provinces", {})
+	var coast: Array = data.get("coastal", [])
 	for p in g.provinces:
 		p.good = by_key.get(p.key, "grain")
+		p.coastal = coast.has(p.key)
 	g.markets = []
 	for k in gd.get("markets", []):
 		g.markets.append(g.key_to_pid[k])
@@ -105,6 +107,8 @@ static func build_block_reason(g, tag: String, pid: int, bid: String) -> String:
 		return "Hier wird schon gebaut."
 	if not p.buildings.has(bid) and p.buildings.size() >= slots(g, p):
 		return "Keine freien Bauplätze (mehr Entwicklung = mehr Plätze)."
+	if d.get("coastal", false) and not p.coastal:
+		return "Nur in Küstenprovinzen."
 	if d.has("requires") and not p.buildings.has(d.requires):
 		return "Braucht zuerst: %s." % g.buildings_def[d.requires].name
 	if p.dev < level_dev(g, p, bid):
@@ -266,7 +270,7 @@ static func merchant_count(g, n) -> int:
 
 
 static func province_trade_power(g, p) -> float:
-	var v: float = p.dev * (1.0 + local(g, p, "trade_power"))
+	var v: float = p.dev * (1.0 + local(g, p, "trade_power")) + local(g, p, "trade_flat")
 	if p.market == p.id:
 		v *= float(g.bal.market_center_power)
 	return v
@@ -361,6 +365,24 @@ static func recall_merchant(g, tag: String, m: int) -> void:
 
 # ---------------------------------------------------------------- AI
 
+## Player autobuild: starts the best building (value per gold) while the treasury stays at or above
+## the reserve after paying. At most 2 new projects per month. Returns the number started.
+static func autobuild(g, n) -> int:
+	if not n.autobuild:
+		return 0
+	var started := 0
+	for i in 2:
+		var best: Array = best_building(g, n, g.is_at_war(n.tag))
+		if best.is_empty() or n.gold - building_cost(g, n.tag, best[0], best[1]) < n.autobuild_reserve:
+			break
+		if g.construct(n.tag, best[0], best[1]) != "":
+			break
+		started += 1
+		var d: Dictionary = g.buildings_def[best[1]]
+		g.log_msg("🤖 Autobau: %s %s in %s" % [d.emoji, d.name, g.provinces[best[0]].name])
+	return started
+
+
 ## Best building for the AI: highest extra monthly value per gold. Returns [pid, bid] or [].
 static func best_building(g, n, war: bool) -> Array:
 	var best: Array = []
@@ -388,7 +410,8 @@ static func _building_value(g, n, p, bid: String, war: bool) -> float:
 	var prod: float = p.dev * float(g.bal.production_per_dev) * float(g.prices[p.good])
 	v += float(loc.get("production", 0.0)) * prod
 	v += float(loc.get("tax", 0.0)) * p.dev * float(g.bal.tax_per_dev)
-	v += float(loc.get("trade_power", 0.0)) * p.dev * 0.01
+	v += (float(loc.get("trade_power", 0.0)) * p.dev + float(loc.get("trade_flat", 0.0))) * 0.01
+	v += float(d.get("nation", {}).get("trade", 0.0)) * n.trade_income
 	v += float(loc.get("manpower", 0.0)) * p.dev * 0.01
 	if p.core_months > 0:
 		v += float(loc.get("uncored_income", 0.0)) * prod + absf(float(loc.get("unrest", 0.0))) * 0.03

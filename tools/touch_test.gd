@@ -125,5 +125,27 @@ func _run() -> void:
 		fails.append("touch drag did not scroll")
 	if clicked[0] > tclicked:
 		fails.append("touch drag clicked the button")
+	# dragging a slider inside a scroll area moves the slider, not the scroll area
+	var sl := HSlider.new()
+	sl.custom_minimum_size = Vector2(300, 40)
+	sl.max_value = 100
+	m.side_box.add_child(sl)
+	m.side_box.move_child(sl, 0)
+	m.side_scroll.scroll_vertical = 0
+	await process_frame
+	await process_frame
+	var sr: Rect2 = sl.get_global_rect()
+	var s0 := Vector2(sr.position.x + 5, sr.get_center().y)
+	_mouse(m, s0, true)
+	for i in 10:
+		await process_frame
+		_move(m, s0 + Vector2(25 * (i + 1), -4 * (i + 1)))
+	await process_frame
+	_mouse(m, s0 + Vector2(250, -40), false)
+	await process_frame
+	if m.side_scroll.scroll_vertical != 0:
+		fails.append("slider drag scrolled the panel")
+	if sl.value <= 0.0:
+		fails.append("slider did not move")
 	print("TOUCH ok" if fails.is_empty() else "TOUCH FAIL " + "; ".join(fails))
 	quit(0 if fails.is_empty() else 1)

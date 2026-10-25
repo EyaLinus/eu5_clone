@@ -123,6 +123,8 @@ add("🏬", "trade_hall", layer(["....YGGD....", "...RRRRRR...", "..RRRRRRRR..",
 add("🛒", "handcart", layer(["..lL.GD.ww..", ".lLLGGDwwwa.", "OOOOOOOOOOOH", "OHHHHHHHHHHH", ".O........O.", "HOH......HOH", ".H........H."], 2, 5))
 add("📉", "chart_down", layer(["PPPPPPPPPP", "PQRPPPPPPP", "PQPRPPPPPP", "PQPPRPPPPP", "PQPPPRPRPP", "PQPPPPRPRP", "PQPPPPPPPR", "PQPPPPPPPP", "PQQQQQQQQP", "PPPPPPPPPP"], 3, 3))
 
+add("⚓", "anchor", layer(["....aaa.....", "...a.d.g....", "....aad.....", "..ggaagdd...", ".....ad.....", ".....ad.....", "a....ad....g", "ag...ad...gd", ".ag..ad..gd.", "..aggadggd..", "....dddd...."], 2, 3))
+
 # ---- tech tree states
 add("🔒", "lock", layer(["...aaaa...", "..ag..ga..", "..a....g..", "..a....g..", "YYYYYYYYYD", "YGGGGGGGGD", "YGGGkkGGGD", "YGGGkkGGGD", "YGGGGkGGGD", "DDDDDDDDDD"], 3, 3))
 add("✓", "tick", layer([".........ll", "........lLF", ".......lLF.", "ll....lLF..", "lLl..lLF...", ".lLllLF....", "..lLLF.....", "...LF......"], 2, 4))
