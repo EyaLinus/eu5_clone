@@ -55,6 +55,13 @@ func _run(m) -> void:
 	m.game.govt.found_company(m.game, "FRA", "lombarden")
 	m._open_panel("government")
 	await _shot("04d_government")
+	m.game.nations.FRA.gov.estates.klerus = 22.0
+	m.game.nations.FRA.gov.estates.adel = 68.0
+	m.game.govt.refresh_estates(m.game.nations.FRA)
+	m._open_panel("government")
+	await process_frame
+	m.side_scroll.scroll_vertical = 100000
+	await _shot("04h_estates")
 	m.gov_screen._invest("lombarden")
 	await _shot("04g_invest")
 	m._close_modal()

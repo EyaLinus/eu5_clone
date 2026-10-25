@@ -136,7 +136,7 @@ SPECIAL = {
          "Jeder freie Mann übt sonntags am Bogen, aber gute Schützen sind rar."),
         ("eng_adventurers", "dip", "Charta der Merchant Adventurers", 1490, "dip_gilden", {"trade": 0.12},
          "Londoner Tuchhändler erhalten das Monopol auf den Export nach Flandern."),
-        ("eng_supremacy", "adm", "Suprematsakte", 1530, "adm_kirchenreform", {"income": 0.08, "tech_cost": -0.03, "unrest": 0.5},
+        ("eng_supremacy", "adm", "Suprematsakte", 1530, "adm_kirchenreform", {"income": 0.08, "tech_cost": -0.03, "unrest": 0.5, "estate_klerus": -15},
          "Die Krone wird Oberhaupt der Kirche und zieht die Klostergüter ein."),
     ],
     "SPA": [
@@ -192,7 +192,7 @@ SPECIAL = {
          "Getreide aus Masowien fließt über die Weichsel nach Westen."),
         ("pol_husaren", "mil", "Geflügelte Husaren", 1500, "mil_arkebusiere", {"combat": 0.07},
          "Die schwere Reiterei Polens entscheidet Schlachten mit einem Angriff."),
-        ("pol_nihil_novi", "dip", "Nihil novi", 1505, "dip_staende", {"unrest": -1.0, "tech_cost": 0.03},
+        ("pol_nihil_novi", "dip", "Nihil novi", 1505, "dip_staende", {"unrest": -1.0, "tech_cost": 0.03, "estate_adel": 20},
          "Nichts Neues ohne Zustimmung des Sejm, Reformen werden zäh."),
     ],
     "BUR": [
@@ -210,16 +210,16 @@ SPECIAL = {
 # Generic political advisors: (id, name, power type, effects)
 ADVISORS = [
     ("kaemmerer", "Kämmerer", "adm", {"income": 0.06}),
-    ("steuermeister", "Strenger Steuermeister", "adm", {"tax": 0.12, "unrest": 0.5}),
+    ("steuermeister", "Strenger Steuermeister", "adm", {"tax": 0.12, "unrest": 0.5, "estate_buerger": -10}),
     ("baumeister", "Hofbaumeister", "adm", {"build_cost": -0.15}),
     ("gelehrter", "Hofgelehrter", "adm", {"tech_cost": -0.08}),
     ("landvogt", "Oberster Landvogt", "adm", {"unrest": -1.0}),
-    ("reformer", "Eifriger Reformer", "adm", {"adm": 1, "unrest": 0.5}),
+    ("reformer", "Eifriger Reformer", "adm", {"adm": 1, "unrest": 0.5, "estate_adel": -10}),
     ("zeremonienmeister", "Zeremonienmeister", "dip", {"prestige": 1.0}),
     ("gesandter", "Erster Gesandter", "dip", {"ae_decay": 0.15}),
     ("meisterspion", "Meisterspion", "dip", {"ae_gen": -0.15}),
     ("handelsherr", "Handelsherr", "dip", {"trade": 0.1}),
-    ("eiferer", "Glaubenseiferer", "dip", {"unrest": -1.5, "prestige": 0.5, "tech_cost": 0.05}),
+    ("eiferer", "Glaubenseiferer", "dip", {"unrest": -1.5, "prestige": 0.5, "tech_cost": 0.05, "estate_klerus": 10}),
     ("feldhauptmann", "Feldhauptmann", "mil", {"combat": 0.05}),
     ("zeugmeister", "Zeugmeister", "mil", {"siege": 0.2}),
     ("werbeoffizier", "Werbeoffizier", "mil", {"manpower": 0.15}),
@@ -268,9 +268,9 @@ NATIONAL_ADVISORS = [
 
 # Investment companies: (id, name, year, effects, text). Cost = months of income (min. company_min_gold).
 COMPANIES = [
-    ("lombarden", "Lombardische Bankiers", 1444, {"income": 0.08, "prestige": -0.25},
+    ("lombarden", "Lombardische Bankiers", 1444, {"income": 0.08, "prestige": -0.25, "estate_klerus": -10},
      "Kredit gegen hohe Zinsen. Das Volk hält Wucher für eine Sünde."),
-    ("kaufmannsgilde", "Kaufmannsgilde", 1444, {"trade": 0.12, "unrest": 0.25},
+    ("kaufmannsgilde", "Kaufmannsgilde", 1444, {"trade": 0.12, "unrest": 0.25, "estate_buerger": 10},
      "Die Gilde handelt gut, verlangt aber Privilegien, die die Zünfte erzürnen."),
     ("bergbau", "Bergbaugesellschaft", 1444, {"production": 0.1, "manpower": -0.05},
      "Erzgruben und Hütten binden viele Arbeiter."),
@@ -306,30 +306,59 @@ NATIONAL_COMPANIES = [
 LAWS = [
     ("wirtschaft", "Wirtschaftsordnung", "adm", [
         ("grundherrschaft", "Grundherrschaft", "", {}, "Abgaben der Bauern an ihre Herren."),
-        ("staedtefoerderung", "Städteförderung", "", {"production": 0.08, "manpower": -0.05}, "Bürger statt Bauern."),
-        ("merkantilismus", "Merkantilismus", "adm_verlag", {"production": 0.12, "tax": 0.04, "trade": -0.1}, "Eigene Waren schützen, fremde verzollen."),
-        ("freihandel", "Freihandel", "dip_boersen", {"trade": 0.15, "tax": -0.05}, "Niedrige Zölle locken Kaufleute an."),
-        ("kriegswirtschaft", "Kriegswirtschaft", "", {"maintenance": -0.15, "force_limit": 2, "production": -0.1, "unrest": 0.5}, "Alles für die Front."),
+        ("staedtefoerderung", "Städteförderung", "", {"production": 0.08, "manpower": -0.05, "estate_buerger": 15, "estate_adel": -5}, "Bürger statt Bauern."),
+        ("merkantilismus", "Merkantilismus", "adm_verlag", {"production": 0.12, "tax": 0.04, "trade": -0.1, "estate_buerger": 5}, "Eigene Waren schützen, fremde verzollen."),
+        ("freihandel", "Freihandel", "dip_boersen", {"trade": 0.15, "tax": -0.05, "estate_buerger": 15}, "Niedrige Zölle locken Kaufleute an."),
+        ("kriegswirtschaft", "Kriegswirtschaft", "", {"maintenance": -0.15, "force_limit": 2, "production": -0.1, "unrest": 0.5, "estate_buerger": -15}, "Alles für die Front."),
     ]),
     ("heer", "Heeresverfassung", "mil", [
         ("lehnsheer", "Lehnsheer", "", {}, "Die Vasallen stellen Truppen im Kriegsfall."),
         ("soeldner", "Söldnerheere", "", {"force_limit": 3, "maintenance": 0.1, "manpower": -0.1}, "Geld statt Blut, solange die Kasse reicht."),
-        ("landesaufgebot", "Allgemeines Landesaufgebot", "", {"manpower": 0.25, "combat": -0.04, "unrest": 0.5}, "Jeder wehrfähige Mann wird gemustert."),
-        ("stehendes_heer", "Stehendes Heer", "mil_kriegskanzlei", {"combat": 0.08, "maintenance": 0.1}, "Gedrillte Berufssoldaten, auch im Frieden besoldet."),
+        ("landesaufgebot", "Allgemeines Landesaufgebot", "", {"manpower": 0.25, "combat": -0.04, "unrest": 0.5, "estate_adel": -10}, "Jeder wehrfähige Mann wird gemustert."),
+        ("stehendes_heer", "Stehendes Heer", "mil_kriegskanzlei", {"combat": 0.08, "maintenance": 0.1, "estate_adel": -10}, "Gedrillte Berufssoldaten, auch im Frieden besoldet."),
     ]),
     ("staat", "Staatsaufbau", "adm", [
         ("feudal", "Feudalordnung", "", {}, "Der König ist Erster unter den Großen."),
-        ("staendestaat", "Ständestaat", "", {"unrest": -1.0, "tax": 0.05, "tech_cost": 0.05}, "Die Stände bewilligen Steuern und blockieren Neuerungen."),
-        ("zentralisierung", "Zentralisierung", "adm_beamte", {"adm": 1, "coring": -0.15, "unrest": 0.75}, "Beamte der Krone ersetzen den Landadel."),
-        ("absolutismus", "Absolutismus", "adm_absolut", {"adm": 1, "mil": 1, "unrest": 1.0, "prestige": 0.5}, "L'État, c'est moi."),
+        ("staendestaat", "Ständestaat", "", {"unrest": -1.0, "tax": 0.05, "tech_cost": 0.05, "estate_adel": 15, "estate_buerger": 10}, "Die Stände bewilligen Steuern und blockieren Neuerungen."),
+        ("zentralisierung", "Zentralisierung", "adm_beamte", {"adm": 1, "coring": -0.15, "unrest": 0.75, "estate_adel": -20}, "Beamte der Krone ersetzen den Landadel."),
+        ("absolutismus", "Absolutismus", "adm_absolut", {"adm": 1, "mil": 1, "unrest": 1.0, "prestige": 0.5, "estate_adel": -25, "estate_buerger": -5}, "L'État, c'est moi."),
     ]),
     ("kirche", "Kirchenpolitik", "dip", [
         ("tradition", "Alte Ordnung", "", {}, "Die Kirche lebt nach ihren alten Rechten."),
-        ("toleranz", "Toleranz", "", {"unrest": -1.0, "prestige": -0.5}, "Andersgläubige bleiben unbehelligt."),
-        ("glaubenseifer", "Glaubenseifer", "", {"prestige": 1.0, "combat": 0.03, "ae_gen": 0.1}, "Für den wahren Glauben, gegen die Ketzer."),
-        ("saekularisierung", "Säkularisierung", "adm_kirchenreform", {"income": 0.08, "unrest": 1.0, "prestige": -0.5}, "Kirchengüter fallen an die Krone."),
+        ("toleranz", "Toleranz", "", {"unrest": -1.0, "prestige": -0.5, "estate_klerus": -15, "estate_buerger": 10}, "Andersgläubige bleiben unbehelligt."),
+        ("glaubenseifer", "Glaubenseifer", "", {"prestige": 1.0, "combat": 0.03, "ae_gen": 0.1, "estate_klerus": 20, "estate_buerger": -5}, "Für den wahren Glauben, gegen die Ketzer."),
+        ("saekularisierung", "Säkularisierung", "adm_kirchenreform", {"income": 0.08, "unrest": 1.0, "prestige": -0.5, "estate_klerus": -30}, "Kirchengüter fallen an die Krone."),
     ]),
 ]
+
+# Estates: (id, name, text, loyal effects (>= 60), angry effects (< 30))
+ESTATES = [
+    ("adel", "Adel", "Grundherren und Ritter. Stellen Truppen und Offiziere.",
+     {"manpower": 0.1, "combat": 0.03}, {"unrest": 1.0, "manpower": -0.15}),
+    ("klerus", "Klerus", "Bischöfe, Klöster und Orden. Halten das Volk ruhig und lehren an den Universitäten.",
+     {"unrest": -0.5, "prestige": 0.5}, {"unrest": 1.0, "tech_cost": 0.05}),
+    ("buerger", "Bürger", "Kaufleute und Handwerker der Städte. Zahlen Steuern und treiben Handel.",
+     {"tax": 0.05, "production": 0.05}, {"trade": -0.1, "unrest": 0.5}),
+]
+
+# Estate crisis events, fired by government.gd when an estate is angry (id suffix = estate id)
+ESTATE_EVENTS = {
+    "adel": ("Die Barone murren", "Der Adel klagt über verlorene Rechte und droht, dem Aufgebot fernzubleiben.", "knights", [
+        ("Alte Privilegien bestätigen.", {"estate": {"adel": 25}, "adm": -30}),
+        ("Ein Turnier und reiche Geschenke.", {"estate": {"adel": 15}, "gold": -40}),
+        ("Die Rädelsführer verhaften.", {"estate": {"adel": -10}, "manpower": -2, "prestige": 5}),
+    ]),
+    "klerus": ("Unmut in den Klöstern", "Die Bischöfe predigen gegen die Krone und verlangen ihre alten Rechte zurück.", "church", [
+        ("Kirchengüter zurückgeben.", {"estate": {"klerus": 25}, "gold": -50}),
+        ("Eine Stiftung für den Dom.", {"estate": {"klerus": 15}, "dip": -25}),
+        ("Die Prediger zum Schweigen bringen.", {"estate": {"klerus": -10}, "prestige": -5, "mil": -20}),
+    ]),
+    "buerger": ("Die Zünfte begehren auf", "Die Städte verweigern neue Steuern, bis ihre Beschwerden gehört werden.", "city", [
+        ("Stadtrechte erweitern.", {"estate": {"buerger": 25}, "adm": -30}),
+        ("Steuern für ein Jahr erlassen.", {"estate": {"buerger": 15}, "gold": -50}),
+        ("Die Stadttore besetzen.", {"estate": {"buerger": -10}, "we": 2, "prestige": 3}),
+    ]),
+}
 
 GOV_FORMS = {
     "default": "Feudalmonarchie",
@@ -397,6 +426,12 @@ def build():
     gov = {"_doc": "Generated by tools/content/tech_gov.py, edit there.",
            "advisor_slots": 3, "advisor_cost": 75, "company_slots": 2, "company_months": 18, "company_min_gold": 60,
            "invest_max_level": 5, "invest_step": 0.5, "invest_cost_mult": 0.5,
+           "estate_drift": 0.03, "estate_loyal": 60, "estate_angry": 30, "estate_crisis": 25,
+           "estate_crisis_chance": 0.35, "estate_crisis_years": 4, "concession_months": 6, "concession_min_gold": 30,
+           "concession_amount": 20, "concession_cooldown_years": 5,
+           "estates": [{"id": i, "name": nm, "text": tx, "loyal": lo, "angry": an} for i, nm, tx, lo, an in ESTATES],
+           "estate_events": [{"id": "estate_crisis_" + k, "title": v[0], "text": v[1], "image": v[2],
+                              "options": [{"text": t, "effects": e} for t, e in v[3]]} for k, v in ESTATE_EVENTS.items()],
            "law_cost": 60, "law_cooldown_years": 10, "forms": GOV_FORMS,
            "advisors": adv, "companies": comp, "laws": laws}
     json.dump(gov, open(os.path.join(ROOT, "data/government.json"), "w"), ensure_ascii=False, indent=1)

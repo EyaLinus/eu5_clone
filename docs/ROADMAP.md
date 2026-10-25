@@ -33,6 +33,8 @@ Events und Missionen für 7 Nationen, Save/Load, Tests, Headless-Balance, APK + 
 ## v0.7 – Technologie und Regierung
 - ✅ Technologiebaum: 81 Techs in 9 Zweigen, 30 nationale Spezial-Techs, Detail-Popup statt Ein-Tipp-Kauf.
 - ✅ Regierungs-Screen: Berater (16 generische, 34 historische), 19 Investitionskompanien, 4 Gesetze mit Trade-offs.
+- ✅ Investitions-Schieberegler: Kompanien bis Stufe 5.
+- ✅ Stände (Adel, Klerus, Bürger) mit Zufriedenheit, Zugeständnissen und Krisen-Events.
 - ⏳ Events, die Gesetze/Techs voraussetzen (`has_tech`, `law` sind als Bedingungen schon da).
 - ⏳ Grafischer Baum mit Verbindungslinien, falls die Liste im Playtest zu unübersichtlich ist.
 

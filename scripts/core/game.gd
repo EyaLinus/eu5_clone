@@ -217,6 +217,9 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	event_defs = data.get("events", [])
 	for e in event_defs:
 		event_by_id[e.id] = e
+	# estate crises are fired by the government module, not drawn from the yearly event pool
+	for e in govt.estate_event_defs():
+		event_by_id[e.id] = e
 	mission_defs = data.get("missions", {})
 	_apply_start_diplomacy(data.get("diplomacy", {}))
 	# mission targets act as permanent claims (historical expansion goals)
@@ -536,6 +539,7 @@ func tick() -> void:
 		var n: Nation = nations[tag]
 		if n.alive:
 			_economy(n)
+			govt.estates_monthly(self, n)
 	_armies_tick()
 	_wars_tick()
 	for tag in order:
@@ -640,8 +644,9 @@ func unrest_parts(pid: int) -> Dictionary:
 			break
 	if p.suppress_months > 0:
 		r.suppressed = -float(bal.unrest_suppress)
-	r.policy = mod(n, "unrest")  # techs, advisors, laws
-	r.total = maxf(0.0, r.uncored + r.war + r.garrison + r.suppressed + r.policy + r.buildings)
+	r.estates = float(n.bonus.get("estates", {}).get("unrest", 0.0))  # angry or loyal estates
+	r.policy = mod(n, "unrest") - r.estates  # techs, advisors, laws
+	r.total = maxf(0.0, r.uncored + r.war + r.garrison + r.suppressed + r.policy + r.estates + r.buildings)
 	return r
 
 
@@ -1809,6 +1814,9 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 				if nations.has(v) and nations[v].alive:
 					n.claims[nations[v].capital] = true
 					declare_war(tag, v)
+			"estate":
+				for es in v:
+					govt.change_estate(self, n, es, float(v[es]))
 			"vassal":
 				# event-driven vassalization (dynastic deals), only for free, independent minors
 				if nations.has(v) and v != tag and v != player and nations[v].alive and nations[v].overlord == "" \
@@ -1898,6 +1906,14 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"has_tech":
 				if not n.techs.has(v):
 					return false
+			"estate_min":
+				for es in v:
+					if n.gov.estates.get(es, 50.0) < float(v[es]):
+						return false
+			"estate_max":
+				for es in v:
+					if n.gov.estates.get(es, 50.0) > float(v[es]):
+						return false
 			"law":
 				for l in v:
 					if n.gov.laws.get(l, "") != v[l]:
