@@ -113,6 +113,7 @@ var ai
 var hre: Array = []
 var emperor: String = ""
 var electors: Array = []
+var history: Array = []  # player's yearly snapshot: [year, dev, rank, provinces]
 
 
 func _init() -> void:
@@ -661,8 +662,24 @@ func _yearly() -> void:
 					complete_mission(tag, m.id)
 	_coalitions_yearly()
 	_liberty_yearly()
+	_record_history()
 	if emperor == "" or not nations[emperor].alive or nations[emperor].overlord != "":
 		hre_election()
+
+
+func rank_of(tag: String) -> int:
+	var mine := score(tag)
+	var r := 1
+	for t in order:
+		if t != tag and nations[t].alive and score(t) > mine:
+			r += 1
+	return r
+
+
+func _record_history() -> void:
+	if player == "" or not nations[player].alive:
+		return
+	history.append([year(), nations[player].dev_total, rank_of(player), provinces_of(player).size()])
 
 
 # ---------------------------------------------------------------- Holy Roman Empire
@@ -873,6 +890,15 @@ func _battle(war: War, att: Array, def: Array, pid: int) -> void:
 	war.battle_score = clampf(war.battle_score + (ws if att_wins else -ws), -cap, cap)
 	var winner_tag: String = win[0].owner
 	var loser_tag: String = lose[0].owner
+	if player != "":
+		for a in win:
+			if a.owner == player:
+				stats.player_battles_won = stats.get("player_battles_won", 0) + 1
+				break
+		for a in lose:
+			if a.owner == player:
+				stats.player_battles_lost = stats.get("player_battles_lost", 0) + 1
+				break
 	var involved := []
 	for a in att + def:
 		involved.append(a.owner)
@@ -1199,6 +1225,11 @@ func make_peace(w: War, winner_att: bool, pids: Array, vassalize: bool = false) 
 		stats.provinces_changed += 1
 	if pids.is_empty() and new_vassal == "":
 		stats.white_peace += 1
+	elif player != "":
+		if winners.has(player):
+			stats.player_wins = stats.get("player_wins", 0) + 1
+		elif losers.has(player):
+			stats.player_losses = stats.get("player_losses", 0) + 1
 	stats.peace_deals += 1
 	wars.erase(w)
 	if new_vassal != "":
@@ -1888,7 +1919,8 @@ func complete_mission(tag: String, mission_id: String) -> String:
 func to_dict() -> Dictionary:
 	var d := {"month": month, "player": player, "rng_state": str(rng.state), "rng_seed": str(rng.seed),
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
-			"pending_peace": pending_peace, "log": log_lines, "stats": stats, "game_over": game_over, "emperor": emperor}
+			"pending_peace": pending_peace, "log": log_lines, "stats": stats, "game_over": game_over, "emperor": emperor,
+			"history": history}
 	var ps := []
 	for p in provinces:
 		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort, p.prev_owner, p.suppress_months])
@@ -1936,6 +1968,9 @@ func from_dict(d: Dictionary) -> void:
 	log_lines = d.log
 	game_over = d.get("game_over", false)
 	emperor = d.get("emperor", emperor)
+	history = []
+	for h in d.get("history", []):
+		history.append([int(h[0]), int(h[1]), int(h[2]), int(h[3])])
 	for k in d.stats:
 		stats[k] = d.stats[k]
 	for i in provinces.size():

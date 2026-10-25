@@ -1,7 +1,6 @@
 # Roadmap
 
-> Stand 2026-10-24 21:35 (pausiert wegen Nutzungslimit): v0.4.0 veröffentlicht, main sauber, keine offene Arbeit.
-> Nächste Schritte: Content-PRs reviewen/mergen, HRE-Kaiserwahl, Spielstatistik am Spielende, Tutorial-Hinweise.
+> Stand 2026-10-25: v0.5.0 (Kaiserwahl, Statistik, Tipps, Content-PR #2). Content-Thread liefert Kleinstaaten-Flavor.
 
 Priorisiert nach Nutzen für den Spieler pro Aufwand. Status: ✅ fertig, 🔨 in Arbeit, ⏳ geplant.
 
@@ -22,7 +21,7 @@ Events und Missionen für 7 Nationen, Save/Load, Tests, Headless-Balance, APK + 
 ## v0.3 – Tiefe
 - ✅ Vasallen / diplomatische Annexion (Friedensoption, Tribut, gemeinsame Kriege, Annexion nach 15 Jahren).
 - ✅ Unabhängigkeitsstreben von Vasallen (v0.4).
-- ⏳ Kaiserwahl im HRE, Reichsreformen light.
+- ✅ Kaiserwahl im HRE (v0.5). ⏳ Reichsreformen light.
 - ⏳ Mehr Events (Ziel: 10 pro Großmacht), Ketten-Events.
 - ✅ Unruhen light + Kriegsmüdigkeit (v0.4).
 - ⏳ Echte Rebellenarmeen (bewusst noch nicht: Aufstände wirken direkt).

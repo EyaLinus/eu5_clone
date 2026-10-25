@@ -70,4 +70,13 @@ func _run(m) -> void:
 	m.map.map_mode = 3
 	m._on_province_tapped(rennes)
 	await _shot("13_unrest")
+	m.map.map_mode = 0
+	m._open_panel("hre")
+	await _shot("14_hre")
+	for i in 240:
+		g.tick()
+	g.pending_events.clear()
+	g.pending_peace.clear()
+	m._show_game_over()
+	await _shot("15_game_over")
 	quit()

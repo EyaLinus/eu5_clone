@@ -44,7 +44,7 @@ var modal_box: VBoxContainer
 var toast: Label
 var toast_time := 0.0
 var hud: Control
-var settings := {"ui_scale": 1.0}
+var settings := {"ui_scale": 1.0, "tips": true, "tips_seen": []}
 
 
 func _ready() -> void:
@@ -535,7 +535,66 @@ func _check_alerts() -> bool:
 		modal_box.add_child(_btn("Verstanden", _close_modal))
 		return true
 	known_coalition = mini(known_coalition, co)
-	return false
+	return _check_tips()
+
+
+const TIPS := {
+	"war": ["⚔️ Krieg", "Armeen ziehen per Antippen: Armee wählen, dann Zielprovinz. Mit 🤖 kämpft eine Armee selbst. Besetze feindliche Provinzen, um Kriegspunkte zu sammeln, und verhandle unter ⚔️ Kriege den Frieden."],
+	"occupied": ["🏳️ Besetzt", "Du hältst feindliche Provinzen. Unter ⚔️ Kriege → Friedensverhandlung kannst du sie fordern oder den Gegner zum Vasallen machen. Ein orangefarbener Punkt am Tab zeigt, wann sich Frieden lohnt."],
+	"unrest": ["✊ Unruhe", "Frisch erobertes Land ist unruhig, Kriegsmüdigkeit macht es schlimmer. Ab 5 droht ein Aufstand, und die Provinz kann zum alten Besitzer zurückfallen. Hilfe: Armee in der Provinz lassen oder ✊ Unruhe unterdrücken. Der Kartenmodus 'Unruhe' zeigt die Lage."],
+	"ae": ["😠 Aggressive Expansion", "Deine Eroberungen machen die Nachbarn nervös. Ab %d bilden sie Koalitionen und greifen gemeinsam an. Mach Pausen, vasallisiere statt zu annektieren und nutze Ansprüche (weniger AE)."],
+	"tech": ["🔬 Technologie", "Du kannst eine Technologie kaufen (🏛️ Nation). Der Punkt am Tab zeigt das an. Militär macht Armeen stärker, Verwaltung bringt Einkommen, Diplomatie baut AE schneller ab."],
+	"mission": ["🎯 Mission erfüllt", "Eine Mission ist erfüllt. Hole dir die Belohnung unter 🎯 Missionen."],
+	"debt": ["💸 Schulden", "Deine Kasse ist leer. Unter −20 Gold desertieren Truppen. Entlasse Regimenter oder schließe Frieden: Im Frieden kosten Armeen weniger."],
+}
+
+
+## One-time beginner hints, shown when they become relevant. Returns true if one was shown.
+func _check_tips() -> bool:
+	if not settings.get("tips", true):
+		return false
+	var me: String = game.player
+	var n = game.nations[me]
+	var seen: Array = settings.tips_seen
+	var cand := []
+	if game.is_at_war(me):
+		cand.append("war")
+		for w in game.wars_of(me):
+			if not game.demandable(w, game.is_attacker(w, me)).is_empty():
+				cand.append("occupied")
+				break
+	for pid in game.provinces_of(me):
+		if game.unrest(pid) >= 3.0:
+			cand.append("unrest")
+			break
+	if n.ae >= float(game.bal.ae_coalition_threshold) * 0.5:
+		cand.append("ae")
+	if game.month >= 6 and tab_badges.nation.visible:
+		cand.append("tech")
+	if tab_badges.missions.visible:
+		cand.append("mission")
+	if n.gold < 0.0:
+		cand.append("debt")
+	var due := ""
+	for c in cand:
+		if not seen.has(c):
+			due = c
+			break
+	if due == "":
+		return false
+	seen.append(due)
+	_save_settings()
+	_set_speed(0)
+	_open_modal()
+	var tip: Array = TIPS[due]
+	var body: String = tip[1] % int(game.bal.ae_coalition_threshold) if due == "ae" else tip[1]
+	modal_box.add_child(_lbl("💡 " + tip[0], 26))
+	modal_box.add_child(_lbl(body, 18))
+	modal_box.add_child(_row([_btn("Verstanden", _close_modal), _btn("Keine Tipps mehr", func():
+		settings.tips = false
+		_save_settings()
+		_close_modal())]))
+	return true
 
 
 func _set_speed(s: int) -> void:
@@ -658,6 +717,12 @@ func _show_menu() -> void:
 	modal_box.add_child(_btn("💾 Speichern", func(): _save_game(); _toast("💾 Gespeichert."); _close_modal()))
 	modal_box.add_child(_btn("📂 Laden", _load_game))
 	modal_box.add_child(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
+	modal_box.add_child(_btn("💡 Tipps: %s" % ("an" if settings.tips else "aus"), func():
+		settings.tips = not settings.tips
+		if settings.tips:
+			settings.tips_seen = []
+		_save_settings()
+		_show_menu()))
 	modal_box.add_child(_btn("🏠 Hauptmenü (speichert)", func(): _save_game(); game = null; _show_start_menu()))
 	if OS.get_name() != "Android":
 		modal_box.add_child(_btn("🚪 Beenden", func(): _save_game(); get_tree().quit()))
@@ -732,12 +797,62 @@ func _show_game_over() -> void:
 		if ranking[i][1] == game.player and i >= 10:
 			text += "…\n%d. %s – %d Punkte\n" % [i + 1, nname(game.player), int(ranking[i][0])]
 	modal_box.add_child(_lbl(text, 18))
+	modal_box.add_child(_lbl(_summary_text(), 16, Color(0.85, 0.85, 0.75)))
+	if game.history.size() >= 2:
+		modal_box.add_child(_history_chart(260))
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
 	modal_box.add_child(_btn("🏠 Hauptmenü", func(): game = null; _show_start_menu()))
 
 
 # ---------------------------------------------------------------- side panel
+
+func _summary_text() -> String:
+	var s: Dictionary = game.stats
+	var h: Array = game.history
+	var t := "Deine Bilanz:\n"
+	if not h.is_empty():
+		var best := 999
+		var peak := 0
+		for e in h:
+			best = mini(best, e[2])
+			peak = maxi(peak, e[1])
+		t += "🏘️ Entwicklung %d → %d (Höchststand %d) · Bester Rang: %d\n" % [h[0][1], h[-1][1], peak, best]
+	t += "⚔️ Schlachten %d gewonnen / %d verloren · 🕊️ Kriege %d gewonnen / %d verloren\n" % [
+			s.get("player_battles_won", 0), s.get("player_battles_lost", 0), s.get("player_wins", 0), s.get("player_losses", 0)]
+	t += "🎯 Missionen erfüllt: %d" % game.nations[game.player].missions_done.size()
+	return t
+
+
+## Line chart of the player's development (gold) and rank (blue, top = 1st) over the years.
+func _history_chart(height: int) -> Control:
+	var c := Control.new()
+	c.custom_minimum_size = Vector2(300, height)
+	var h: Array = game.history
+	c.draw.connect(func():
+		var sz: Vector2 = c.size
+		c.draw_rect(Rect2(Vector2.ZERO, sz), Color(0.1, 0.11, 0.14))
+		if h.size() < 2:
+			return
+		var max_dev := 1.0
+		for e in h:
+			max_dev = maxf(max_dev, e[1])
+		var dev_pts := PackedVector2Array()
+		var rank_pts := PackedVector2Array()
+		var n: int = game.order.size()
+		for i in h.size():
+			var x: float = 8.0 + (sz.x - 16.0) * i / (h.size() - 1)
+			dev_pts.append(Vector2(x, sz.y - 8.0 - (sz.y - 16.0) * h[i][1] / max_dev))
+			rank_pts.append(Vector2(x, 8.0 + (sz.y - 16.0) * (h[i][2] - 1) / maxf(1.0, n - 1)))
+		c.draw_polyline(rank_pts, Color(0.35, 0.6, 1.0, 0.8), 2.0)
+		c.draw_polyline(dev_pts, Color(1.0, 0.8, 0.3), 3.0)
+		var font := c.get_theme_default_font()
+		c.draw_string(font, Vector2(10, 22), "🏘️ Entwicklung (max %d)" % int(max_dev), HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(1.0, 0.8, 0.3))
+		c.draw_string(font, Vector2(10, 42), "🏆 Rang (oben = 1.)", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.35, 0.6, 1.0))
+		c.draw_string(font, Vector2(10, sz.y - 12), str(h[0][0]), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.7, 0.7, 0.7))
+		c.draw_string(font, Vector2(sz.x - 50, sz.y - 12), str(h[-1][0]), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.7, 0.7, 0.7)))
+	return c
+
 
 func _open_panel(mode: String, arg = null) -> void:
 	if game == null:
@@ -921,6 +1036,9 @@ func _panel_nation() -> void:
 	side_box.add_child(_lbl("😩 Kriegsmüdigkeit %.1f / %d (erhöht Unruhe, Gegner nehmen Frieden leichter an)" % [n.we, int(game.bal.we_max)], 16))
 	if n.we >= 0.5:
 		side_box.add_child(_btn("🕊️ Volk beruhigen: −2 Kriegsmüdigkeit (%d 🕊️)" % int(game.bal.we_reduce_cost), func(): _act(game.reduce_we(me), "🕊️ Das Volk ist beruhigt")))
+	if game.history.size() >= 2:
+		side_box.add_child(_lbl("📈 Verlauf (Platz %d)" % game.rank_of(me), 22))
+		side_box.add_child(_history_chart(180))
 	var vs: Array = game.vassals_of(me)
 	if not vs.is_empty():
 		side_box.add_child(_lbl(Icons.prefix("vassal") + "Vasallen (Tribut %+.1f 💰/Monat)" % game.tribute_income(me), 22))

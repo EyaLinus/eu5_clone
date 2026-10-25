@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.5.0 – 2026-10-25
+- **Kaiserwahl im HRE:** 7 Kurfürsten (Böhmen, Kurpfalz, Sachsen, Brandenburg, Köln, Bayern, Österreich) wählen,
+  wenn der Herrscher des Kaisers stirbt. Stimmen folgen Beziehungen, Bündnissen, Prestige und Größe; der Kaiser
+  erhält +1 🕊️/Monat. Neues Panel "👑 Reich" (Diplomatie) zeigt, wie jeder Kurfürst gerade stimmen würde.
+- **Content (PR #2 aus dem Content-Thread):** 152 Events (Ketten für alle 7 Großmächte, allgemeine und
+  Kleinstaaten-Events), 9–10 Missionen je Großmacht. Die böhmische Erbfolge an Habsburg ist seltener geworden
+  (Böhmen überlebt jetzt in ~75–80 % der Partien statt ~50 %).
+- **Spielstatistik:** Verlaufsdiagramm (Entwicklung und Rang) im Nation-Panel und am Spielende, dazu eine Bilanz
+  (Schlachten, Kriege, Missionen, bester Rang).
+- **Einsteiger-Tipps:** kurze, einmalige Hinweise genau dann, wenn sie relevant werden (Krieg, Besetzung, Unruhe,
+  AE, Technologie, Mission, Schulden). Im Menü abschaltbar.
+- Neue Event-Bedingungen: `we_min`, `is_vassal`, `has_vassal`, `unrest_min`.
+- Bugfix: Der Kaiser wurde nicht im Spielstand gespeichert.
+- Balance (32 Partien): Ø 21 Nationen ausgelöscht, größte Nation Ø 15 %, Großmächte überleben zu 96 %.
+
 ## v0.4.0 – 2026-10-24
 - **Kriegsmüdigkeit:** steigt im Krieg und mit jeder verlorenen Schlacht, sinkt im Frieden. Erschöpfte KI-Gegner
   nehmen Frieden leichter an, erschöpfte KI erklärt keine neuen Kriege. "Volk beruhigen" senkt sie (🕊️).
