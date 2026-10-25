@@ -1860,6 +1860,13 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 				for t in v:
 					if n.tech[t] < int(v[t]):
 						return false
+			"has_tech":
+				if not n.techs.has(v):
+					return false
+			"law":
+				for l in v:
+					if n.gov.laws.get(l, "") != v[l]:
+						return false
 			"regs":
 				if army_regs(tag) < float(v):
 					return false

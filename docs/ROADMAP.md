@@ -30,5 +30,11 @@ Events und Missionen für 7 Nationen, Save/Load, Tests, Headless-Balance, APK + 
 - 🔨 Pixel-Art: Icons, Armee-Marker und 51 Flaggen fertig (PR #1), Sounds offen.
 - ⏳ Release-Keystore für Android (stabile Updates), signierte Windows-EXE (kostenpflichtiges Zertifikat nötig).
 
+## v0.7 – Technologie und Regierung
+- ✅ Technologiebaum: 81 Techs in 9 Zweigen, 30 nationale Spezial-Techs, Detail-Popup statt Ein-Tipp-Kauf.
+- ✅ Regierungs-Screen: Berater (16 generische, 34 historische), 19 Investitionskompanien, 4 Gesetze mit Trade-offs.
+- ⏳ Events, die Gesetze/Techs voraussetzen (`has_tech`, `law` sind als Bedingungen schon da).
+- ⏳ Grafischer Baum mit Verbindungslinien, falls die Liste im Playtest zu unübersichtlich ist.
+
 ## Bewusst gestrichen
 Seefahrt/Flotten, Handelsknoten, Religion als System, Kolonisation, Mehrspieler.

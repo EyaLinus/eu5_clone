@@ -35,7 +35,7 @@ fehlt ein Effekt oder eine Bedingung, bitte im Feature-Thread anfragen.
 
 ## Bedingungen (`trigger`, `require`)
 `year_min`, `year_max`, `owns` [keys], `owns_any` [keys], `not_owns` [keys], `at_war`, `at_peace`, `flag`, `not_flag`,
-`min_dev`, `alive` TAG, `not_alive` TAG, `ae_min`, `gold_min`, `allied` TAG, `allies` (Anzahl), `tech` {adm,dip,mil},
+`min_dev`, `alive` TAG, `not_alive` TAG, `ae_min`, `gold_min`, `allied` TAG, `allies` (Anzahl), `tech` {adm,dip,mil}, `has_tech` "tech_id" (data/techs.json), `law` {law_id: option_id} (data/government.json),
 `regs`, `major` (true = nur die 7 Großmächte mit Flag `"major"` in nations.json, false = alle anderen, auch die spielbaren TUR/POL/BUR), `we_min` (Kriegsmüdigkeit ≥),
 `is_vassal` (bool), `has_vassal` (bool), `unrest_min` (höchste Provinz-Unruhe ≥), `hre` (bool, Reichsmitglied),
 `emperor` (bool, ist Kaiser).

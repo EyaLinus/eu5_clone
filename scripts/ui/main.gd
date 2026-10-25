@@ -1530,6 +1530,11 @@ func conditions_text(c: Dictionary) -> String:
 			"tech":
 				for t in v:
 					lines.append(mark + "%s-Technologie ≥ %d" % [{"adm": "Verwaltungs", "dip": "Diplomatie", "mil": "Militär"}[t], int(v[t])])
+			"has_tech":
+				lines.append(mark + "Technologie: " + game.tree.by_id[v].name)
+			"law":
+				for l in v:
+					lines.append(mark + "%s: %s" % [game.govt.law_by_id[l].name, game.govt.law_option(l, v[l]).name])
 			"allies":
 				lines.append(mark + "Mindestens %d Verbündete" % int(v))
 			"allied":

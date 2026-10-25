@@ -25,7 +25,7 @@ const AI_WEIGHTS := {
 	"income": 100.0, "tax": 60.0, "production": 60.0, "trade": 50.0, "merchants": 5.0, "build_cost": -30.0,
 	"develop_cost": -30.0, "maintenance": -50.0, "manpower": 30.0, "combat": 100.0, "force_limit": 1.5,
 	"adm": 6.0, "dip": 5.0, "mil": 5.0, "ae_decay": 15.0, "ae_gen": -20.0, "tech_cost": -60.0, "siege": 12.0,
-	"unrest": -4.0, "coring": -12.0, "prestige": 2.0, "company_slots": 8.0, "advisor_slots": 8.0,
+	"unrest": -2.5, "coring": -12.0, "prestige": 2.0, "company_slots": 8.0, "advisor_slots": 8.0,
 }
 
 const AGES := [[1444, "Renaissance"], [1500, "Entdeckungen"], [1550, "Reformation"], [1600, "Absolutismus"]]

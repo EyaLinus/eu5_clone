@@ -621,6 +621,8 @@ func test_laws() -> void:
 	check(absf(g.mod(n, "manpower") - mp - 0.25) < 0.001, "law buff applies")
 	check(g.mod(n, "combat") < float(data.nations.SPA.bonus.combat), "law nerf applies")
 	check(g.govt.set_law(g, "SPA", "heer", "soeldner") != "", "cooldown blocks changes")
+	check(g.check_conditions("SPA", {"law": {"heer": "landesaufgebot"}}), "law condition")
+	check(not g.check_conditions("SPA", {"has_tech": "adm_kanzlei"}), "has_tech condition (missing)")
 	var pid: int = g.provinces_of("SPA")[0]
 	check(absf(g.unrest_parts(pid).policy - 0.5) < 0.001, "law unrest shows in province unrest")
 	g.month += 121
