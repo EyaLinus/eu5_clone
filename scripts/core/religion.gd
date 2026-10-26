@@ -19,6 +19,8 @@ static func faith_name(r: String) -> String:
 static func setup(g, data: Dictionary) -> void:
 	for tag in g.nations:
 		g.nations[tag].religion = str(data.nations[tag].get("religion", "catholic"))
+		if data.nations[tag].get("devout", false):
+			g.nations[tag].flags["devout"] = 1  # the AI never leaves its faith (Habsburg, Spain, the Pope ...)
 	for p in g.provinces:
 		p.religion = g.nations[p.owner].religion
 
@@ -143,7 +145,7 @@ static func yearly(g) -> void:
 	# AI realms whose people turned follow them
 	for tag in g.order:
 		var n = g.nations[tag]
-		if tag == g.player or not n.alive:
+		if tag == g.player or not n.alive or n.flags.has("devout"):
 			continue
 		for r in FAITHS:
 			if r != n.religion and share(g, tag, r) > float(g.bal.religion_ai_change_share) \
