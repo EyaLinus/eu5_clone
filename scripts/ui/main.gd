@@ -767,6 +767,7 @@ const MODE_LEGENDS := [
 	"Deine Kriege auf einen Blick. Streifen = besetzt.",
 	"Welches Gut jede Provinz herstellt (eigene Provinzen hell).",
 	"Einzugsgebiete der Märkte, das Zentrum leuchtet hell (eigene Provinzen hell).",
+	"Gebäudestufen je Provinz: dunkel = nichts gebaut, gold = gut ausgebaut, bläulich = Baustelle. Fremde Provinzen dunkler.",
 ]
 ## Color keys per map mode: [color, text]
 const MODE_KEYS := {
@@ -1513,12 +1514,15 @@ func _province_buildings(p) -> void:
 			txt = label + "  (max.)"
 		else:
 			txt = "%s  %s %d💰" % [label, "➕" if lvl > 0 else "+", int(Eco.building_cost(game, me, p.id, bid))]
+			var gain: float = Eco.building_gain(game, p, bid)
+			if gain >= 0.05:
+				txt += "  ≈ +%.1f/Monat" % gain
 		var b := _btn(txt, func(): _act(game.construct(me, p.id, bid), "🏗️ Bau begonnen: " + d.name), d.text + (("\n❌ " + reason) if reason != "" else ""), reason != "")
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		side_box.add_child(b)
 		if reason != "" and lvl < maxl and not reason.begins_with("Hier wird") and not reason.begins_with("Höchste"):
 			side_box.add_child(_lbl("   " + reason, 14, Color(0.75, 0.6, 0.5)))
-	side_box.add_child(_lbl("Jede fertige Stufe: +1 Entwicklung (außer Straßen).", 14, Color(0.7, 0.75, 0.8)))
+	side_box.add_child(_lbl("Jede fertige Stufe: +1 Entwicklung (außer Straßen). \"+X/Monat\" = mehr Steuer und Produktion hier, ohne Handel.", 14, Color(0.7, 0.75, 0.8)))
 
 
 func _panel_economy() -> void:

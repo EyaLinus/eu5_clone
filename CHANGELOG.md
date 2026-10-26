@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.8.3 – 2026-10-26
+- **Neuer Kartenmodus "Bauten":** zeigt, wie gut jede Provinz ausgebaut ist (dunkel = nichts, gold = viel),
+  Baustellen bläulich, fremde Provinzen dunkler.
+- **Bauen-Reiter zeigt den Ertrag:** Jedes Gebäude nennt, wie viel Steuer und Produktion die nächste Stufe hier
+  bringt ("≈ +0,4/Monat", inklusive der +1 Entwicklung, ohne Handel).
+- **Meldung bei Kernland:** Wird eine eroberte Provinz zu Kernland (Zeit abgelaufen oder integriert), steht das
+  im Protokoll.
+- Festungs- und Hafen-Symbole auf der Karte erst bei starkem Zoom, damit die Küsten nicht zugepflastert sind.
+
 ## v0.8.2 – 2026-10-26
 - **Diplo- und Militär-Macht haben neue Verwendungen** (bisher fast nur Technologie):
   - 🔥 **Drill** (Armeefenster, ⚔️): Moral der Armee sofort auf das Maximum, auf eigenem oder verbündetem Gebiet.

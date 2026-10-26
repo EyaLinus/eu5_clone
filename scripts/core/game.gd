@@ -590,6 +590,8 @@ func _economy(n: Nation) -> void:
 		prod += Economy.production_value(self, p) * um
 		if p.core_months > 0:
 			p.core_months -= 1
+			if p.core_months == 0 and n.tag == player:
+				log_msg("🤝 %s ist jetzt Kernland: volles Einkommen, weniger Unruhe." % p.name, [n.tag])
 	var inc_mult: float = 1.0 + n.tech.adm * float(bal.adm_tech_income) + mod(n, "income")
 	n.tax_income = tax * inc_mult
 	n.prod_income = prod * inc_mult
@@ -1793,6 +1795,8 @@ func integrate(tag: String, pid: int) -> String:
 		return "Zu wenig Diplomatie (%d)." % int(bal.integrate_cost)
 	nations[tag].dip -= float(bal.integrate_cost)
 	p.core_months = maxi(0, p.core_months - int(bal.integrate_months))
+	if p.core_months == 0 and tag == player:
+		log_msg("🤝 %s ist jetzt Kernland: volles Einkommen, weniger Unruhe." % p.name, [tag])
 	return ""
 
 

@@ -69,6 +69,26 @@ static func refresh_local(g, p) -> void:
 	p.loc = c
 
 
+## Extra monthly tax + production income of the next level of `bid` (incl. its +1 development), for the build tab.
+static func building_gain(g, p, bid: String) -> float:
+	var before := province_income(g, p)
+	var old_lv := level(p, bid)
+	var old_dev: int = p.dev
+	p.buildings[bid] = old_lv + 1
+	if not g.buildings_def[bid].get("no_dev", false):
+		p.dev = mini(int(g.bal.max_dev), p.dev + int(g.bal.building_dev))
+	refresh_local(g, p)
+	var after := province_income(g, p)
+	if old_lv == 0:
+		p.buildings.erase(bid)
+	else:
+		p.buildings[bid] = old_lv
+	p.dev = old_dev
+	refresh_local(g, p)
+	var n = g.nations[p.owner]
+	return (after - before) * (1.0 + n.tech.adm * float(g.bal.adm_tech_income) + g.mod(n, "income"))
+
+
 static func slots(g, p) -> int:
 	return mini(int(g.bal.building_slots_max), 2 + p.dev / int(g.bal.dev_per_building_slot))
 
