@@ -13,5 +13,7 @@ for src in assets/src/pixel/emoji/*.txt; do
 	[ -e "$src" ] || continue
 	python3 "$S/pixelart.py" render "$src" --profile art_profile.yaml -o "assets/art/emoji/$(basename "${src%.txt}").png" --scale 1
 done
+# pixel UI kit (9-slice frames for scripts/ui/ui_theme.gd)
+python3 tools/art/ui_kit.py
 # map base texture (needs numpy, scipy): python3 tools/art/map_terrain.py
 python3 "$S/check_palette.py" assets/art/icons/*.png assets/art/emoji/*.png --profile art_profile.yaml --strict

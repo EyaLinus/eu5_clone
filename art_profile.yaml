@@ -74,6 +74,17 @@ palette:
   skin_light: "#f0caa0"
   skin: "#d39c72"
   skin_dark: "#9a6a4c"
+  # UI kit (tools/art/ui_kit.py): panel interiors and buttons
+  ui_bg_dark: "#11141b"
+  ui_bg: "#191d27"
+  ui_bg_light: "#242b39"
+  ui_btn_dark: "#1c2230"
+  ui_btn_light: "#3c4860"
+  ui_warm_dark: "#160f0c"
+  ui_warm: "#211814"
+  ui_warm_light: "#33261e"
+  ui_warm_btn: "#5a3a22"
+  ui_navy: "#1b1e38"
   # map terrain (texture only, see tools/art/map_terrain.py)
   sea_deep: "#132a45"
   sea: "#1c3d61"
@@ -147,12 +158,21 @@ asset_kinds:
   army_counter: { display_px: [48, 28], grid: [24, 14] }
   map_terrain: { world_px: [1944, 1320], filter: linear }  # painted texture, not pixel art
   event_scene: { grid: [128, 64], scale: 4, display_px: [512, 256] }  # assets/art/events/<motif>.png
+  ui_kit: { grid: "per piece, see tools/art/ui_kit.py", scale: 2 }      # assets/art/ui/*.png, 9-slice (UiTheme.SLICES)
 
 notes:
   - >
     Pixel art only looks crisp at integer scales. HUD icons are shown at 32 px (x2), but
     canvas_items stretch adds a non-integer factor on phones, so pixels can be slightly uneven.
     army_marker is tinted with the plain nation colour; the map skips its circle when the texture exists.
+
+ui_kit:
+  style: holz    # default since 2026-10-26 (alternatives: eisen, krone) (tools/art/ui_kit.py --variant)
+  rules:
+    - "octagon frames with a 2-px chamfer, 1-px ink outline, lit from the top-left like the icons"
+    - "ornaments only in the corners (9-slice stretches the edges): brass brackets + diamond rivets"
+    - "flat opaque interiors; UiTheme draws panel and top bar at 96 % alpha"
+    - "buffs green + up arrow, nerfs red + down arrow (UiTheme.GOOD/BAD); colour by meaning, not by sign"
 
 event_scenes:
   rules:

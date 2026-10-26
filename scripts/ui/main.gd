@@ -7,6 +7,7 @@ const Data = preload("res://scripts/core/data.gd")
 const MapView = preload("res://scripts/ui/map_view.gd")
 const Icons = preload("res://scripts/ui/icons.gd")
 const TechScreen = preload("res://scripts/ui/tech_screen.gd")
+const Tech = preload("res://scripts/core/tech.gd")
 const GovScreen = preload("res://scripts/ui/gov_screen.gd")
 const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
 const SAVE_PATH := "user://save.json"
@@ -159,39 +160,18 @@ func _setup_theme() -> void:
 	var t := Theme.new()
 	t.default_font_size = 20
 	PixelEmoji.install()  # all emoji in UI strings are drawn as pixel glyphs
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.09, 0.1, 0.13, 0.94)
-	sb.set_corner_radius_all(10)
-	sb.set_content_margin_all(10)
-	t.set_stylebox("panel", "PanelContainer", sb)
-	for st in ["normal", "hover", "pressed", "disabled", "focus"]:
-		var b := StyleBoxFlat.new()
-		b.set_corner_radius_all(8)
-		b.set_content_margin_all(8)
-		match st:
-			"normal":
-				b.bg_color = Color("2b3445")
-			"hover":
-				b.bg_color = Color("38445a")
-			"pressed":
-				b.bg_color = Color("4a5a78")
-			"disabled":
-				b.bg_color = Color("1e232c")
-			"focus":
-				b.bg_color = Color(0, 0, 0, 0)
-				b.border_color = Color("8fa7d6")
-				b.set_border_width_all(1)
-		t.set_stylebox(st, "Button", b)
-	t.set_color("font_disabled_color", "Button", Color(0.5, 0.5, 0.55))
+	UiTheme.build(t)  # pixel-art panels and buttons (assets/art/ui, tools/art/ui_kit.py)
 	theme = t
 
 
 # ---------------------------------------------------------------- HUD construction
 
 func _build_hud() -> void:
+	hud.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST  # crisp pixel frames
 	var top := PanelContainer.new()
 	top.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	top.offset_bottom = 58
+	top.offset_bottom = 64
+	top.add_theme_stylebox_override("panel", UiTheme.topbar())
 	hud.add_child(top)
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 14)
@@ -227,7 +207,7 @@ func _build_hud() -> void:
 	# 8 tabs: one column on desktop, two columns with large touch targets so they fit 720 px height
 	var left := GridContainer.new()
 	left.columns = 2  # 9 tabs do not fit one column above the zoom buttons on a 720 px screen
-	left.position = Vector2(8, 68)
+	left.position = Vector2(8, 72)
 	left.add_theme_constant_override("v_separation", 8)
 	left.add_theme_constant_override("h_separation", 8)
 	hud.add_child(left)
@@ -260,14 +240,17 @@ func _build_hud() -> void:
 	side_panel = PanelContainer.new()
 	side_panel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
 	side_panel.offset_left = -500 if _big() else -440
-	side_panel.offset_top = 64
+	side_panel.offset_top = 68
 	side_panel.offset_right = -6
 	side_panel.offset_bottom = -6
 	hud.add_child(side_panel)
 	var vb := VBoxContainer.new()
 	side_panel.add_child(vb)
+	var head_box := PanelContainer.new()
+	head_box.add_theme_stylebox_override("panel", UiTheme.header())
+	vb.add_child(head_box)
 	var head := HBoxContainer.new()
-	vb.add_child(head)
+	head_box.add_child(head)
 	side_back = _btn("◀", _panel_back, "Zurück")
 	side_back.visible = false
 	head.add_child(side_back)
@@ -300,13 +283,9 @@ func _build_hud() -> void:
 	toast.add_theme_color_override("font_outline_color", Color.BLACK)
 	toast.add_theme_constant_override("outline_size", 6)
 	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var tsb := StyleBoxFlat.new()
-	tsb.bg_color = Color(0.05, 0.06, 0.09, 0.82)
-	tsb.set_corner_radius_all(8)
-	tsb.content_margin_left = 14
-	tsb.content_margin_right = 14
-	tsb.content_margin_top = 4
-	tsb.content_margin_bottom = 4
+	var tsb := UiTheme.box("tooltip", 6)
+	tsb.content_margin_left = 16
+	tsb.content_margin_right = 16
 	toast.add_theme_stylebox_override("normal", tsb)
 	toast.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	toast.visible = false
@@ -315,6 +294,7 @@ func _build_hud() -> void:
 
 func _build_modal() -> void:
 	modal = Control.new()
+	modal.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	modal.set_anchors_preset(Control.PRESET_FULL_RECT)
 	modal.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(modal)
@@ -362,6 +342,38 @@ func _btn(text: String, cb: Callable, tip: String = "", disabled: bool = false) 
 	return b
 
 
+## Button with a title line and a BBCode line below (event options: green buffs, red nerfs).
+## A PanelContainer stacks the button (background, clicks) and the text on the same rect, so the
+## button gets the height of its wrapped text, which a plain Button cannot do with child controls.
+func _rich_btn(title: String, bb: String, cb: Callable, fs: int = 18) -> PanelContainer:
+	var pc := PanelContainer.new()
+	pc.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	var b := _btn("", cb)
+	pc.add_child(b)
+	var v := VBoxContainer.new()
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_theme_constant_override("separation", 2)
+	var mc := MarginContainer.new()
+	mc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for side in ["left", "right", "top", "bottom"]:
+		mc.add_theme_constant_override("margin_" + side, 12)
+	mc.add_child(v)
+	pc.add_child(mc)
+	v.add_child(_lbl(title, fs))
+	if bb != "":
+		var r := RichTextLabel.new()
+		r.bbcode_enabled = true
+		r.fit_content = true
+		r.scroll_active = false
+		r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		r.add_theme_font_size_override("normal_font_size", fs - 2)
+		r.text = bb
+		v.add_child(r)
+	for c in v.get_children():
+		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return pc
+
+
 func _icon_rect(tex: Texture2D, px: int) -> TextureRect:
 	var r := TextureRect.new()
 	r.texture = tex
@@ -393,6 +405,20 @@ func _lbl(text: String, fs: int = 0, color: Color = Color(0.92, 0.92, 0.95)) -> 
 		l.add_theme_font_size_override("font_size", fs)
 	l.add_theme_color_override("font_color", color)
 	return l
+
+
+## Wrapping BBCode label (coloured buffs / nerfs) that sizes to its text.
+func _bb(text: String, fs: int = 16) -> RichTextLabel:
+	var r := RichTextLabel.new()
+	r.bbcode_enabled = true
+	r.fit_content = true
+	r.scroll_active = false
+	r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.custom_minimum_size.x = 100
+	r.add_theme_font_size_override("normal_font_size", fs)
+	r.text = text
+	return r
 
 
 func _is_click(e: InputEvent) -> bool:
@@ -473,10 +499,16 @@ func _show_start_menu() -> void:
 		if tag == EXTRA_PLAYABLE[0]:
 			modal_box.add_child(_lbl("Weitere Nationen (weniger Missionen und Events):", 16, Color(0.85, 0.75, 0.5)))
 		var nd: Dictionary = data.nations[tag]
-		var b := _btn("%s %s" % [PixelEmoji.nation(tag, nd.emoji), nd.name], _start_game.bind(tag))
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		modal_box.add_child(b)
-		modal_box.add_child(_lbl(nd.get("idea", ""), 15, Color(0.7, 0.75, 0.8)))
+		modal_box.add_child(_rich_btn("%s %s" % [PixelEmoji.nation(tag, nd.emoji), nd.name], _idea_bb(nd.get("idea", ""), nd.get("bonus", {})), _start_game.bind(tag), 20))
+
+
+## National idea as "Name: buffs" with the buffs green (data/nations.json "idea" text before the colon + "bonus").
+func _idea_bb(idea: String, bonus: Dictionary) -> String:
+	var title := idea.get_slice(":", 0).strip_edges()
+	var mods := UiTheme.mods_bb(bonus)
+	if mods == "":
+		return "[color=#%s]%s[/color]" % [UiTheme.MUTED.to_html(false), idea]
+	return "[color=#%s]%s[/color]   %s" % [UiTheme.GOLD.to_html(false), title, mods]
 
 
 func _start_game(tag: String) -> void:
@@ -581,6 +613,8 @@ func _show_tip(text: String, pos: Vector2) -> void:
 	if _tip_panel == null:
 		_tip_panel = PanelContainer.new()
 		_tip_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_tip_panel.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_tip_panel.add_theme_stylebox_override("panel", UiTheme.box("tooltip", 12))
 		_tip_label = Label.new()
 		_tip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_tip_label.add_theme_font_size_override("font_size", 20 if _big() else 17)
@@ -1035,14 +1069,7 @@ func _show_event(event_id: String) -> void:
 	modal_box.add_child(_lbl(e.text, 18))
 	for i in e.options.size():
 		var o: Dictionary = e.options[i]
-		var txt: String = o.text
-		var eff := effects_text(o.get("effects", {}))
-		if eff != "":
-			txt += "\n" + eff
-		var b := _btn(txt, _choose_event.bind(event_id, i))
-		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		modal_box.add_child(b)
+		modal_box.add_child(_rich_btn(o.text, effects_bb(o.get("effects", {})), _choose_event.bind(event_id, i)))
 
 
 var _event_motifs = null
@@ -1269,6 +1296,8 @@ func _refresh() -> void:
 			tech_screen.build()
 		"government":
 			gov_screen.build()
+		"modifiers":
+			_panel_modifiers()
 	side_scroll.set_deferred("scroll_vertical", scroll)
 
 
@@ -1698,7 +1727,7 @@ func _panel_nation() -> void:
 	var n = game.nations[me]
 	side_title.text = nname(me)
 	side_box.add_child(_lbl("👑 " + game.Progression.rank_name(game, me), 18, Color(1, 0.85, 0.5)))
-	side_box.add_child(_lbl(n.idea, 16, Color(0.8, 0.85, 0.7)))
+	side_box.add_child(_bb(_idea_bb(n.idea, data.nations[me].get("bonus", {})), 16))
 	side_box.add_child(_lbl("👑 %s: 📜%d 🕊️%d ⚔️%d" % [n.ruler_name if n.ruler_name != "" else "Herrscher", n.ruler.adm, n.ruler.dip, n.ruler.mil]))
 	side_box.add_child(_lbl("Monatlich: 📜+%.0f 🕊️+%.0f ⚔️+%.0f" % [game.monthly_power(n, "adm"), game.monthly_power(n, "dip"), game.monthly_power(n, "mil")]))
 	side_box.add_child(_lbl("💰 Einnahmen %.1f · Ausgaben %.1f\n🏘️ Entwicklung %d · %d Provinzen\n🛡️ Truppenlimit %.0f · 👥 %.0f/%.0f\n⭐ Prestige %d · 🏆 Punkte %d" % [
@@ -1716,12 +1745,90 @@ func _panel_nation() -> void:
 			side_box.add_child(_nation_btn(v, "  🏘️%d" % game.nations[v].dev_total, _open_panel.bind("other", v)))
 	side_box.add_child(_lbl("Technologie: 📜%d 🕊️%d ⚔️%d · Regierung: %s" % [n.tech.adm, n.tech.dip, n.tech.mil, game.govt.form_name(me)], 17))
 	side_box.add_child(_row([_btn("🔬 Technologie", _open_panel.bind("tech")), _btn("⚖️ Regierung", _open_panel.bind("government"))]))
+	side_box.add_child(_btn("📈 Alle Boni und Mali", _open_panel.bind("modifiers"), "Jeder Modifikator mit Gesamtwert und woher er kommt"))
 	side_box.add_child(_lbl("Aggressive Expansion", 22))
 	var thr: float = game.bal.ae_coalition_threshold
 	var co := []
 	for t in n.coalition:
 		co.append(game.nations[t].name)
 	side_box.add_child(_lbl("😠 %d / %d (Koalitionsgrenze)\nKoalition gegen dich: %s" % [n.ae, thr, ", ".join(co) if not co.is_empty() else "keine"]))
+
+
+const MOD_SOURCES := {"": "Nationalgeist & Ereignisse", "goods": "Handelsgüter", "buildings": "Gebäude", "rank": "Rang",
+		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte"}
+const MOD_GROUPS := [
+	["💰 Wirtschaft", ["income", "tax", "production", "trade", "merchants", "build_cost", "develop_cost"]],
+	["⚔️ Militär", ["combat", "army_power", "army_power_regen", "manpower", "force_limit", "maintenance", "siege"]],
+	["📜 Staat", ["adm", "dip", "mil", "tech_cost", "coring", "unrest", "ae_gen", "ae_decay", "prestige", "advisor_slots", "company_slots"]],
+	["⚖️ Stände", ["estate_adel", "estate_klerus", "estate_buerger"]],
+]
+
+
+## Every modifier of the player: total (green buff / red nerf) and the sources it is summed from (Game.mod).
+func _panel_modifiers() -> void:
+	var n = game.nations[game.player]
+	side_title.text = "📈 Boni und Mali"
+	var srcs := {"": n.mods}
+	for k in n.bonus:
+		srcs[k] = n.bonus[k]
+	var keys := {}
+	for k in srcs:
+		for key in srcs[k]:
+			if absf(float(srcs[k][key])) > 0.0005:
+				keys[key] = true
+	var groups: Array = MOD_GROUPS.duplicate(true)
+	var known := []
+	for gr in groups:
+		known.append_array(gr[1])
+	var other := []
+	for key in keys:
+		if not key in known:
+			other.append(key)
+	if not other.is_empty():
+		groups.append(["✨ Sonstiges", other])
+	var good := 0
+	var bad := 0
+	for key in keys:
+		var row: Array = UiTheme.mod_rows({key: game.mod(n, key)})
+		if not row.is_empty():
+			if row[0][2]:
+				good += 1
+			else:
+				bad += 1
+	var head := RichTextLabel.new()
+	head.bbcode_enabled = true
+	head.fit_content = true
+	head.scroll_active = false
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.text = "%s     %s" % [UiTheme.tone_bb("%d Boni" % good, 1, 16), UiTheme.tone_bb("%d Mali" % bad, -1, 16)]
+	side_box.add_child(head)
+	if keys.is_empty():
+		side_box.add_child(_lbl("Noch keine Modifikatoren.", 16, UiTheme.MUTED))
+	for gr in groups:
+		var present: Array = gr[1].filter(func(k): return keys.has(k))
+		if present.is_empty():
+			continue
+		side_box.add_child(_lbl(gr[0], 20, UiTheme.GOLD))
+		for key in present:
+			var total: Array = UiTheme.mod_rows({key: game.mod(n, key)})
+			var card := PanelContainer.new()
+			card.add_theme_stylebox_override("panel", UiTheme.card("" if total.is_empty() else ("good" if total[0][2] else "bad"), 8))
+			var v := VBoxContainer.new()
+			v.add_theme_constant_override("separation", 0)
+			card.add_child(v)
+			if total.is_empty():  # sources cancel out
+				v.add_child(_lbl("%s: ±0" % UiTheme.label(key)[0], 17, UiTheme.NEUTRAL))
+			else:
+				v.add_child(UiTheme.mod_row(total[0][0], total[0][1], total[0][2], 18))
+			if Tech.DESCS.has(key):
+				v.add_child(_lbl(Tech.DESCS[key], 13, UiTheme.MUTED))
+			for src in srcs:
+				var part: Array = UiTheme.mod_rows({key: srcs[src].get(key, 0.0)})
+				if part.is_empty():
+					continue
+				var l := _lbl("   %s  %s" % [part[0][1], MOD_SOURCES.get(src, src)], 14, UiTheme.GOOD.darkened(0.15) if part[0][2] else UiTheme.BAD.darkened(0.15))
+				v.add_child(l)
+			side_box.add_child(card)
 
 
 func _panel_diplomacy() -> void:
@@ -2112,50 +2219,67 @@ func _panel_log() -> void:
 
 func effects_text(e: Dictionary) -> String:
 	var parts := []
+	for p in effect_parts(e):
+		parts.append(p[0])
+	return ", ".join(parts)
+
+
+## Effects as BBCode: buffs green with an up arrow, nerfs red with a down arrow, neutral grey.
+func effects_bb(e: Dictionary, sep: String = "   ") -> String:
+	var parts := []
+	for p in effect_parts(e):
+		parts.append(UiTheme.tone_bb(p[0], p[1]))
+	return sep.join(parts)
+
+
+## [text, tone] per effect; tone 1 = good for the player, -1 = bad, 0 = neutral.
+func effect_parts(e: Dictionary) -> Array:
+	var parts := []
 	var icons := {"gold": "💰", "adm": "📜", "dip": "🕊️", "mil": "⚔️", "ae": "😠 AE", "prestige": "⭐", "manpower": "👥", "regs": "🛡️ Reg."}
+	var sgn := func(v: float, good_if_up: bool = true) -> int:
+		return 0 if is_zero_approx(v) else (1 if (v > 0) == good_if_up else -1)
 	for k in e:
 		var v = e[k]
 		if icons.has(k):
-			parts.append("%s %+d" % [icons[k], int(v)])
+			parts.append(["%s %+d" % [icons[k], int(v)], sgn.call(float(v), k != "ae")])
 		elif k == "dev_capital":
-			parts.append("🏘️ Hauptstadt %+d" % int(v))
+			parts.append(["🏘️ Hauptstadt %+d" % int(v), sgn.call(float(v))])
 		elif k == "dev_random":
-			parts.append("🏘️ %+d zufällige Entw." % int(v))
+			parts.append(["🏘️ %+d zufällige Entw." % int(v), sgn.call(float(v))])
 		elif k == "relations":
 			for t in v:
 				if game.nations.has(t):
-					parts.append("❤️ %s %+d" % [game.nations[t].name, int(v[t])])
+					parts.append(["❤️ %s %+d" % [game.nations[t].name, int(v[t])], sgn.call(float(v[t]))])
 		elif k == "claim":
 			var names := []
 			for key in v:
 				names.append(game.provinces[game.key_to_pid[key]].name)
-			parts.append("📜 Anspruch: " + ", ".join(names))
+			parts.append(["📜 Anspruch: " + ", ".join(names), 1])
 		elif k == "mods":
-			var mn := {"income": "Einkommen", "combat": "Kampfkraft", "army_power": "Max. Moral", "army_power_regen": "Moral-Erholung", "manpower": "Mannschaften", "adm": "Admin/Monat", "dip": "Diplomatie/Monat", "mil": "Militär/Monat", "ae_decay": "AE-Abbau",
-					"production": "Produktion", "trade": "Handel", "tax": "Steuern"}
 			for m in v:
+				var lab: Array = UiTheme.label(m)
 				if m in ["adm", "dip", "mil"]:
-					parts.append("%s %+d" % [mn.get(m, m), int(v[m])])
+					parts.append(["%s %+d" % [lab[0], int(v[m])], sgn.call(float(v[m]))])
 				else:
-					parts.append("%s %+d%%" % [mn.get(m, m), int(round(float(v[m]) * 100))])
+					parts.append(["%s %+d%%" % [lab[0], int(round(float(v[m]) * 100))], sgn.call(float(v[m]), lab[2])])
 		elif k == "ruler":
-			parts.append("👑 Herrscherwerte verändert")
+			parts.append(["👑 Herrscherwerte verändert", 0])
 		elif k == "estate":
 			for es in v:
-				parts.append("⚖️ %s %+d" % [game.govt.estate_name(es), int(v[es])])
+				parts.append(["⚖️ %s %+d" % [game.govt.estate_name(es), int(v[es])], sgn.call(float(v[es]))])
 		elif k == "alliance":
-			parts.append("🤝 Bündnis mit " + game.nations[v].name)
+			parts.append(["🤝 Bündnis mit " + game.nations[v].name, 1])
 		elif k == "inherit":
-			parts.append("👑 Erbe: " + game.nations[v].name)
+			parts.append(["👑 Erbe: " + game.nations[v].name, 1])
 		elif k == "we":
-			parts.append("😩 Kriegsmüdigkeit %+.0f" % float(v))
+			parts.append(["😩 Kriegsmüdigkeit %+.0f" % float(v), sgn.call(float(v), false)])
 		elif k == "vassal":
-			parts.append("⛓️ Vasall: " + game.nations[v].name)
+			parts.append(["⛓️ Vasall: " + game.nations[v].name, 1])
 		elif k == "province":
-			parts.append("🏘️ Erhalte " + game.provinces[game.key_to_pid[v]].name)
+			parts.append(["🏘️ Erhalte " + game.provinces[game.key_to_pid[v]].name, 1])
 		elif k == "war":
-			parts.append("🔥 Krieg gegen " + game.nations[v].name)
-	return ", ".join(parts)
+			parts.append(["🔥 Krieg gegen " + game.nations[v].name, 0])
+	return parts
 
 
 func conditions_text(c: Dictionary) -> String:
