@@ -112,5 +112,12 @@
   "shock_up": 1.4,
   "shock_down": 0.7,
   "shock_years_min": 3,
-  "shock_years_max": 6
+  "shock_years_max": 6,
+  "trade_pact_cost": 30,
+  "max_trade_pacts": 3,
+  "trade_pact_bonus": 0.06,
+  "trade_pact_min_rel": 25,
+  "merc_regs": 3,
+  "merc_cost_mult": 2.0,
+  "merc_cooldown": 12
 }

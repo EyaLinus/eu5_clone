@@ -32,7 +32,7 @@ func _spend_power(g, n) -> void:
 			g.develop(n.tag, best)
 	# keep the realm calm: suppress provinces about to revolt, calm the people when exhausted
 	var thr: float = float(g.bal.revolt_threshold)
-	for pid in g.provinces_of(n.tag):
+	for pid in (g.provinces_of(n.tag) if n.mil >= 30.0 else []):
 		if g.provinces[pid].suppress_months == 0 and g.unrest(pid) >= thr and n.mil >= g.suppress_cost(pid) + 20.0:
 			g.suppress_unrest(n.tag, pid)
 	if n.we >= 6.0 and n.dip >= float(g.bal.we_reduce_cost) + 40.0:
@@ -83,6 +83,11 @@ func _spend_gold(g, n) -> void:
 	var cost := float(g.bal.regiment_cost)
 	var reserve: float = 10.0 + n.expenses * 4.0
 	var k: int = int(minf(minf((n.gold - reserve) / cost, want - regs), n.manpower))
+	# out of manpower in a war: hire mercenaries if the chest allows
+	if war and n.manpower < 1.0 and regs < want - 2.0 and n.gold >= g.merc_cost(tag) + reserve and g.merc_ready_in(tag) == 0 \
+			and g.provinces[n.capital].controller == tag:
+		g.hire_mercs(tag, n.capital)
+		return
 	if k >= 1:
 		var where: int = n.capital
 		if g.provinces[where].controller != tag:
@@ -98,11 +103,21 @@ func _spend_gold(g, n) -> void:
 	if (g.month + n.capital) % 3 != 0:
 		return
 	var margin: float = 20.0 if (not war and regs >= want - 1.0) else 120.0
+	if n.gold <= reserve + margin + _cheapest_building_cost(g, n):
+		return  # nothing affordable: skip the expensive search
 	for i in 3:
 		var best: Array = g.Economy.best_building(g, n, war)
 		if best.is_empty() or n.gold <= g.Economy.building_cost(g, tag, best[0], best[1]) + reserve + margin:
 			break
 		g.construct(tag, best[0], best[1])
+
+
+## Lower bound for any building cost of `n` (Economy.building_cost never goes below it).
+func _cheapest_building_cost(g, n) -> float:
+	var c := 1e9
+	for bid in g.buildings_def:
+		c = minf(c, float(g.buildings_def[bid].cost))
+	return c * maxf(0.3, 1.0 + g.mod(n, "build_cost")) - 1.0
 
 
 # ---------------------------------------------------------------- diplomacy
@@ -132,6 +147,7 @@ func _diplomacy(g, n) -> void:
 	for ally in n.allies.duplicate():
 		if g.get_rel(tag, ally) < -30.0:
 			g.break_alliance(tag, ally)
+	_trade_pact(g, n)
 	if n.allies.size() >= 2:
 		return
 	var best := ""
@@ -152,6 +168,23 @@ func _diplomacy(g, n) -> void:
 		g.propose_alliance(tag, best)
 	elif n.dip >= float(g.bal.improve_relation_cost) + 30.0:
 		g.improve_relations(tag, best)
+
+
+## Now and then a trade agreement with the friendliest neighbor that accepts.
+func _trade_pact(g, n) -> void:
+	if n.trade_pacts.size() >= 2 or n.dip < float(g.bal.trade_pact_cost) + 60.0 or g.rng.randf() > 0.1:
+		return
+	var best := ""
+	var best_rel := -1e9
+	for t in g.nations_in_range(n.tag, 4):
+		if t == g.player or g.Economy.pact_block_reason(g, n.tag, t) != "" or not g.Economy.accepts_pact(g, t, n.tag):
+			continue
+		var r: float = g.get_rel(n.tag, t)
+		if r > best_rel:
+			best_rel = r
+			best = t
+	if best != "":
+		g.Economy.offer_pact(g, n.tag, best)
 
 
 func accepts_alliance(g, target: String, from: String) -> bool:

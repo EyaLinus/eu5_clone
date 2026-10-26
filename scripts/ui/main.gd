@@ -28,6 +28,7 @@ var speed := 0
 var acc := 0.0
 var panel_mode := ""
 var panel_arg = null
+var econ_tab := "overview"  # sub-tab of the economy panel
 var selected_army := -1
 var peace_selection := {}
 var last_log_count := 0
@@ -654,7 +655,10 @@ func _process(delta: float) -> void:
 	acc += delta
 	var spm: float = SPEEDS[speed]
 	var steps := 0
-	while acc >= spm and steps < 4:
+	# frame budget: slow devices run fewer months per second instead of stuttering, and never try to catch up
+	var t0 := Time.get_ticks_msec()
+	acc = minf(acc, spm * 2.0)
+	while acc >= spm and steps < 4 and (steps == 0 or Time.get_ticks_msec() - t0 < 12):
 		acc -= spm
 		game.tick()
 		steps += 1
@@ -883,6 +887,23 @@ func _update_badges() -> void:
 		if game.side_tags(w, att)[0] == me and game.warscore(w) * (1.0 if att else -1.0) >= 25.0:
 			peace = true
 	tab_badges.wars.visible = peace
+	# economy: something to do with the money
+	var Eco = game.Economy
+	var why := ""
+	if n.gold < 0.0:
+		why = "Die Kasse ist im Minus: Kredit aufnehmen oder Armeen verkleinern."
+	elif n.income - n.expenses < 0.0:
+		why = "Die Monatsbilanz ist negativ."
+	elif not n.merchant_auto and n.merchants.size() < Eco.merchant_count(game, n):
+		why = "Ein Händler ist frei."
+	elif not n.loans.is_empty() and n.gold >= float(n.loans[n.loans.size() - 1]) + 100.0 and not game.is_at_war(me):
+		why = "Ein Kredit kann getilgt werden."
+	elif not n.autobuild and not game.is_at_war(me):
+		var best: Array = Eco.best_building(game, n, false)
+		if not best.is_empty() and n.gold >= Eco.building_cost(game, me, best[0], best[1]) + 50.0:
+			why = "Genug Gold für ein neues Gebäude (oder Autobau einschalten)."
+	tab_badges.economy.visible = why != ""
+	tab_badges.economy.get_parent().tooltip_text = "Wirtschaft" + (("\n● " + why) if why != "" else "")
 
 
 ## Desktop shortcuts: Space pauses/resumes, 1-5 set the speed, Esc closes panels.
@@ -1335,6 +1356,10 @@ func _panel_province(pid: int) -> void:
 		side_box.add_child(_row([
 			_btn("⚔️ +1 Reg. (%d💰)" % c, func(): _act(game.recruit(me, pid, 1), "⚔️ Rekrutiert")),
 			_btn("⚔️ +5 (%d💰)" % (c * 5), func(): _act(game.recruit(me, pid, 5), "⚔️ Rekrutiert"))]))
+		var wait: int = game.merc_ready_in(me)
+		side_box.add_child(_btn("💰 Söldner: %d Reg. (%d💰)%s" % [int(game.bal.merc_regs), int(game.merc_cost(me)), (" · in %d Mon." % wait) if wait > 0 else ""],
+				func(): _act(game.hire_mercs(me, pid), "💰 Söldner angeworben"),
+				"Sofort %d Regimenter ohne Mannschaften, kostet aber das %d-fache Gold. Einmal alle %d Monate." % [int(game.bal.merc_regs), int(game.bal.merc_cost_mult), int(game.bal.merc_cooldown)], wait > 0))
 	else:
 		if not p.buildings.is_empty():
 			var bl := []
@@ -1393,6 +1418,28 @@ func _panel_economy() -> void:
 	var n = game.nations[me]
 	var Eco = game.Economy
 	side_title.text = "💰 Wirtschaft"
+	var tabs := []
+	for e in [["overview", "💰 Kasse"], ["trade", "🏬 Handel"], ["goods", "🏭 Güter"]]:
+		var key: String = e[0]
+		var b := _btn(e[1], func(): econ_tab = key; _refresh())
+		if econ_tab == key:
+			b.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
+			b.add_theme_color_override("font_hover_color", Color(1.0, 0.85, 0.4))
+		tabs.append(b)
+	side_box.add_child(_row(tabs))
+	match econ_tab:
+		"trade":
+			_economy_trade()
+		"goods":
+			_economy_goods()
+		_:
+			_economy_overview()
+
+
+func _economy_overview() -> void:
+	var me: String = game.player
+	var n = game.nations[me]
+	var Eco = game.Economy
 	var trib: float = game.tribute_income(me)
 	var intr: float = Eco.interest(game, n)
 	var army_cost: float = n.expenses - Eco.upkeep(game, me) - intr
@@ -1447,6 +1494,11 @@ func _panel_economy() -> void:
 	if building > 0:
 		side_box.add_child(_lbl("🏗️ %d Bauprojekte laufen." % building, 16, Color(0.95, 0.8, 0.4)))
 
+
+func _economy_trade() -> void:
+	var me: String = game.player
+	var n = game.nations[me]
+	var Eco = game.Economy
 	side_box.add_child(_lbl("🏬 Handel · Händler %d / %d" % [n.merchants.size(), Eco.merchant_count(game, n)], 22))
 	side_box.add_child(_btn("🤖 Händler automatisch: " + ("AN" if n.merchant_auto else "AUS"), func():
 		n.merchant_auto = not n.merchant_auto
@@ -1472,6 +1524,11 @@ func _panel_economy() -> void:
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		side_box.add_child(b)
 
+
+func _economy_goods() -> void:
+	var me: String = game.player
+	var n = game.nations[me]
+	var Eco = game.Economy
 	side_box.add_child(_lbl("🏭 Güter und Preise", 22))
 	var out: Dictionary = Eco.goods_output(game, me)
 	var world: Dictionary = Eco.supply(game)
@@ -1615,6 +1672,8 @@ func _panel_diplomacy() -> void:
 				txt += "  😠"
 			if o.overlord != "" and o.overlord != me:
 				txt += "  ⛓️"
+			if game.nations[me].trade_pacts.has(tag):
+				txt += "  🔗"
 			side_box.add_child(_nation_btn(tag, txt, _open_panel.bind("other", tag)))
 
 
@@ -1657,6 +1716,17 @@ func _panel_other(tag: String) -> void:
 		side_box.add_child(_btn("💔 Bündnis auflösen", func(): game.break_alliance(me, tag); _act("", "💔 Bündnis aufgelöst")))
 	else:
 		side_box.add_child(_btn("🤝 Bündnis anbieten (%d 🕊️)" % int(b.alliance_cost), func(): _act(game.propose_alliance(me, tag), "🤝 Bündnis geschlossen!")))
+	var Eco = game.Economy
+	if game.nations[me].trade_pacts.has(tag):
+		side_box.add_child(_btn("✂️ Handelsabkommen kündigen", func(): Eco.cancel_pact(game, me, tag); _act("", "✂️ Handelsabkommen gekündigt"),
+				"Beide verlieren +%d %% Handelseinnahmen." % int(float(b.trade_pact_bonus) * 100)))
+	else:
+		var why: String = Eco.pact_block_reason(game, me, tag)
+		var acc: bool = Eco.accepts_pact(game, tag, me)
+		side_box.add_child(_btn("🔗 Handelsabkommen (%d 🕊️)%s" % [int(b.trade_pact_cost), "" if acc else " ❌"], func(): _act(Eco.offer_pact(game, me, tag), "🔗 Handelsabkommen geschlossen!"),
+				"Beide Reiche erhalten +%d %% Handelseinnahmen, höchstens %d Abkommen. Nimmt an ab Beziehung %d oder als Verbündeter, ohne gegenseitige Ansprüche. Krieg beendet es.%s" % [
+					int(float(b.trade_pact_bonus) * 100), int(b.max_trade_pacts), int(b.trade_pact_min_rel), ("\n❌ " + why) if why != "" else ("" if acc else "\n❌ Würde derzeit ablehnen.")],
+				why != ""))
 	if not game.at_war(me, tag):
 		side_box.add_child(_btn("🔥 Krieg erklären…", _confirm_war.bind(tag)))
 	if o.ae >= float(b.ae_coalition_threshold) and not o.coalition.has(me):

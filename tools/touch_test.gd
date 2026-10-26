@@ -34,6 +34,7 @@ func _run() -> void:
 	m._start_game("FRA")
 	m.settings.tips = false
 	m._close_modal()
+	m.econ_tab = "goods"  # long list: needs scrolling
 	m._open_panel("economy")
 	await create_timer(0.3).timeout
 	var fails := []

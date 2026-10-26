@@ -84,6 +84,7 @@ class Nation:
 	var merchants: Array = []  # market center pids
 	var merchant_auto: bool = true
 	var loans: Array = []  # loan amounts (gold) still owed
+	var trade_pacts: Array = []  # tags with a trade agreement (+trade income for both)
 	var autobuild: bool = false  # player: build the best building whenever the treasury stays above the reserve
 	var autobuild_reserve: float = 100.0
 	var army_stance: String = ""  # player's default for new armies: "" manual, "attack" or "defend"
@@ -209,6 +210,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	Economy.setup(self, data)
 	Economy.refresh_goods_leaders(self)
 	Economy.update_markets(self)
+	Economy.check_pacts(self)
 	for tag in order:
 		Economy.auto_merchants(self, nations[tag])
 	Economy.update_markets(self)
@@ -1641,6 +1643,39 @@ func recruit(tag: String, pid: int, count: int) -> String:
 	return ""
 
 
+## Mercenaries: up to merc_regs regiments without manpower, for merc_cost_mult × the gold, once per merc_cooldown months.
+func merc_cost(tag: String) -> float:
+	return float(bal.merc_regs) * float(bal.regiment_cost) * float(bal.merc_cost_mult)
+
+
+func merc_ready_in(tag: String) -> int:
+	return maxi(0, int(nations[tag].flags.get("merc_month", -9999)) + int(bal.merc_cooldown) - month)
+
+
+func hire_mercs(tag: String, pid: int) -> String:
+	var n: Nation = nations[tag]
+	if provinces[pid].owner != tag or provinces[pid].controller != tag:
+		return "Nur in eigenen, unbesetzten Provinzen."
+	if merc_ready_in(tag) > 0:
+		return "Neue Söldner erst in %d Monaten." % merc_ready_in(tag)
+	var room: int = int(force_limit(tag) + 0.01 - army_regs(tag))
+	var count: int = mini(int(bal.merc_regs), room)
+	if count < 1:
+		return "Truppenlimit erreicht (%d)." % int(force_limit(tag))
+	var cost: float = merc_cost(tag) * count / float(bal.merc_regs)
+	if n.gold < cost:
+		return "Zu wenig Gold (%d benötigt)." % int(cost)
+	n.gold -= cost
+	n.flags["merc_month"] = month
+	for a in armies_in(pid):
+		if a.owner == tag:
+			a.regs += count
+			a.full += count
+			return ""
+	spawn_army(tag, pid, count)
+	return ""
+
+
 func disband(army: Army, count: float) -> void:
 	army.regs -= count
 	army.full = maxf(army.regs, army.full - count)
@@ -2054,7 +2089,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts,
 				"techs": tree.to_save(n), "gov": govt.to_save(n)}
 	d.nations = ns
 	var ar := []
@@ -2156,6 +2191,9 @@ func from_dict(d: Dictionary) -> void:
 		n.merchant_auto = e.get("merchant_auto", true)
 		n.army_stance = e.get("army_stance", "")
 		n.autobuild = bool(e.get("autobuild", false))
+		n.trade_pacts = []
+		for t in e.get("trade_pacts", []):
+			n.trade_pacts.append(str(t))
 		n.loans = []
 		for l in e.get("loans", []):
 			n.loans.append(float(l))
@@ -2192,3 +2230,5 @@ func from_dict(d: Dictionary) -> void:
 	Economy.refresh_goods_leaders(self)
 	Economy.update_markets(self)
 	Progression.refresh(self)
+	for t in order:
+		Economy.refresh_pact_bonus(self, nations[t])

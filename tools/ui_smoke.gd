@@ -57,6 +57,10 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "missions", "log", "ranking", "hre"]:
 		m._open_panel(mode)
 		n += 1
+	for t in ["trade", "goods", "overview"]:
+		m.econ_tab = t
+		m._open_panel("economy")
+		n += 1
 	# tech + government: play them like a player (AI choices), open every screen and popup
 	for k in g.POWERS:
 		var id: String = g.tree.best_choice(g, tag, k)
