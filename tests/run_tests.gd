@@ -18,7 +18,7 @@ func _init() -> void:
 		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events",
-		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures",
+		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
 		call(t)
@@ -1031,6 +1031,27 @@ func test_emoji_coverage() -> void:
 				check(have.has("%x" % c), "%s: no pixel glyph for %s (U+%X), add it in tools/art/emoji_icons.py" % [path, char(c), c])
 	for tag in data.nations:
 		check(ResourceLoader.exists("res://assets/art/icons/flag_%s.png" % tag), "nation %s has no flag" % tag)
+
+
+## Pixel UI kit (tools/art/ui_kit.py): every slice texture exists and is big enough for its margins;
+## modifier rows mark buffs and nerfs by meaning, not by sign (lower build cost is a buff).
+func test_ui_kit() -> void:
+	for k in UiTheme.SLICES:
+		var t := UiTheme.tex(k)
+		check(t != null, "ui kit texture %s missing, run tools/art/ui_kit.py" % k)
+		if t != null:
+			check(t.get_width() > 2 * UiTheme.SLICES[k] and t.get_height() > 2 * UiTheme.SLICES[k] or k == "topbar", "ui kit %s smaller than its slices" % k)
+	for k in ["mod_up", "mod_down", "separator", "slider_grabber"]:
+		check(UiTheme.tex(k) != null, "ui kit texture %s missing" % k)
+	var rows: Array = UiTheme.mod_rows({"build_cost": -0.1, "income": 0.05, "unrest": 1.0, "tax": 0.0})
+	check(rows.size() == 3, "zero modifiers are hidden")
+	var good := {}
+	for r in rows:
+		good[r[0]] = r[2]
+	check(good.get("Baukosten") == true, "lower build cost is a buff")
+	check(good.get("Einkommen") == true, "more income is a buff")
+	check(good.get("Unruhe") == false, "more unrest is a nerf")
+	check(UiTheme.tone_bb("💰 +5", 1).contains("mod_up.png"), "buffs get the up arrow")
 
 
 ## Every event's picture (own "image" or the generated motif map) must exist; tools/art/event_motifs.py.
