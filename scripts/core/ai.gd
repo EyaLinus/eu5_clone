@@ -271,15 +271,20 @@ func _consider_war(g, n) -> void:
 # ---------------------------------------------------------------- peace
 
 func _consider_peace(g, n) -> void:
+	# war-weary nations look for a way out: exhaustion turns into revolts at home
+	var tired: bool = n.we >= float(g.bal.we_max) * float(g.bal.ai_tired_we)
 	for w in g.wars_of(n.tag).duplicate():
 		if not g.wars.has(w):
 			continue
 		var att: bool = g.is_attacker(w, n.tag)
-		if g.side_tags(w, att)[0] != n.tag:
-			continue
 		var ws: float = g.warscore(w) * (1.0 if att else -1.0)
 		var dur: int = g.month - w.start
-		if ws >= 25.0 or (ws >= 8.0 and dur > 36):
+		if g.side_tags(w, att)[0] != n.tag:
+			# an exhausted ally bails out of a war that is not going its way
+			if tired and dur > 12 and ws < 10.0 and g.leave_war_block_reason(n.tag, w) == "":
+				g.leave_war(n.tag, w)
+			continue
+		if ws >= 25.0 or (ws >= 8.0 and (dur > 36 or tired)):
 			if wants_vassal(g, w, att, ws):
 				g.offer_peace(n.tag, w, [], true, true)
 				continue
@@ -287,12 +292,12 @@ func _consider_peace(g, n) -> void:
 			if not pids.is_empty():
 				g.offer_peace(n.tag, w, pids, true)
 				continue
-		if ws <= -30.0 and dur > 12:
+		if ws <= (-15.0 if tired else -30.0) and dur > 12:
 			var give := pick_demands(g, w, not att, -ws * 0.8)
 			if not give.is_empty():
 				g.offer_peace(n.tag, w, give, false)
 				continue
-		if dur > 48 and absf(ws) < 15.0:
+		if (dur > 48 and absf(ws) < 15.0) or (tired and dur > 12 and ws > -15.0 and ws < 25.0):
 			g.offer_peace(n.tag, w, [], true)
 
 
