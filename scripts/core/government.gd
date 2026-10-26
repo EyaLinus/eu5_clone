@@ -24,6 +24,7 @@ var budget: Array = []
 var reforms: Array = []
 var reform_by_id := {}
 var budget_by_id := {}
+var empire_by_id := {}
 
 
 func _init(d: Dictionary = {}) -> void:
@@ -45,6 +46,8 @@ func _init(d: Dictionary = {}) -> void:
 		reform_by_id[r.id] = r
 	for b in budget:
 		budget_by_id[b.id] = b
+	for r in empire_reforms():
+		empire_by_id[r.id] = r
 
 
 func init_nation(n) -> void:
@@ -427,6 +430,127 @@ func set_budget(g, tag: String, id: String, step: int) -> String:
 	n.gov.budget[id] = clampi(step, 0, budget_max())
 	_changed(g, n)
 	return ""
+
+
+# ---------------------------------------------------------------- imperial reforms (Holy Roman Empire light)
+# Global state on the game: g.hre_authority and g.hre_reforms (passed ids, in order). Authority grows every
+# year with the size of the empire and shrinks with wars between members. The emperor passes the next reform
+# with authority if more than half of the other electors back him. Members get the member effects, the
+# emperor also his own, all in n.bonus["empire"].
+
+func empire_cfg() -> Dictionary:
+	return cfg.get("empire", {})
+
+
+func empire_reforms() -> Array:
+	return empire_cfg().get("reforms", [])
+
+
+## The next reform in line, or {} when all are passed.
+func next_empire_reform(g) -> Dictionary:
+	for r in empire_reforms():
+		if not g.hre_reforms.has(r.id):
+			return r
+	return {}
+
+
+## [electors backing the emperor, electors asked]: the emperor himself does not vote.
+func reform_support(g) -> Array:
+	var yes := 0
+	var total := 0
+	for e in g.current_electors():
+		if e == g.emperor:
+			continue
+		total += 1
+		if g.get_rel(e, g.emperor) >= 0.0 or g.is_allied(e, g.emperor):
+			yes += 1
+	return [yes, total]
+
+
+func empire_reform_block(g, tag: String) -> String:
+	if g.emperor == "" or tag != g.emperor:
+		return "Nur der Kaiser kann Reichsreformen verabschieden."
+	var r := next_empire_reform(g)
+	if r.is_empty():
+		return "Alle Reichsreformen sind verabschiedet."
+	if g.year() < int(r.year):
+		return "Verfügbar ab %d." % int(r.year)
+	if g.hre_authority < float(r.cost):
+		return "Zu wenig kaiserliche Autorität (%d benötigt)." % int(r.cost)
+	var s := reform_support(g)
+	if s[0] * 2 <= s[1]:
+		return "Zu wenige Kurfürsten stehen hinter dir (%d von %d, mehr als die Hälfte nötig)." % [s[0], s[1]]
+	return ""
+
+
+func pass_empire_reform(g, tag: String) -> String:
+	var err := empire_reform_block(g, tag)
+	if err != "":
+		return err
+	var r := next_empire_reform(g)
+	g.hre_authority -= float(r.cost)
+	g.hre_reforms.append(r.id)
+	g.log_msg("👑 Reichsreform: %s. %s" % [r.name, r.text], g.hre_members())
+	refresh_empire(g)
+	return ""
+
+
+## Wars between two members are forbidden once the Ewiger Landfriede is passed.
+func landfriede(g, a: String, b: String) -> bool:
+	return g.hre_reforms.has("landfriede") and g.hre.has(a) and g.hre.has(b)
+
+
+## Effects of the passed reforms for `tag` (member effects, plus the emperor's own for the emperor).
+func empire_effects(g, tag: String) -> Dictionary:
+	var b := {}
+	if not g.hre.has(tag):
+		return b
+	for id in g.hre_reforms:
+		var r: Dictionary = empire_by_id.get(id, {})
+		var effs: Array = [r.get("members", {})]
+		if tag == g.emperor:
+			effs.append(r.get("emperor", {}))
+		for e in effs:
+			for k in e:
+				b[k] = b.get(k, 0.0) + float(e[k])
+	return b
+
+
+func refresh_empire(g) -> void:
+	for tag in g.order:
+		var n = g.nations[tag]
+		var b := empire_effects(g, tag) if n.alive else {}
+		if b != n.bonus.get("empire", {}):
+			n.bonus["empire"] = b
+			g._update_cached(n)
+
+
+## Authority per year: base plus per member, minus every war between members.
+func authority_gain(g) -> float:
+	var c := empire_cfg()
+	var members: Array = g.hre_members()
+	var v: float = float(c.get("authority_base", 2.0)) + float(c.get("authority_per_member", 0.15)) * members.size()
+	for w in g.wars:
+		if w.attackers.any(func(t): return members.has(t)) and w.defenders.any(func(t): return members.has(t)):
+			v -= float(c.get("authority_member_war", 3.0))
+	return v
+
+
+## A new emperor from another house starts with part of the old authority.
+func on_new_emperor(g) -> void:
+	g.hre_authority = snappedf(g.hre_authority * float(empire_cfg().get("authority_new_emperor", 0.75)), 0.01)
+	refresh_empire(g)
+
+
+## Yearly, after the election check: authority grows, an AI emperor passes the next reform when it can.
+func empire_yearly(g) -> void:
+	if g.emperor == "" or empire_reforms().is_empty():
+		return
+	var mx: float = float(empire_cfg().get("authority_max", 100))
+	g.hre_authority = snappedf(clampf(g.hre_authority + authority_gain(g), 0.0, mx), 0.01)
+	if g.emperor != g.player and empire_reform_block(g, g.emperor) == "":
+		pass_empire_reform(g, g.emperor)
+	refresh_empire(g)
 
 
 ## Yearly: prestige drift from all sources, national advisors leave court after their time.

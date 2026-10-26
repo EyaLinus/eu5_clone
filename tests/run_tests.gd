@@ -24,6 +24,7 @@ func _init() -> void:
 		"test_monuments_and_feast",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
+		"test_empire_reforms",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1666,6 +1667,72 @@ func test_tech_spread() -> void:
 	check(absf(g.tree.cost(g, "FRA", id) - full * 0.7) < 0.01, "discount capped at 30 %")
 	var sp: Dictionary = g.tree.specials_of("FRA")[0]
 	check(g.tree.spread_discount(g, "FRA", sp.id) == 0.0, "special techs never get cheaper")
+
+
+## Imperial reforms: authority, elector support, member/emperor effects, Ewiger Landfriede, save/load, AI.
+func test_empire_reforms() -> void:
+	var g = new_game("FRA")
+	var gv = g.govt
+	var emp: String = g.emperor
+	check(emp != "" and g.hre.has(emp), "there is an emperor")
+	check(gv.empire_reforms().size() == 5, "five imperial reforms")
+	check(absf(g.hre_authority - 10.0) < 0.01, "authority starts at 10")
+	check(gv.authority_gain(g) > 2.0, "authority grows with the members")
+	check(gv.empire_reform_block(g, "FRA") != "", "only the emperor passes reforms")
+	check(gv.empire_reform_block(g, emp).contains("1450"), "the first reform waits for 1450")
+	g.month = (1450 - 1444) * 12
+	g.hre_authority = 0.0
+	check(gv.empire_reform_block(g, emp).contains("Autorität"), "reforms cost authority")
+	for e in g.current_electors():
+		if e != emp:
+			g.add_rel(e, emp, 200.0)
+	g.hre_authority = 50.0
+	check(gv.pass_empire_reform(g, emp) == "", "the emperor passes the Reichstag")
+	check(g.hre_reforms == ["reichstag"] and absf(g.hre_authority - 10.0) < 0.01, "authority spent, reform recorded")
+	var member := ""
+	for t in g.hre_members():
+		if t != emp:
+			member = t
+			break
+	check(absf(g.nations[emp].bonus.empire.get("prestige", 0.0) - 1.0) < 0.001 and g.nations[emp].bonus.empire.get("unrest", 0.0) < 0.0, "emperor gets both effects")
+	check(g.nations[member].bonus.empire.get("unrest", 0.0) < 0.0 and not g.nations[member].bonus.empire.has("prestige"), "members get the member effects")
+	check(g.nations.FRA.bonus.get("empire", {}).is_empty(), "outsiders get nothing")
+	g.hre_authority = 1000.0
+	check(gv.empire_reform_block(g, emp).contains("1470"), "reforms unlock by year")
+	g.month = (1600 - 1444) * 12
+	for e in g.current_electors():
+		if e != emp:
+			g.add_rel(e, emp, -400.0)
+	check(gv.empire_reform_block(g, emp).contains("Kurfürsten"), "electors must back the emperor")
+	for e in g.current_electors():
+		if e != emp:
+			g.add_rel(e, emp, 400.0)
+	while gv.next_empire_reform(g).size() > 0:
+		check(gv.pass_empire_reform(g, emp) == "", "pass %s" % gv.next_empire_reform(g).get("id", "?"))
+	check(g.hre_reforms.size() == 5, "all reforms passed")
+	check(gv.landfriede(g, emp, member) and not gv.landfriede(g, "FRA", member), "Landfriede binds members only")
+	for a in g.hre_members():
+		for b in g.hre_members():
+			if a != b and not g.is_allied(a, b) and not g.has_truce(a, b) and not g.at_war(a, b) and g.nations[a].overlord == "":
+				check(g.declare_war(a, b).contains("Landfriede"), "no wars between members")
+				break
+		break
+	var text := JSON.stringify(g.to_dict())
+	var g2 = new_game("FRA", 3)
+	g2.from_dict(JSON.parse_string(text))
+	check(g2.hre_reforms.size() == 5 and absf(g2.hre_authority - g.hre_authority) < 0.01, "reforms survive save/load")
+	check(absf(g2.nations[emp].bonus.empire.get("tax", 0.0) - g.nations[emp].bonus.empire.get("tax", 0.0)) < 0.001, "effects restored on load")
+	g2.hre_authority = 100.0
+	gv.on_new_emperor(g2)
+	check(absf(g2.hre_authority - 75.0) < 0.01, "a new house keeps 75 % of the authority")
+	var g3 = new_game("FRA")
+	g3.month = (1450 - 1444) * 12
+	g3.hre_authority = 39.0
+	for e in g3.current_electors():
+		if e != g3.emperor:
+			g3.add_rel(e, g3.emperor, 200.0)
+	g3.govt.empire_yearly(g3)
+	check(g3.hre_reforms == ["reichstag"], "an AI emperor passes reforms on its own")
 
 
 func test_ai_marriage_and_generals() -> void:
