@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.7.4 – 2026-10-26
+- **Neuer Name: Rise of EU.** Spiel, Fenster, App und Downloads heißen jetzt so (`RiseOfEU.apk`, `RiseOfEU.exe`),
+  das Repo heißt `EyaLinus/rise-of-eu`. Die Android-Paket-ID bleibt gleich, damit das Update die alte App ersetzt
+  und Spielstände erhalten bleiben. Unter Windows werden Spielstand und Einstellungen einmalig aus dem alten
+  Ordner übernommen.
+- **Regierungs-Events (Tech-Thread, PR #17):** 20 neue Events, die an Gesetze, Techs und Stände anknüpfen.
+
 ## v0.7.3 – 2026-10-25
 - **Provinzfenster in Reitern:** Provinz (Werte mit Erklärungen), Bauen (Gebäude) und Militär (Rekrutieren, Söldner,
   Armeen). Viel weniger Scrollen auf dem Handy.
