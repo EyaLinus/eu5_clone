@@ -70,6 +70,11 @@ alliance, inherit, vassal, province, war`. Neue Schlüssel immer in beiden UI-Te
 - Regierung (v0.7): 3 Beraterplätze (Kosten 75 Punkte ihrer Art, historische nur in ihren Lebensjahren),
   2 Kompanieplätze (+1 durch "Aktiengesellschaften", Preis = 18 Monatseinkommen, min. 60 Gold), 4 Gesetze mit
   je einer neutralen Grundoption und Optionen mit Buff + Nerf (Wechsel 60 Punkte, 10 Jahre Sperre).
+  Investitionsstufen (v0.8): `n.gov.invest` {id: Stufe 1–5}, Vorteile ×(1+0,5·(Stufe−1)), Nachteile bleiben;
+  Ausbau kostet Σ 0,5·Preis·Stufe. KI investiert nur mit Rücklage (10 + 4·Ausgaben + 150).
+  Stände (v0.8): `n.gov.estates` {adel, klerus, buerger} 0–100, driften 0,03/Monat zum Ziel 50 + mod(`estate_<id>`).
+  Ab 65 treu, unter 30 verärgert: Effekte in n.bonus["estates"], Unruhe als eigener Posten in `unrest_parts`.
+  Krisen-Events (`estate_crisis_*`) höchstens alle 4 Jahre, Zugeständnis +20 für max(30, 6·Einkommen) Gold, 5 Jahre Sperre.
   Der Test `test_government_data` erzwingt, dass jede Nicht-Grundoption mindestens einen Vor- und einen Nachteil hat.
 
 ## Werkzeuge
