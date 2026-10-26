@@ -53,6 +53,7 @@ func build() -> void:
 	if ahead >= 1.0:
 		info += "\nDu bist der Zeit voraus: +%d %% Kosten." % roundi(ahead * float(g.bal.tech_ahead_penalty) * 100.0)
 	m.side_box.add_child(m._lbl(info, 15, Color(0.8, 0.82, 0.9)))
+	m.side_box.add_child(m._lbl("Gold umrandet: jetzt erforschbar · 🔒 Vorgänger fehlt · Antippen zeigt Details", 13, Color(0.65, 0.68, 0.75)))
 	var specials: Array = g.tree.specials_of(me)
 	if not specials.is_empty():
 		m.side_box.add_child(m._lbl("⭐ Nationale Technologien", 20, Color(1.0, 0.85, 0.4)))
@@ -84,7 +85,19 @@ func build() -> void:
 	var rows := 0
 	for b in cols:
 		rows = maxi(rows, per.get(b.id, []).size())
-	for i in rows:
+	var first := 0
+	while first < rows:
+		var all_done := true
+		for b in cols:
+			var lst: Array = per.get(b.id, [])
+			if first < lst.size() and not n.techs.has(lst[first].id):
+				all_done = false
+		if not all_done:
+			break
+		first += 1
+	if first > 0:
+		m.side_box.add_child(m._lbl("✓ Die ersten %d Stufen aller drei Zweige sind erforscht (ausgeblendet)." % first, 14, Color(0.7, 0.9, 0.7)))
+	for i in range(first, rows):
 		for b in cols:
 			var lst: Array = per.get(b.id, [])
 			if i < lst.size():
@@ -108,24 +121,46 @@ func _cell(g, me: String, t: Dictionary, special: bool) -> Button:
 	var done: bool = n.techs.has(t.id)
 	var cost: float = g.tree.cost(g, me, t.id)
 	var from: int = int(t.year) - g.tree.early_years
-	var mark := "✓ " if done else ("" if reason == "" else "🔒 ")
-	var sub := "" if done else ("ab %d" % from if g.year() < from else "%d %s" % [cost, Icons.emoji(t.cat)])
-	var b: Button = m._btn(mark + t.name + ("\n" + sub if sub != "" else ""), _detail.bind(t.id))
-	b.clip_text = false
-	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var ready: bool = reason == "" and n.get(t.cat) >= cost
+	var foot := "✓ erforscht" if done else ("ab %d" % from if g.year() < from else "%d %s" % [cost, Icons.emoji(t.cat)])
+	if not done and reason != "" and g.year() >= from:
+		foot = "🔒 " + foot
+	var tip: String = "%s\n%s\n%s" % [t.name, Tech.effects_text(t.effects), "Erforscht" if done else (reason if reason != "" else "Kosten %d" % cost)]
+	var b: Button = m._btn("", _detail.bind(t.id), tip)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.custom_minimum_size = Vector2(0, 74 if m._big() else 64)
-	b.add_theme_font_size_override("font_size", 14)
+	# height from content: name (1-2 lines), one line per effect, cost line
+	var name_lines: int = 1 + int(t.name.length() > 15) + int(t.name.length() > 30)
+	b.custom_minimum_size = Vector2(0, 22 + 20 * name_lines + 18 * t.effects.size() + 22 + (8 if m._big() else 0))
+	var v := VBoxContainer.new()
+	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 6)
+	v.add_theme_constant_override("separation", 1)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(v)
+	var name_col := Color(0.8, 0.95, 0.8) if done else (Color(1.0, 0.92, 0.7) if reason == "" else Color(0.62, 0.64, 0.7))
+	var title: Label = m._lbl(t.name, 15, name_col)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.custom_minimum_size.x = 0
+	v.add_child(title)
+	var eff := effects_rich(t.effects, 13, true)
+	eff.custom_minimum_size.x = 0
+	v.add_child(eff)
+	var spacer := Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(spacer)
+	var f: Label = m._lbl(foot, 13, Color(1.0, 0.85, 0.4) if ready else Color(0.7, 0.72, 0.78))
+	f.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	f.custom_minimum_size.x = 0
+	v.add_child(f)
+	for c in v.get_children():
+		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var bg := COL_LOCKED
 	var border := Color(0, 0, 0, 0)
 	if done:
 		bg = COL_DONE
-		b.add_theme_color_override("font_color", Color(0.75, 0.95, 0.75))
 	elif reason == "":
-		bg = COL_READY if n.get(t.cat) >= cost else COL_OPEN
-		border = Color(1.0, 0.8, 0.35) if n.get(t.cat) >= cost else Color(0.55, 0.5, 0.3)
-	else:
-		b.add_theme_color_override("font_color", Color(0.55, 0.57, 0.62))
+		bg = COL_READY if ready else COL_OPEN
+		border = Color(1.0, 0.8, 0.35) if ready else Color(0.55, 0.5, 0.3)
 	if special:
 		border = Color(1.0, 0.85, 0.4)
 	_style(b, bg, border)
@@ -163,6 +198,9 @@ func _detail(id: String) -> void:
 	if t.has("text"):
 		box.add_child(m._lbl(t.text, 17, Color(0.85, 0.85, 0.75)))
 	box.add_child(effects_rich(t.effects, 19))
+	for k in t.effects:
+		if Tech.DESCS.has(k):
+			box.add_child(m._lbl("• %s: %s" % [Tech.LABELS[k][0], Tech.DESCS[k]], 14, Color(0.68, 0.7, 0.78)))
 	for r in t.get("req", []):
 		var ok: bool = n.techs.has(r)
 		box.add_child(m._lbl(("✓ " if ok else "✗ ") + "Benötigt: " + g.tree.by_id[r].name, 16, Color(0.7, 0.9, 0.7) if ok else Color(0.95, 0.6, 0.55)))
@@ -182,7 +220,7 @@ func _detail(id: String) -> void:
 	box.add_child(m._row([research, m._btn("Schließen", m._close_modal)]))
 
 
-static func effects_rich(eff: Dictionary, fs: int = 16) -> RichTextLabel:
+static func effects_rich(eff: Dictionary, fs: int = 16, compact: bool = false) -> RichTextLabel:
 	var r := RichTextLabel.new()
 	r.bbcode_enabled = true
 	r.fit_content = true
@@ -194,5 +232,7 @@ static func effects_rich(eff: Dictionary, fs: int = 16) -> RichTextLabel:
 	var parts := []
 	for l in Tech.effect_lines(eff):
 		parts.append("[color=%s]%s[/color]" % ["#8fdc8f" if l[1] else "#f08a7a", l[0]])
-	r.text = "  ·  ".join(parts) if not parts.is_empty() else "[color=#999999]keine Wirkung[/color]"
+	r.text = ("\n" if compact else "  ·  ").join(parts) if not parts.is_empty() else "[color=#999999]keine Wirkung[/color]"
+	if compact:
+		r.text = "[center]" + r.text + "[/center]"
 	return r

@@ -60,9 +60,9 @@ func build() -> void:
 	m.side_box.add_child(m._lbl("🏦 Investitionskompanien (%d/%d)" % [n.gov.companies.size(), gv.company_slots(g, n)], 22))
 	for id in n.gov.companies:
 		var c: Dictionary = gv.comp_by_id[id]
-		m.side_box.add_child(_card(c.name, c.get("text", ""), c.effects, c.has("tag"), "Auflösen", func():
-			gv.dissolve_company(g, me, id)
-			m._act("", "🏦 %s aufgelöst" % c.name)))
+		var lvl: int = gv.invest_level(n, id)
+		m.side_box.add_child(_card(c.name, "Investitionsstufe %d von %d" % [lvl, gv.max_invest()], gv.company_effects(id, lvl),
+				c.has("tag"), "Investieren", _invest.bind(id)))
 	for i in gv.company_slots(g, n) - n.gov.companies.size():
 		m.side_box.add_child(m._btn("➕ Kompanie gründen (%d %s)" % [gv.company_cost(g, n, ""), Icons.emoji("gold")], _pick_company))
 	if gv.company_slots(g, n) < 3:
@@ -74,6 +74,16 @@ func build() -> void:
 		var cd: int = gv.law_cooldown_left(g, n, l.id)
 		var sub: String = l.name + (" · änderbar in %d Monaten" % cd if cd > 0 else "")
 		m.side_box.add_child(_card(o.name, sub, o.effects, false, "Ändern", _pick_law.bind(l.id)))
+
+	var est_tip := "Die Zufriedenheit wandert langsam zum Zielwert (50 plus Wirkung von Gesetzen, Beratern, Kompanien und Technologien). Ab %d ist ein Stand treu und gibt Boni, unter %d ist er zornig und schadet, unter %d drohen Forderungen." % [
+			int(gv.cfg.get("estate_loyal", 60)), int(gv.cfg.get("estate_angry", 30)), int(gv.cfg.get("estate_crisis", 25))]
+	var eh: Label = m._lbl("⚖️ Stände", 22)
+	eh.tooltip_text = est_tip
+	eh.mouse_filter = Control.MOUSE_FILTER_STOP
+	m.side_box.add_child(eh)
+	m.side_box.add_child(m._lbl("Gesetze, Berater und Kompanien verschieben den Zielwert. Langes Drücken auf einen Stand erklärt mehr.", 14, Color(0.65, 0.68, 0.75)))
+	for e in gv.estates:
+		m.side_box.add_child(_estate_card(e, est_tip))
 
 	m.side_box.add_child(m._lbl("Gesamtwirkung der Regierung", 18))
 	m.side_box.add_child(TechScreen.effects_rich(n.bonus.get("gov", {}), 15))
@@ -184,3 +194,115 @@ func _pick_law(law_id: String) -> void:
 			card.get_child(0).get_child(1).disabled = true
 		m.modal_box.add_child(card)
 	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
+
+
+## Investment popup: a slider picks the target level, the preview shows effects and price live.
+func _invest(id: String) -> void:
+	var g = m.game
+	var gv = g.govt
+	var me: String = g.player
+	var n = g.nations[me]
+	var c: Dictionary = gv.comp_by_id[id]
+	var cur: int = gv.invest_level(n, id)
+	m._open_modal()
+	var box: VBoxContainer = m.modal_box
+	box.add_child(m._lbl("🏦 " + c.name, 26))
+	box.add_child(m._lbl(c.get("text", ""), 16, Color(0.85, 0.85, 0.75)))
+	box.add_child(m._lbl("Jede Stufe steigert die Vorteile um %d %%, die Nachteile bleiben gleich. Auflösen gibt kein Gold zurück." % roundi(float(gv.cfg.get("invest_step", 0.5)) * 100.0), 15, Color(0.72, 0.75, 0.82)))
+	var preview := VBoxContainer.new()
+	var go: Button
+	if cur < gv.max_invest():
+		var slider := HSlider.new()
+		slider.min_value = cur
+		slider.max_value = gv.max_invest()
+		slider.step = 1
+		slider.value = cur + 1
+		slider.tick_count = gv.max_invest() - cur + 1
+		slider.ticks_on_borders = true
+		slider.custom_minimum_size = Vector2(0, 56 if m._big() else 44)
+		slider.focus_mode = Control.FOCUS_NONE
+		box.add_child(slider)
+		box.add_child(preview)
+		go = m._btn("", func():
+			var err: String = gv.invest(g, me, id, int(slider.value))
+			m._close_modal()
+			m._act(err, "🏦 %s auf Stufe %d ausgebaut" % [c.name, int(slider.value)]))
+		var upd := func(v: float) -> void:
+			_invest_preview(preview, go, id, cur, int(v))
+		slider.value_changed.connect(upd)
+		upd.call(slider.value)
+	else:
+		box.add_child(m._lbl("Höchste Stufe erreicht.", 18, Color(0.7, 0.95, 0.7)))
+		box.add_child(TechScreen.effects_rich(gv.company_effects(id, cur), 18))
+	var dissolve: Button = m._btn("Auflösen", func():
+		gv.dissolve_company(g, me, id)
+		m._close_modal()
+		m._act("", "🏦 %s aufgelöst" % c.name))
+	var row := [dissolve, m._btn("Schließen", m._close_modal)]
+	if go != null:
+		row.push_front(go)
+	box.add_child(m._row(row))
+
+
+func _invest_preview(preview: VBoxContainer, go: Button, id: String, cur: int, to: int) -> void:
+	var g = m.game
+	var gv = g.govt
+	var n = g.nations[g.player]
+	m._clear(preview)
+	preview.add_child(m._lbl("Stufe %d → %d" % [cur, to], 20))
+	preview.add_child(TechScreen.effects_rich(gv.company_effects(id, to), 18))
+	var err: String = gv.invest_block(g, g.player, id, to)
+	var cost: float = gv.invest_cost(g, n, id, to)
+	go.text = "Investieren (%d %s)" % [cost, Icons.emoji("gold")]
+	go.disabled = err != ""
+	if err != "":
+		preview.add_child(m._lbl(err, 15, Color(0.95, 0.6, 0.55)))
+
+
+func _estate_card(e: Dictionary, tip: String) -> Control:
+	var g = m.game
+	var gv = g.govt
+	var me: String = g.player
+	var n = g.nations[me]
+	var v: float = n.gov.estates[e.id]
+	var target: float = gv.estate_target(g, n, e.id)
+	var tier: String = gv.estate_tier(n, e.id)
+	var tier_name: String = {"loyal": "treu", "neutral": "ruhig", "angry": "zornig"}[tier]
+	var col: Color = {"loyal": Color(0.55, 0.85, 0.55), "neutral": Color(0.85, 0.8, 0.55), "angry": Color(0.95, 0.5, 0.45)}[tier]
+	var pc := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = CARD
+	sb.set_corner_radius_all(8)
+	sb.set_content_margin_all(8)
+	pc.add_theme_stylebox_override("panel", sb)
+	pc.tooltip_text = "%s: %s\n%s" % [e.name, e.text, tip]
+	pc.mouse_filter = Control.MOUSE_FILTER_STOP
+	var vb := VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 3)
+	pc.add_child(vb)
+	var trend: String = "steigt auf" if target > v + 1.0 else ("sinkt auf" if target < v - 1.0 else "bleibt bei")
+	vb.add_child(m._lbl("%s · %s" % [e.name, tier_name], 18, col))
+	var bar := ProgressBar.new()
+	bar.min_value = 0
+	bar.max_value = 100
+	bar.value = v
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(0, 14)
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = col
+	fill.set_corner_radius_all(4)
+	bar.add_theme_stylebox_override("fill", fill)
+	vb.add_child(bar)
+	vb.add_child(m._lbl("Zufriedenheit %d, %s %d" % [roundi(v), trend, roundi(target)], 14, Color(0.75, 0.78, 0.85)))
+	var cur: Dictionary = e.get(tier, {}) if tier != "neutral" else {}
+	if not cur.is_empty():
+		vb.add_child(TechScreen.effects_rich(cur, 14))
+	else:
+		vb.add_child(m._lbl("Treu: %s\nZornig: %s" % [Tech.effects_text(e.loyal), Tech.effects_text(e.angry)], 13, Color(0.65, 0.68, 0.75)))
+	var err: String = gv.concession_block(g, me, e.id)
+	var b: Button = m._btn("Zugeständnis: +%d (%d %s)" % [int(gv.cfg.get("concession_amount", 20)), gv.concession_cost(g, n), Icons.emoji("gold")],
+			func(): m._act(gv.grant_concession(g, me, e.id), "⚖️ Der Stand %s ist besänftigt" % e.name), err, err != "")
+	b.add_theme_font_size_override("font_size", 15)
+	vb.add_child(b)
+	return pc

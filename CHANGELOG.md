@@ -15,6 +15,9 @@
   Im Wirtschafts-Panel mit ⚠️ markiert.
 - **Lesbarkeit:** Größere Provinz- und Ländernamen auf dem Handy, kräftigere Umrandung, Meldungen unten mit
   dunklem Hintergrund.
+- **Tech- und Regierungs-Thread (PR #14):** Technologiebaum besser lesbar (Effekte in jeder Zelle, erledigte Reihen
+  eingeklappt, Tooltips), Investitionsregler für Handelskompanien (Stufe 1–5) und Stände (Adel, Klerus, Bürger)
+  mit Zufriedenheit, Zugeständnissen und Krisen-Events im Regierungsbildschirm.
 
 ## v0.7.0 – 2026-10-25
 - **Wirtschaft:** Jede Provinz stellt ein Gut her (12 Güter, z. B. Getreide, Wein, Tuch, Eisen, Silber). Die Preise

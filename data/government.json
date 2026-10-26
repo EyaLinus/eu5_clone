@@ -5,6 +5,170 @@
  "company_slots": 2,
  "company_months": 18,
  "company_min_gold": 60,
+ "invest_max_level": 5,
+ "invest_step": 0.5,
+ "invest_cost_mult": 0.5,
+ "estate_drift": 0.03,
+ "estate_loyal": 65,
+ "estate_angry": 30,
+ "estate_crisis": 25,
+ "estate_crisis_chance": 0.35,
+ "estate_crisis_years": 4,
+ "concession_months": 6,
+ "concession_min_gold": 30,
+ "concession_amount": 20,
+ "concession_cooldown_years": 5,
+ "estates": [
+  {
+   "id": "adel",
+   "name": "Adel",
+   "text": "Grundherren und Ritter. Stellen Truppen und Offiziere.",
+   "loyal": {
+    "manpower": 0.1,
+    "combat": 0.03
+   },
+   "angry": {
+    "unrest": 1.0,
+    "manpower": -0.15
+   }
+  },
+  {
+   "id": "klerus",
+   "name": "Klerus",
+   "text": "Bischöfe, Klöster und Orden. Halten das Volk ruhig und lehren an den Universitäten.",
+   "loyal": {
+    "unrest": -0.25,
+    "prestige": 0.5
+   },
+   "angry": {
+    "unrest": 1.0,
+    "tech_cost": 0.05
+   }
+  },
+  {
+   "id": "buerger",
+   "name": "Bürger",
+   "text": "Kaufleute und Handwerker der Städte. Zahlen Steuern und treiben Handel.",
+   "loyal": {
+    "tax": 0.05,
+    "production": 0.05
+   },
+   "angry": {
+    "trade": -0.1,
+    "unrest": 0.5
+   }
+  }
+ ],
+ "estate_events": [
+  {
+   "id": "estate_crisis_adel",
+   "title": "Die Barone murren",
+   "text": "Der Adel klagt über verlorene Rechte und droht, dem Aufgebot fernzubleiben.",
+   "image": "knights",
+   "options": [
+    {
+     "text": "Alte Privilegien bestätigen.",
+     "effects": {
+      "estate": {
+       "adel": 25
+      },
+      "adm": -30
+     }
+    },
+    {
+     "text": "Ein Turnier und reiche Geschenke.",
+     "effects": {
+      "estate": {
+       "adel": 15
+      },
+      "gold": -40
+     }
+    },
+    {
+     "text": "Die Rädelsführer verhaften.",
+     "effects": {
+      "estate": {
+       "adel": -10
+      },
+      "manpower": -2,
+      "prestige": 5
+     }
+    }
+   ]
+  },
+  {
+   "id": "estate_crisis_klerus",
+   "title": "Unmut in den Klöstern",
+   "text": "Die Bischöfe predigen gegen die Krone und verlangen ihre alten Rechte zurück.",
+   "image": "church",
+   "options": [
+    {
+     "text": "Kirchengüter zurückgeben.",
+     "effects": {
+      "estate": {
+       "klerus": 25
+      },
+      "gold": -50
+     }
+    },
+    {
+     "text": "Eine Stiftung für den Dom.",
+     "effects": {
+      "estate": {
+       "klerus": 15
+      },
+      "dip": -25
+     }
+    },
+    {
+     "text": "Die Prediger zum Schweigen bringen.",
+     "effects": {
+      "estate": {
+       "klerus": -10
+      },
+      "prestige": -5,
+      "mil": -20
+     }
+    }
+   ]
+  },
+  {
+   "id": "estate_crisis_buerger",
+   "title": "Die Zünfte begehren auf",
+   "text": "Die Städte verweigern neue Steuern, bis ihre Beschwerden gehört werden.",
+   "image": "city",
+   "options": [
+    {
+     "text": "Stadtrechte erweitern.",
+     "effects": {
+      "estate": {
+       "buerger": 25
+      },
+      "adm": -30
+     }
+    },
+    {
+     "text": "Steuern für ein Jahr erlassen.",
+     "effects": {
+      "estate": {
+       "buerger": 15
+      },
+      "gold": -50
+     }
+    },
+    {
+     "text": "Die Stadttore besetzen.",
+     "effects": {
+      "estate": {
+       "buerger": -10
+      },
+      "we": 2,
+      "prestige": 3
+     }
+    }
+   ]
+  }
+ ],
  "law_cost": 60,
  "law_cooldown_years": 10,
  "forms": {
@@ -52,7 +216,8 @@
    "type": "adm",
    "effects": {
     "tax": 0.12,
-    "unrest": 0.5
+    "unrest": 0.5,
+    "estate_buerger": -10
    }
   },
   {
@@ -85,7 +250,8 @@
    "type": "adm",
    "effects": {
     "adm": 1,
-    "unrest": 0.5
+    "unrest": 0.5,
+    "estate_adel": -10
    }
   },
   {
@@ -127,7 +293,8 @@
    "effects": {
     "unrest": -1.5,
     "prestige": 0.5,
-    "tech_cost": 0.05
+    "tech_cost": 0.05,
+    "estate_klerus": 10
    }
   },
   {
@@ -585,7 +752,8 @@
    "year": 1444,
    "effects": {
     "income": 0.08,
-    "prestige": -0.25
+    "prestige": -0.25,
+    "estate_klerus": -10
    },
    "text": "Kredit gegen hohe Zinsen. Das Volk hält Wucher für eine Sünde."
   },
@@ -595,7 +763,8 @@
    "year": 1444,
    "effects": {
     "trade": 0.12,
-    "unrest": 0.25
+    "unrest": 0.25,
+    "estate_buerger": 10
    },
    "text": "Die Gilde handelt gut, verlangt aber Privilegien, die die Zünfte erzürnen."
   },
@@ -798,7 +967,9 @@
      "name": "Städteförderung",
      "effects": {
       "production": 0.08,
-      "manpower": -0.05
+      "manpower": -0.05,
+      "estate_buerger": 15,
+      "estate_adel": -5
      },
      "text": "Bürger statt Bauern."
     },
@@ -808,7 +979,8 @@
      "effects": {
       "production": 0.12,
       "tax": 0.04,
-      "trade": -0.1
+      "trade": -0.1,
+      "estate_buerger": 5
      },
      "text": "Eigene Waren schützen, fremde verzollen.",
      "req": "adm_verlag"
@@ -818,7 +990,8 @@
      "name": "Freihandel",
      "effects": {
       "trade": 0.15,
-      "tax": -0.05
+      "tax": -0.05,
+      "estate_buerger": 15
      },
      "text": "Niedrige Zölle locken Kaufleute an.",
      "req": "dip_boersen"
@@ -830,7 +1003,8 @@
       "maintenance": -0.15,
       "force_limit": 2,
       "production": -0.1,
-      "unrest": 0.5
+      "unrest": 0.5,
+      "estate_buerger": -15
      },
      "text": "Alles für die Front."
     }
@@ -863,7 +1037,8 @@
      "effects": {
       "manpower": 0.25,
       "combat": -0.04,
-      "unrest": 0.5
+      "unrest": 0.5,
+      "estate_adel": -10
      },
      "text": "Jeder wehrfähige Mann wird gemustert."
     },
@@ -872,7 +1047,8 @@
      "name": "Stehendes Heer",
      "effects": {
       "combat": 0.08,
-      "maintenance": 0.1
+      "maintenance": 0.1,
+      "estate_adel": -10
      },
      "text": "Gedrillte Berufssoldaten, auch im Frieden besoldet.",
      "req": "mil_kriegskanzlei"
@@ -896,7 +1072,9 @@
      "effects": {
       "unrest": -1.0,
       "tax": 0.05,
-      "tech_cost": 0.05
+      "tech_cost": 0.05,
+      "estate_adel": 15,
+      "estate_buerger": 10
      },
      "text": "Die Stände bewilligen Steuern und blockieren Neuerungen."
     },
@@ -906,7 +1084,8 @@
      "effects": {
       "adm": 1,
       "coring": -0.15,
-      "unrest": 0.75
+      "unrest": 0.75,
+      "estate_adel": -20
      },
      "text": "Beamte der Krone ersetzen den Landadel.",
      "req": "adm_beamte"
@@ -918,7 +1097,9 @@
       "adm": 1,
       "mil": 1,
       "unrest": 1.0,
-      "prestige": 0.5
+      "prestige": 0.5,
+      "estate_adel": -25,
+      "estate_buerger": -5
      },
      "text": "L'État, c'est moi.",
      "req": "adm_absolut"
@@ -941,7 +1122,9 @@
      "name": "Toleranz",
      "effects": {
       "unrest": -1.0,
-      "prestige": -0.5
+      "prestige": -0.5,
+      "estate_klerus": -15,
+      "estate_buerger": 10
      },
      "text": "Andersgläubige bleiben unbehelligt."
     },
@@ -951,7 +1134,9 @@
      "effects": {
       "prestige": 1.0,
       "combat": 0.03,
-      "ae_gen": 0.1
+      "ae_gen": 0.1,
+      "estate_klerus": 20,
+      "estate_buerger": -5
      },
      "text": "Für den wahren Glauben, gegen die Ketzer."
     },
@@ -961,7 +1146,8 @@
      "effects": {
       "income": 0.08,
       "unrest": 1.0,
-      "prestige": -0.5
+      "prestige": -0.5,
+      "estate_klerus": -30
      },
      "text": "Kirchengüter fallen an die Krone.",
      "req": "adm_kirchenreform"

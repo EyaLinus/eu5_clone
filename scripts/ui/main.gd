@@ -1313,8 +1313,10 @@ func _panel_province(pid: int) -> void:
 			why.append("Gebäude %.1f" % u.buildings)
 		if absf(u.policy) >= 0.05:
 			why.append("Regierung & Technik %+.1f" % u.policy)
+		if absf(u.estates) >= 0.05:
+			why.append("Stände %+.1f" % u.estates)
 		rows.append(["✊ Unruhe %.1f / %d%s" % [u.total, int(game.bal.revolt_threshold), (" (" + ", ".join(why) + ")") if not why.is_empty() else ""],
-				"Ab %d Unruhe drohen Aufstände. Senken: Truppen in der Provinz, Unterdrücken, Gerichtshof, Festung, Gesetze." % int(game.bal.revolt_threshold)])
+				"Ab %d Unruhe drohen Aufstände. Senken: Truppen in der Provinz, Unterdrücken, Gerichtshof, Festung, Gesetze, zufriedene Stände." % int(game.bal.revolt_threshold)])
 		if p.prev_owner != "" and p.core_months > 0 and game.nations[p.prev_owner].alive:
 			rows.append(["⚠️ Bei einem Aufstand fällt die Provinz an %s zurück." % game.nations[p.prev_owner].name, ""])
 	for r in rows:
@@ -1986,6 +1988,9 @@ func effects_text(e: Dictionary) -> String:
 					parts.append("%s %+d%%" % [mn.get(m, m), int(round(float(v[m]) * 100))])
 		elif k == "ruler":
 			parts.append("👑 Herrscherwerte verändert")
+		elif k == "estate":
+			for es in v:
+				parts.append("⚖️ %s %+d" % [game.govt.estate_name(es), int(v[es])])
 		elif k == "alliance":
 			parts.append("🤝 Bündnis mit " + game.nations[v].name)
 		elif k == "inherit":
@@ -2027,6 +2032,12 @@ func conditions_text(c: Dictionary) -> String:
 					lines.append(mark + "%s-Technologie ≥ %d" % [{"adm": "Verwaltungs", "dip": "Diplomatie", "mil": "Militär"}[t], int(v[t])])
 			"has_tech":
 				lines.append(mark + "Technologie: " + game.tree.by_id[v].name)
+			"estate_min":
+				for e in v:
+					lines.append(mark + "Zufriedenheit %s ≥ %d" % [game.govt.estate_name(e), int(v[e])])
+			"estate_max":
+				for e in v:
+					lines.append(mark + "Zufriedenheit %s ≤ %d" % [game.govt.estate_name(e), int(v[e])])
 			"law":
 				for l in v:
 					lines.append(mark + "%s: %s" % [game.govt.law_by_id[l].name, game.govt.law_option(l, v[l]).name])

@@ -18,6 +18,25 @@ const LABELS := {
 	"unrest": ["Unruhe", false, false], "coring": ["Eingliederungszeit", true, false],
 	"prestige": ["Prestige/Jahr", false, true], "company_slots": ["Kompanie-Platz", false, true],
 	"advisor_slots": ["Berater-Platz", false, true],
+	"estate_adel": ["Zufriedenheit Adel", false, true], "estate_klerus": ["Zufriedenheit Klerus", false, true],
+	"estate_buerger": ["Zufriedenheit Bürger", false, true],
+}
+
+## What each modifier does, for tooltips and detail popups.
+const DESCS := {
+	"income": "alle Einnahmen", "tax": "Steuern aus Provinzen", "production": "Wert der produzierten Güter",
+	"trade": "Einnahmen aus Handel", "merchants": "zusätzliche Händler", "build_cost": "Gold für Gebäude",
+	"develop_cost": "Verwaltungspunkte für Entwicklung", "maintenance": "Gold für stehende Armeen",
+	"manpower": "maximale Mannschaften", "combat": "Stärke in Schlachten", "force_limit": "Regimenter ohne Strafe",
+	"adm": "Verwaltungspunkte pro Monat", "dip": "Diplomatiepunkte pro Monat", "mil": "Militärpunkte pro Monat",
+	"ae_decay": "wie schnell Aggressive Expansion abklingt", "ae_gen": "AE bei Eroberungen und Kriegserklärungen",
+	"tech_cost": "Punkte für neue Technologien", "siege": "wie schnell Festungen fallen",
+	"unrest": "Unruhe in jeder Provinz (Aufstände ab 5)", "coring": "Monate, bis erobertes Land voll zählt",
+	"prestige": "Prestige pro Jahr (Ansehen, Kaiserwahl)", "company_slots": "weitere Investitionskompanie",
+	"advisor_slots": "weiterer Beraterplatz",
+	"estate_adel": "Zielwert der Zufriedenheit des Adels (Grundwert 50)",
+	"estate_klerus": "Zielwert der Zufriedenheit des Klerus (Grundwert 50)",
+	"estate_buerger": "Zielwert der Zufriedenheit der Bürger (Grundwert 50)",
 }
 
 ## AI weight per modifier unit (combat scales with aggression).
@@ -26,6 +45,7 @@ const AI_WEIGHTS := {
 	"develop_cost": -30.0, "maintenance": -50.0, "manpower": 30.0, "combat": 100.0, "force_limit": 1.5,
 	"adm": 6.0, "dip": 5.0, "mil": 5.0, "ae_decay": 15.0, "ae_gen": -20.0, "tech_cost": -60.0, "siege": 12.0,
 	"unrest": -2.5, "coring": -12.0, "prestige": 2.0, "company_slots": 8.0, "advisor_slots": 8.0,
+	"estate_adel": 0.03, "estate_klerus": 0.03, "estate_buerger": 0.03,
 }
 
 const AGES := [[1444, "Renaissance"], [1500, "Entdeckungen"], [1550, "Reformation"], [1600, "Absolutismus"]]
