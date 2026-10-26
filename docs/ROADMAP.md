@@ -21,7 +21,7 @@ Events und Missionen für 7 Nationen, Save/Load, Tests, Headless-Balance, APK + 
 ## v0.3 – Tiefe
 - ✅ Vasallen / diplomatische Annexion (Friedensoption, Tribut, gemeinsame Kriege, Annexion nach 15 Jahren).
 - ✅ Unabhängigkeitsstreben von Vasallen (v0.4).
-- ✅ Kaiserwahl im HRE (v0.5). ⏳ Reichsreformen light.
+- ✅ Kaiserwahl im HRE (v0.5). ✅ Reichsreformen light: Autorität, 5 Reformen, Ewiger Landfriede.
 - ⏳ Mehr Events (Ziel: 10 pro Großmacht), Ketten-Events.
 - ✅ Unruhen light + Kriegsmüdigkeit (v0.4).
 - ⏳ Echte Rebellenarmeen (bewusst noch nicht: Aufstände wirken direkt).

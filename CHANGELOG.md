@@ -5,6 +5,19 @@
   Kacheln im Raster (Details im Tooltip), Aktionen stehen in zwei Spalten. Diplomatie, Missionen, Meilensteine,
   Großprojekte, Verlauf, Rangliste (Top 10) und weitere Handelsmärkte lassen sich mit ▼/▶ ein- und ausklappen.
   Das Diplomatiefenster ist von gut sechs Bildschirmhöhen auf eine halbe geschrumpft.
+- **Weniger Scrollen in Regierung und Technologie:** Die Regierung hat vier Reiter (💰 Haushalt, 🎓 Hof, 📜 Recht,
+  👥 Stände); ein goldener Reiter zeigt, dass dort etwas zu tun ist. Der Technologiebaum zeigt nur die nächsten drei
+  Stufen (Rest per Knopf), erforschte Nationaltechs verschwinden. Die Gesamtwirkung steckt jeweils hinter „📈 Gesamt“.
+- **Reichsreformen 👑:** Das Heilige Römische Reich sammelt kaiserliche Autorität (mehr Mitglieder = schneller,
+  Kriege zwischen Mitgliedern bremsen). Der Kaiser verabschiedet damit fünf Reformen nacheinander, vom Reichstag
+  bis zum Ewigen Landfrieden, wenn mehr als die Hälfte der Kurfürsten hinter ihm steht. Alle Mitglieder bekommen
+  Boni, der Kaiser zusätzlich eigene. Nach dem Ewigen Landfrieden dürfen Mitglieder einander nicht mehr angreifen.
+  Alles im Reichsfenster (👑 Reich).
+- **18 Ereignisse zu Reformation und Gegenreformation (1517–1620):** Nachricht aus Wittenberg, lutherische Prediger,
+  Bauernkrieg, Bibelübersetzung, Klosterauflösung, Bildersturm, Jesuiten, Konzil von Trient, Augsburger
+  Religionsfriede, Religionsgespräche, Union und Liga, dazu ein eigener Patriarch für orthodoxe und eine Medrese für
+  sunnitische Länder. Viele Optionen holen abgefallene Provinzen zum Staatsglauben zurück.
+- **Schwierigkeitsgrade:** Im Startmenü wählbar (Leicht, Normal, Schwer, Sehr schwer). Normal ist etwas leichter als bisher: +10 % Einkommen, +5 % Kampfkraft, −0,5 Unruhe für dich, und die KI greift dich seltener an. Leicht gibt mehr Boni und eine friedlichere KI, Schwer entspricht der alten Balance, Sehr schwer gibt der KI Einkommens-, Kampf- und Mannstärke-Boni und macht sie aggressiver. Alte Spielstände laden als Schwer.
 - **Späte Wirtschaft gedämpft:** Einkommensboni (Admin-Tech, Einkommen) addieren sich jetzt zu Steuer-, Produktions- und Handelsboni, statt sie zu vervielfachen. Armeen werden mit jeder Militär-Tech 8 % teurer (Anwerben und Unterhalt). England hatte um 1600 vorher ~330 Gold/Monat bei 30 Ausgaben.
 - Die KI nutzt Durchmarschrecht und garantiert kleine befreundete Nachbarn.
 

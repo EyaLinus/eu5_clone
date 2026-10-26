@@ -53,21 +53,29 @@ func _run(m) -> void:
 	m.game.govt.set_law(m.game, "FRA", "kirche", "toleranz")
 	m.game.nations.FRA.gold = 2000.0
 	m.game.govt.found_company(m.game, "FRA", "lombarden")
+	m.gov_screen.tab = "hof"
 	m._open_panel("government")
 	await _shot("04d_government")
 	m.game.nations.FRA.gov.estates.klerus = 22.0
 	m.game.nations.FRA.gov.estates.adel = 68.0
 	m.game.govt.refresh_estates(m.game.nations.FRA)
+	m.gov_screen.tab = "staende"
 	m._open_panel("government")
 	await process_frame
-	m.side_scroll.scroll_vertical = 100000
 	await _shot("04h_estates")
 	m.game.govt.set_budget(m.game, "FRA", "steuern", 3)
 	m.game.govt.set_budget(m.game, "FRA", "bildung", 4)
+	m.gov_screen.tab = "haushalt"
 	m._open_panel("government")
 	await process_frame
 	m.side_scroll.scroll_vertical = 0
 	await _shot("04i_budget")
+	m.gov_screen.tab = "recht"
+	m._open_panel("government")
+	await _shot("04k_law")
+	m.gov_screen._overview()
+	await _shot("04l_gov_overview")
+	m._close_modal()
 	m.game.nations.FRA.adm = 500.0
 	m.game.govt.enact_reform(m.game, "FRA", "grundlage", "domaenen")
 	m.gov_screen._pick_reform("grundlage")
@@ -120,6 +128,25 @@ func _run(m) -> void:
 	m.map.map_mode = 0
 	m._open_panel("hre")
 	await _shot("14_hre")
+	# imperial reforms as emperor (temporarily)
+	var old_emp: String = g.emperor
+	g.hre.append("FRA")
+	g.emperor = "FRA"
+	for e in g.current_electors():
+		g.add_rel(e, "FRA", 200.0)
+	g.hre_authority = 140.0
+	var old_month: int = g.month
+	g.month = maxi(g.month, (1450 - 1444) * 12)
+	g.govt.pass_empire_reform(g, "FRA")
+	m._open_panel("hre")
+	await process_frame
+	m.side_scroll.scroll_vertical = 100000
+	await _shot("14b_hre_reforms")
+	g.hre.erase("FRA")
+	g.emperor = old_emp
+	g.month = old_month
+	g.hre_reforms.clear()
+	g.govt.refresh_empire(g)
 	# economy: a few buildings in Paris, the economy panel, goods / trade / war map modes
 	var paris: int = g.key_to_pid["paris"]
 	g.nations.FRA.gold = 2000.0

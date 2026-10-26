@@ -56,7 +56,7 @@ var modal_box: VBoxContainer
 var toast: Label
 var toast_time := 0.0
 var hud: Control
-var settings := {"ui_scale": 1.0, "tips": true, "tips_seen": [], "sound": true}
+var settings := {"ui_scale": 1.0, "tips": true, "tips_seen": [], "sound": true, "difficulty": "normal"}
 var sfx_players: Array = []
 # touch layer: drag-to-scroll over buttons and long-press tooltips (see _input)
 const DRAG_START := 14.0
@@ -146,6 +146,14 @@ func _save_settings() -> void:
 	var f := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(settings))
+
+
+## Difficulty for new games (start menu); saved in the settings, each save keeps its own.
+func _cycle_difficulty() -> void:
+	var i: int = Game.DIFFICULTIES.find(String(settings.difficulty))
+	settings.difficulty = Game.DIFFICULTIES[(i + 1) % Game.DIFFICULTIES.size()]
+	_save_settings()
+	_show_start_menu()
 
 
 func _cycle_ui_scale() -> void:
@@ -538,6 +546,7 @@ func _show_start_menu() -> void:
 	if FileAccess.file_exists(SAVE_PATH):
 		modal_box.add_child(_btn("💾 Weiterspielen", _load_game))
 	modal_box.add_child(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
+	modal_box.add_child(_btn("⚔️ Schwierigkeit: %s" % Game.DIFFICULTY_NAMES.get(settings.difficulty, "Normal"), _cycle_difficulty))
 	for tag in MAJORS + EXTRA_PLAYABLE:
 		if tag == EXTRA_PLAYABLE[0]:
 			modal_box.add_child(_lbl("Weitere Nationen (weniger Missionen und Events):", 16, Color(0.85, 0.75, 0.5)))
@@ -557,6 +566,7 @@ func _idea_bb(idea: String, bonus: Dictionary) -> String:
 func _start_game(tag: String) -> void:
 	game = Game.new()
 	game.setup(data, int(Time.get_unix_time_from_system()) % 100000, tag)
+	game.set_difficulty(String(settings.difficulty))
 	_after_game_loaded()
 	_show_intro()
 
@@ -2439,6 +2449,43 @@ func _panel_hre() -> void:
 	else:
 		side_box.add_child(_lbl("Du bist kein Reichsmitglied und kannst nicht gewählt werden.", 16))
 	side_box.add_child(_lbl("Mitglieder: %d" % game.hre_members().size(), 15, Color(0.75, 0.75, 0.75)))
+	_hre_reforms_box(me)
+
+
+## Imperial authority and the reform ladder; the player as emperor passes the next reform here.
+func _hre_reforms_box(me: String) -> void:
+	var gv = game.govt
+	if gv.empire_reforms().is_empty():
+		return
+	side_box.add_child(_lbl("📜 Reichsreformen", 18, Color(0.7, 0.8, 0.9)))
+	var gain: float = gv.authority_gain(game)
+	side_box.add_child(_lbl("Kaiserliche Autorität: %d  (%s%.1f pro Jahr)" % [int(game.hre_authority), "+" if gain >= 0.0 else "", gain], 16, Color(1, 0.9, 0.6)))
+	side_box.add_child(_lbl("Wächst mit der Zahl der Mitglieder, sinkt durch Kriege zwischen ihnen und beim Wechsel des Kaiserhauses.", 14, Color(0.75, 0.75, 0.75)))
+	var nxt: Dictionary = gv.next_empire_reform(game)
+	for r in gv.empire_reforms():
+		var done: bool = game.hre_reforms.has(r.id)
+		var head := "%s %s" % ["✅" if done else ("👉" if r.id == nxt.get("id", "") else "🔒"), r.name]
+		if not done:
+			head += "  (ab %d, %d Autorität)" % [int(r.year), int(r.cost)]
+		side_box.add_child(_lbl(head, 16, Color(0.6, 1, 0.6) if done else Color(0.9, 0.9, 0.9)))
+		side_box.add_child(_lbl(r.text, 14, Color(0.75, 0.75, 0.75)))
+		side_box.add_child(_lbl("Alle Mitglieder:", 14, Color(0.75, 0.75, 0.75)))
+		side_box.add_child(TechScreen.effects_rich(r.members, 14))
+		side_box.add_child(_lbl("Kaiser zusätzlich:", 14, Color(0.75, 0.75, 0.75)))
+		side_box.add_child(TechScreen.effects_rich(r.emperor, 14))
+	if nxt.is_empty():
+		return
+	var s: Array = gv.reform_support(game)
+	side_box.add_child(_lbl("Kurfürsten hinter dem Kaiser: %d von %d (mehr als die Hälfte nötig)" % [s[0], s[1]], 15))
+	if me == game.emperor:
+		var err: String = gv.empire_reform_block(game, me)
+		side_box.add_child(_btn("👑 %s verabschieden" % nxt.name, func():
+			var e2: String = gv.pass_empire_reform(game, me)
+			if e2 != "":
+				_toast(e2)
+			_open_panel("hre", null, false), err, err != ""))
+		if err != "":
+			side_box.add_child(_lbl(err, 14, Color(1, 0.6, 0.5)))
 
 
 func _panel_ranking() -> void:
@@ -2549,6 +2596,8 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["🏦 Kredit erlassen", 1])
 		elif k == "merc_ready":
 			parts.append(["⚔️ Söldner sofort verfügbar", 1])
+		elif k == "convert_random":
+			parts.append(["⛪ %d Provinzen nehmen deinen Glauben an" % int(v), 1])
 	return parts
 
 
@@ -2637,6 +2686,12 @@ func conditions_text(c: Dictionary) -> String:
 			"budget_max":
 				for id in v:
 					lines.append(mark + "%s höchstens „%s“" % [game.govt.budget_by_id[id].name, game.govt.budget_by_id[id].steps[int(v[id])]])
+			"faith_share_max":
+				lines.append(mark + "Höchstens %d%% des Landes teilen deinen Glauben" % int(float(v) * 100))
+			"religion":
+				lines.append(mark + "Staatsglaube: " + game.Religion.faith_name(v))
+			"province_faith":
+				lines.append(mark + "Eine deiner Provinzen ist %s" % game.Religion.faith_name(v).to_lower())
 			_:
 				lines.append(mark + k)
 	return "\n".join(lines)

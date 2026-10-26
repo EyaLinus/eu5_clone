@@ -12,6 +12,8 @@ permanent event mods stay at 0.01-0.03 because generic events fire for all ~50 n
 import json
 import os
 
+import events_io
+
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -377,15 +379,6 @@ MISSIONS = {
 }
 
 
-def render_event(e):
-    head = {k: e[k] for k in ("id", "once", "tag", "title", "text", "image") if k in e}
-    s = "  " + json.dumps(head, ensure_ascii=False)[:-1] + ",\n"
-    s += '   "trigger": ' + json.dumps(e["trigger"], ensure_ascii=False) + ",\n"
-    s += '   "options": [\n'
-    s += ",\n".join("     " + json.dumps(o, ensure_ascii=False) for o in e["options"])
-    return s + "]}"
-
-
 def render_mission(m):
     head = {k: m[k] for k in ("id", "after", "title", "desc") if k in m}
     s = "    " + json.dumps(head, ensure_ascii=False)[:-1] + ",\n"
@@ -405,25 +398,9 @@ def check(e):
 
 
 def main():
-    path = os.path.join(ROOT, "data/events.json")
-    txt = open(path, encoding="utf-8").read().rstrip()
-    assert txt.endswith("]")
     for e in EVENTS:
         check(e)
-    # drop the old eco_ block, then insert the current one right before the gov_ block (or at the end)
-    a = txt.find('  {"id": "eco_')
-    gov = txt.find('  {"id": "gov_')
-    if a >= 0:
-        txt = txt[:a] + (txt[gov:] if gov >= 0 else "]")
-        gov = txt.find('  {"id": "gov_')
-    block = ",\n".join(render_event(e) for e in EVENTS)
-    if gov >= 0:
-        txt = txt[:gov] + block + ",\n" + txt[gov:]
-    else:
-        txt = txt[:-1].rstrip().rstrip(",") + ",\n" + block + "\n]"
-    events = json.loads(txt)
-    assert len({e["id"] for e in events}) == len(events)
-    open(path, "w", encoding="utf-8").write(txt.rstrip() + "\n")
+    events = events_io.replace_block("eco_", EVENTS)
 
     path = os.path.join(ROOT, "data/missions.json")
     data = json.load(open(path, encoding="utf-8"))

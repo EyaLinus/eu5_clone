@@ -403,6 +403,22 @@ REFORMS = [
     ]),
 ]
 
+# Imperial reforms (Holy Roman Empire light): the emperor passes them in order with imperial authority,
+# if more than half of the other electors like him. (id, name, year, authority, emperor effects,
+# member effects, text). "landfriede" also forbids wars between members (Government.landfriede).
+EMPIRE_REFORMS = [
+    ("reichstag", "Reichstag", 1450, 40, {"prestige": 1.0, "dip": 0.5}, {"unrest": -0.2},
+     "Fürsten und Städte beraten regelmäßig mit dem Kaiser."),
+    ("kammergericht", "Reichskammergericht", 1470, 60, {"adm": 0.5}, {"ae_decay": 0.1, "estate_buerger": 3},
+     "Streit zwischen Reichsständen wird vor Gericht statt im Feld entschieden."),
+    ("pfennig", "Gemeiner Pfennig", 1490, 80, {"tax": 0.1, "income": 0.03}, {"tax": -0.02},
+     "Eine Reichssteuer füllt die kaiserliche Kasse, die Fürsten zahlen mit."),
+    ("reichskreise", "Reichskreise", 1510, 100, {"manpower": 0.1, "force_limit": 2}, {"manpower": 0.1, "army_power_regen": 0.1},
+     "Zehn Kreise stellen gemeinsam Truppen für die Verteidigung des Reiches."),
+    ("landfriede", "Ewiger Landfriede", 1530, 120, {"prestige": 1.0, "army_power": 0.05}, {"unrest": -0.25},
+     "Fehde ist verboten: Reichsmitglieder dürfen einander nicht mehr den Krieg erklären."),
+]
+
 GOV_FORMS = {
     "default": "Feudalmonarchie",
     "POL": "Wahlmonarchie", "VEN": "Kaufmannsrepublik", "GEN": "Kaufmannsrepublik", "PAP": "Theokratie",
@@ -481,6 +497,10 @@ def build():
            "reforms": [{"id": i, "name": nm, "year": y, "options": [{"id": oi, "name": on, "effects": oe, "text": ot}
                                                                 for oi, on, oe, ot in opts]} for i, nm, y, opts in REFORMS],
            "reform_cost": 100, "reform_cost_step": 50, "reform_change_years": 25,
+           "empire": {"authority_start": 10, "authority_max": 150, "authority_base": 2.0, "authority_per_member": 0.15,
+                      "authority_member_war": 3.0, "authority_new_emperor": 0.75,
+                      "reforms": [{"id": i, "name": nm, "year": y, "cost": c, "emperor": ee, "members": me, "text": tx}
+                                  for i, nm, y, c, ee, me, tx in EMPIRE_REFORMS]},
            "law_cost": 60, "law_cooldown_years": 10, "forms": GOV_FORMS,
            "advisors": adv, "companies": comp, "laws": laws}
     json.dump(gov, open(os.path.join(ROOT, "data/government.json"), "w"), ensure_ascii=False, indent=1)

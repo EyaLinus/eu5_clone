@@ -79,7 +79,16 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 		n += 1
 	g.govt.ai_think(g, g.nations[tag])
 	g.govt.set_budget(g, tag, g.govt.budget[month % g.govt.budget.size()].id, month % 5)
+	# one government tab per pass keeps the smoke fast; over the run every tab is built many times
+	m.gov_screen.tab = m.gov_screen.TABS[month % m.gov_screen.TABS.size()][0]
 	m._open_panel("government")
+	if month % 12 == 0:
+		m.gov_screen._overview()
+		m._close_modal()
+		m.tech_screen.show_all = month % 24 == 0
+		m._open_panel("tech")
+		m.tech_screen._overview()
+		m._close_modal()
 	m.gov_screen._pick_advisor()
 	m._close_modal()
 	m.gov_screen._pick_company()
