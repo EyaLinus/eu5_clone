@@ -176,5 +176,11 @@
   "reformation_year": 1517,
   "reformation_end": 1620,
   "reformation_spread": 0.06,
-  "reformation_spread_outside": 0.015
+  "reformation_spread_outside": 0.015,
+  "monument_dev_scale": 150.0,
+  "feast_cooldown": 60,
+  "feast_min_cost": 50.0,
+  "feast_income_months": 4.0,
+  "feast_prestige": 10.0,
+  "feast_we": 2.0
 }

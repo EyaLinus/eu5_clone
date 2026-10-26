@@ -8,6 +8,7 @@ const Progression = preload("res://scripts/core/progression.gd")
 const Tech = preload("res://scripts/core/tech.gd")
 const Government = preload("res://scripts/core/government.gd")
 const Religion = preload("res://scripts/core/religion.gd")
+const Monuments = preload("res://scripts/core/monuments.gd")
 
 const POWERS := ["adm", "dip", "mil"]
 const MONTH_NAMES := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
@@ -92,6 +93,8 @@ class Nation:
 	var access := {}  # nations whose land our armies may cross (military access)
 	var guarantees := {}  # nations whose independence we defend
 	var religion: String = "catholic"  # state religion
+	var monuments := {}  # finished great works (Monuments)
+	var monument_build := {}  # {"id", "months"} while one is being built
 	var autobuild: bool = false  # player: build the best building whenever the treasury stays above the reserve
 	var autobuild_reserve: float = 100.0
 	var army_stance: String = ""  # player's default for new armies: "" manual, "attack" or "defend"
@@ -133,6 +136,7 @@ var month: int = 0
 var rng := RandomNumberGenerator.new()
 var player: String = ""
 var event_defs: Array = []
+var monument_defs := {}
 var event_by_id := {}
 var mission_defs := {}
 var log_lines: Array = []
@@ -218,6 +222,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		provinces[n.capital].fort = 1
 	_rebuild_owned()
 	Religion.setup(self, data)
+	monument_defs = data.get("monuments", {})
 	Economy.setup(self, data)
 	Economy.refresh_goods_leaders(self)
 	Economy.update_markets(self)
@@ -614,6 +619,7 @@ func _economy(n: Nation) -> void:
 	n.we = clampf(n.we + (float(bal.we_monthly) if war else -float(bal.we_decay)), 0.0, float(bal.we_max))
 	_unrest_tick(n)
 	Religion.monthly(self, n)
+	Monuments.tick(self, n)
 	n.expenses = maint + Economy.upkeep(self, n.tag) + Economy.interest(self, n) + govt.budget_cost(self, n)
 	if n.overlord != "":
 		var tribute: float = maxf(0.0, n.income * float(bal.vassal_tribute))
@@ -1890,6 +1896,29 @@ func conscript(tag: String) -> String:
 	return ""
 
 
+func feast_ready_in(tag: String) -> int:
+	return maxi(0, int(nations[tag].flags.get("feast_month", -9999)) + int(bal.feast_cooldown) - month)
+
+
+## A court festival costs a few months of income (so it stays a real price for rich realms).
+func feast_cost(tag: String) -> float:
+	return maxf(float(bal.feast_min_cost), nations[tag].income * float(bal.feast_income_months))
+
+
+func hold_feast(tag: String) -> String:
+	var n: Nation = nations[tag]
+	if feast_ready_in(tag) > 0:
+		return "Erst in %d Monaten wieder." % feast_ready_in(tag)
+	var c := feast_cost(tag)
+	if n.gold < c:
+		return "Zu wenig Gold (%d)." % int(c)
+	n.gold -= c
+	n.prestige += float(bal.feast_prestige)
+	n.we = maxf(0.0, n.we - float(bal.feast_we))
+	n.flags["feast_month"] = month
+	return ""
+
+
 ## Diplomatic power: win over a conquered province, two years less until it becomes a core.
 func integrate(tag: String, pid: int) -> String:
 	var p: Province = provinces[pid]
@@ -2471,7 +2500,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "religion": n.religion,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "religion": n.religion, "monuments": n.monuments.keys(), "monument_build": n.monument_build,
 				"techs": tree.to_save(n), "gov": govt.to_save(n)}
 	d.nations = ns
 	var ar := []
@@ -2589,6 +2618,12 @@ func from_dict(d: Dictionary) -> void:
 		for t in e.get("access", []):
 			n.access[str(t)] = true
 		n.religion = str(e.get("religion", n.religion))
+		n.monuments = {}
+		for id in e.get("monuments", []):
+			n.monuments[str(id)] = true
+		var mb: Dictionary = e.get("monument_build", {})
+		n.monument_build = {} if mb.is_empty() else {"id": str(mb.id), "months": int(mb.months)}
+		Monuments.refresh(self, n)
 		n.guarantees = {}
 		for t in e.get("guarantees", []):
 			n.guarantees[str(t)] = true
