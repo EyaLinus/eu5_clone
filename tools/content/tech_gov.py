@@ -219,6 +219,7 @@ ADVISORS = [
     ("gesandter", "Erster Gesandter", "dip", {"ae_decay": 0.15}),
     ("meisterspion", "Meisterspion", "dip", {"ae_gen": -0.15}),
     ("handelsherr", "Handelsherr", "dip", {"trade": 0.1}),
+    ("hofprediger", "Hofprediger", "dip", {"conversion": 0.5, "religious_unrest": -0.25, "estate_klerus": 5}),
     ("eiferer", "Glaubenseiferer", "dip", {"unrest": -1.5, "prestige": 0.5, "tech_cost": 0.05, "estate_klerus": 10}),
     ("feldhauptmann", "Feldhauptmann", "mil", {"combat": 0.05}),
     ("zeugmeister", "Zeugmeister", "mil", {"siege": 0.2}),
@@ -326,8 +327,8 @@ LAWS = [
     ]),
     ("kirche", "Kirchenpolitik", "dip", [
         ("tradition", "Alte Ordnung", "", {}, "Die Kirche lebt nach ihren alten Rechten."),
-        ("toleranz", "Toleranz", "", {"unrest": -1.0, "prestige": -0.5, "estate_klerus": -15, "estate_buerger": 10}, "Andersgläubige bleiben unbehelligt."),
-        ("glaubenseifer", "Glaubenseifer", "", {"prestige": 1.0, "combat": 0.03, "ae_gen": 0.1, "estate_klerus": 20, "estate_buerger": -5}, "Für den wahren Glauben, gegen die Ketzer."),
+        ("toleranz", "Toleranz", "", {"unrest": -0.5, "religious_unrest": -0.75, "prestige": -0.5, "estate_klerus": -15, "estate_buerger": 10}, "Andersgläubige bleiben unbehelligt."),
+        ("glaubenseifer", "Glaubenseifer", "", {"prestige": 1.0, "combat": 0.03, "ae_gen": 0.1, "conversion": 0.5, "religious_unrest": 0.25, "estate_klerus": 20, "estate_buerger": -5}, "Für den wahren Glauben, gegen die Ketzer."),
         ("saekularisierung", "Säkularisierung", "adm_kirchenreform", {"income": 0.08, "unrest": 1.0, "prestige": -0.5, "estate_klerus": -30}, "Kirchengüter fallen an die Krone."),
     ]),
 ]

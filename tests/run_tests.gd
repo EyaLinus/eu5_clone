@@ -25,6 +25,7 @@ func _init() -> void:
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_empire_reforms",
+		"test_religion_modifiers",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1733,6 +1734,28 @@ func test_empire_reforms() -> void:
 			g3.add_rel(e, g3.emperor, 200.0)
 	g3.govt.empire_yearly(g3)
 	check(g3.hre_reforms == ["reichstag"], "an AI emperor passes reforms on its own")
+
+
+## Church laws and advisors change religious unrest and conversion speed.
+func test_religion_modifiers() -> void:
+	var Religion = Game.Religion
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	var gv = g.govt
+	var pid: int = g.provinces_of("FRA")[0]
+	var p = g.provinces[pid]
+	p.religion = "orthodox"
+	var base: float = Religion.unrest(g, p)
+	check(base > 0.0, "another faith causes unrest")
+	n.dip = 500.0
+	check(gv.set_law(g, "FRA", "kirche", "toleranz") == "", "enact Toleranz")
+	check(absf(Religion.unrest(g, p) - base * 0.25) < 0.001, "Toleranz cuts religious unrest by 75 %")
+	var months: int = Religion.convert_months(g, n)
+	n.gov.law_month.erase("kirche")
+	check(gv.set_law(g, "FRA", "kirche", "glaubenseifer") == "", "enact Glaubenseifer")
+	check(Religion.unrest(g, p) > base, "zeal angers other faiths")
+	check(Religion.convert_months(g, n) < months, "zeal speeds up missionaries")
+	check(gv.adv_by_id.has("hofprediger"), "court preacher advisor exists")
 
 
 func test_ai_marriage_and_generals() -> void:

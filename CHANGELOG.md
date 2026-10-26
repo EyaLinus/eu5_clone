@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- **Kirchenpolitik wirkt auf den Glauben:** Toleranz senkt die Unruhe durch Andersgläubige um 75 % (die allgemeine
+  Unruhe-Senkung halbiert sich dafür). Glaubenseifer lässt Missionare und die natürliche Bekehrung 50 % schneller
+  arbeiten, macht Andersgläubige aber unruhiger. Neuer Berater: Hofprediger (schnellere Bekehrung, weniger Glaubensunruhe).
 - **Kompaktere Menüs:** Weniger Scrollen. Provinz, Nation, fremde Länder und Waren zeigen ihre Werte jetzt als
   Kacheln im Raster (Details im Tooltip), Aktionen stehen in zwei Spalten. Diplomatie, Missionen, Meilensteine,
   Großprojekte, Verlauf, Rangliste (Top 10) und weitere Handelsmärkte lassen sich mit ▼/▶ ein- und ausklappen.

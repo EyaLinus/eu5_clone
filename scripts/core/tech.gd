@@ -21,6 +21,7 @@ const LABELS := {
 	"estate_adel": ["Zufriedenheit Adel", false, true], "estate_klerus": ["Zufriedenheit Klerus", false, true],
 	"estate_buerger": ["Zufriedenheit Bürger", false, true],
 	"army_power": ["Max. Moral", true, true], "army_power_regen": ["Moral-Erholung", true, true],
+	"religious_unrest": ["Unruhe durch Andersgläubige", true, false], "conversion": ["Bekehrung", true, true],
 }
 
 ## What each modifier does, for tooltips and detail popups.
@@ -39,6 +40,7 @@ const DESCS := {
 	"estate_klerus": "Zielwert der Zufriedenheit des Klerus (Grundwert 50)",
 	"estate_buerger": "Zielwert der Zufriedenheit der Bürger (Grundwert 50)",
 	"army_power": "höchste Moral der Armeen", "army_power_regen": "wie schnell die Moral nach Kämpfen zurückkehrt",
+	"religious_unrest": "Unruhe in Provinzen mit anderem Glauben", "conversion": "wie schnell Andersgläubige deinen Glauben annehmen (Missionare und von selbst)",
 }
 
 ## AI weight per modifier unit (combat scales with aggression).
@@ -48,6 +50,7 @@ const AI_WEIGHTS := {
 	"adm": 6.0, "dip": 5.0, "mil": 5.0, "ae_decay": 15.0, "ae_gen": -20.0, "tech_cost": -60.0, "siege": 12.0,
 	"unrest": -2.5, "coring": -12.0, "prestige": 2.0, "company_slots": 8.0, "advisor_slots": 8.0,
 	"estate_adel": 0.03, "estate_klerus": 0.03, "estate_buerger": 0.03, "army_power": 60.0, "army_power_regen": 15.0,
+	"religious_unrest": -3.0, "conversion": 3.0,
 }
 
 const AGES := [[1444, "Renaissance"], [1500, "Entdeckungen"], [1550, "Reformation"], [1600, "Absolutismus"]]

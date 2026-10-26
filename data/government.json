@@ -596,6 +596,16 @@
    }
   },
   {
+   "id": "hofprediger",
+   "name": "Hofprediger",
+   "type": "dip",
+   "effects": {
+    "conversion": 0.5,
+    "religious_unrest": -0.25,
+    "estate_klerus": 5
+   }
+  },
+  {
    "id": "eiferer",
    "name": "Glaubenseiferer",
    "type": "dip",
@@ -1443,7 +1453,8 @@
      "id": "toleranz",
      "name": "Toleranz",
      "effects": {
-      "unrest": -1.0,
+      "unrest": -0.5,
+      "religious_unrest": -0.75,
       "prestige": -0.5,
       "estate_klerus": -15,
       "estate_buerger": 10
@@ -1457,6 +1468,8 @@
       "prestige": 1.0,
       "combat": 0.03,
       "ae_gen": 0.1,
+      "conversion": 0.5,
+      "religious_unrest": 0.25,
       "estate_klerus": 20,
       "estate_buerger": -5
      },
