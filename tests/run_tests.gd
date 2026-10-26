@@ -15,7 +15,7 @@ func _init() -> void:
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_separate_peace", "test_tired_ai_seeks_peace", "test_protector_defends_small_state",
-		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
@@ -615,6 +615,46 @@ func test_road_march() -> void:
 	check(a.pid == path[2], "army on roads marches two provinces in one month")
 	g._armies_tick()
 	check(a.pid == path[3], "the last step onto the target stays a normal step")
+
+
+func test_power_actions() -> void:
+	var g = new_game("FRA", 5)
+	var n = g.nations.FRA
+	var cap: int = n.capital
+	# drill: morale to max for military power, only on friendly land
+	var a = g.spawn_army("FRA", cap, 4.0)
+	a.power = 0.2
+	n.mil = 0.0
+	check(g.drill_army("FRA", a.id) != "", "drill needs military power")
+	n.mil = 200.0
+	var cost: float = g.drill_cost(a)
+	check(g.drill_army("FRA", a.id) == "", "drill works at home")
+	check(absf(a.power - g.power_max("FRA")) < 0.0001 and absf(n.mil - (200.0 - cost)) < 0.001, "drill fills morale and costs mil")
+	check(g.drill_army("FRA", a.id) != "", "no drill at full morale")
+	a.power = 0.2
+	a.pid = g.nations.ENG.capital
+	check(g.drill_army("FRA", a.id) != "", "no drill in foreign land")
+	# conscription: manpower now, then a cooldown
+	n.manpower = 0.0
+	n.mil = 200.0
+	check(g.conscript("FRA") == "", "conscription works")
+	check(n.manpower > 0.0 and n.manpower <= n.max_manpower, "conscription adds manpower")
+	check(g.conscript("FRA") != "" and g.conscript_ready_in("FRA") > 0, "conscription has a cooldown")
+	# integration: conquered land becomes core faster
+	var pid: int = g.provinces_of("FRA")[1]
+	g.provinces[pid].core_months = 30
+	n.dip = 200.0
+	check(g.integrate("FRA", pid) == "", "integration works")
+	check(g.provinces[pid].core_months == 30 - int(g.bal.integrate_months), "integration shortens the wait")
+	g.provinces[pid].core_months = 0
+	check(g.integrate("FRA", pid) != "", "cored land needs no integration")
+	check(g.integrate("FRA", g.nations.ENG.capital) != "", "only own provinces")
+	# reputation: less AE
+	n.ae = 12.0
+	check(g.restore_reputation("FRA") == "", "reputation works")
+	check(absf(n.ae - (12.0 - float(g.bal.reputation_ae))) < 0.001, "reputation lowers AE")
+	n.ae = 0.0
+	check(g.restore_reputation("FRA") != "", "nothing to repair without AE")
 
 
 func test_peace_offer_cooldown() -> void:

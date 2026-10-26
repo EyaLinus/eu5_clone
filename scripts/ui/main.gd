@@ -1434,6 +1434,10 @@ func _panel_province(pid: int) -> void:
 	if p.owner == me:
 		if game.unrest(pid) > 0.0 and p.suppress_months == 0:
 			side_box.add_child(_btn("✊ Unruhe unterdrücken (%d ⚔️)" % int(game.suppress_cost(pid)), func(): _act(game.suppress_unrest(me, pid), "✊ Ruhe wiederhergestellt")))
+		if p.core_months > 0:
+			side_box.add_child(_btn("🤝 Integrieren: −%d Monate (%d 🕊️)" % [int(game.bal.integrate_months), int(game.bal.integrate_cost)],
+					func(): _act(game.integrate(me, pid), "🤝 Die Provinz rückt näher"),
+					"Diplo-Macht einsetzen: Gesandte gewinnen die Bevölkerung, die Provinz wird schneller zum Kernland (volles Einkommen, weniger Unruhe)."))
 		side_box.add_child(_btn("📜 Entwickeln (%d Admin)" % game.develop_cost(pid), func(): _act(game.develop(me, pid), "🏘️ Entwicklung erhöht"),
 				"+1 Entwicklung: mehr Steuer, Güter, Handelsmacht und Mannschaften. Alle %d Stufen ein Bauplatz mehr." % int(game.bal.dev_per_building_slot)))
 		var free: int = Eco.slots(game, p) - p.buildings.size()
@@ -1698,6 +1702,10 @@ func _panel_army(id: int) -> void:
 	side_box.add_child(ml)
 	if a.owner != game.player:
 		return
+	if a.power < pm - 0.001:
+		side_box.add_child(_btn("🔥 Drill: Moral auf %d %% (%d ⚔️)" % [int(round(pm * 100)), int(game.drill_cost(a))],
+				func(): _act(game.drill_army(a.owner, a.id), "🔥 Die Truppen sind gedrillt"),
+				"Militär-Macht einsetzen: die Moral der Armee sofort auf das Maximum bringen. Nur auf eigenem oder verbündetem Gebiet."))
 	if selected_army == a.id:
 		side_box.add_child(_lbl("👉 Tippe auf eine Provinz, um die Armee dorthin zu schicken. Lange drücken zeigt nur Infos.", 16, Color(0.8, 0.85, 0.6)))
 	else:
@@ -1738,8 +1746,16 @@ func _panel_nation() -> void:
 	side_box.add_child(_lbl("💰 Einnahmen %.1f · Ausgaben %.1f\n🏘️ Entwicklung %d · %d Provinzen\n🛡️ Truppenlimit %.0f · 👥 %.0f/%.0f\n⭐ Prestige %d · 🏆 Punkte %d" % [
 			n.income, n.expenses, n.dev_total, game.provinces_of(me).size(), game.force_limit(me), n.manpower, n.max_manpower, n.prestige, game.score(me)]))
 	side_box.add_child(_lbl("😩 Kriegsmüdigkeit %.1f / %d (erhöht Unruhe, Gegner nehmen Frieden leichter an)" % [n.we, int(game.bal.we_max)], 16))
-	if n.we >= 0.5:
-		side_box.add_child(_btn("🕊️ Volk beruhigen: −2 Kriegsmüdigkeit (%d 🕊️)" % int(game.bal.we_reduce_cost), func(): _act(game.reduce_we(me), "🕊️ Das Volk ist beruhigt")))
+	side_box.add_child(_lbl("👑 Macht einsetzen", 22))
+	side_box.add_child(_btn("🕊️ Volk beruhigen: −2 Müdigkeit (%d 🕊️)" % int(game.bal.we_reduce_cost), func(): _act(game.reduce_we(me), "🕊️ Das Volk ist beruhigt"),
+			"Senkt die Kriegsmüdigkeit, die Unruhe in allen Provinzen erzeugt."))
+	side_box.add_child(_btn("😠 Ruf verbessern: −%d AE (%d 🕊️)" % [int(game.bal.reputation_ae), int(game.bal.reputation_cost)], func(): _act(game.restore_reputation(me), "😠 Dein Ruf bessert sich"),
+			"Gesandte beruhigen die Nachbarn: weniger aggressive Expansion, Koalitionen werden unwahrscheinlicher."))
+	var cr: int = game.conscript_ready_in(me)
+	side_box.add_child(_btn(("👥 Rekrutierung: +%d Mannschaften (%d ⚔️)" % [int(game.conscript_gain(me)), int(game.bal.conscript_cost)]) if cr == 0 else ("👥 Rekrutierung (wieder in %d Monaten)" % cr),
+			func(): _act(game.conscript(me), "👥 Neue Rekruten ausgehoben"),
+			"Füllt sofort bis zu %d %% deiner maximalen Mannschaften auf. Danach %d Monate Pause." % [int(float(game.bal.conscript_share) * 100), int(game.bal.conscript_cooldown)]))
+	side_box.add_child(_lbl("Außerdem: 📜 Entwickeln, ✊ Unruhe unterdrücken (⚔️) und 🤝 Integrieren (🕊️) im Provinzfenster, 🔥 Drill (⚔️) im Armeefenster, ❤️ Beziehungen, Bündnisse, Ansprüche und Handelsabkommen (🕊️) bei anderen Nationen, Technologie mit allen drei.", 14, Color(0.7, 0.75, 0.8)))
 	if game.history.size() >= 2:
 		side_box.add_child(_lbl("📈 Verlauf (Platz %d)" % game.rank_of(me), 22))
 		side_box.add_child(_history_chart(180))

@@ -131,5 +131,14 @@
   "army_power_floor": 0.4,
   "road_move_chance": 0.25,
   "separate_peace_rel": 30.0,
-  "ai_tired_we": 0.5
+  "ai_tired_we": 0.5,
+  "drill_cost_base": 10.0,
+  "drill_cost_per_reg": 2.0,
+  "conscript_cost": 30.0,
+  "conscript_share": 0.3,
+  "conscript_cooldown": 24,
+  "integrate_cost": 25.0,
+  "integrate_months": 24,
+  "reputation_cost": 30.0,
+  "reputation_ae": 5.0
 }
