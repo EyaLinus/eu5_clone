@@ -19,6 +19,7 @@ func _init() -> void:
 		"test_separate_peace", "test_tired_ai_seeks_peace", "test_ai_marriage_and_generals", "test_ai_access_and_guarantee",
 		"test_military_access",
 		"test_guarantee",
+		"test_religion",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
@@ -723,6 +724,49 @@ func test_guarantee() -> void:
 	g.nations[target].truces.erase("FRA")
 	g.declare_war("FRA", target)
 	check(not g.nations.FRA.guarantees.has(target), "attacking the protected state breaks the guarantee")
+
+
+func test_religion() -> void:
+	var F = load("res://scripts/core/religion.gd")
+	var g = new_game("TUR", 5)
+	check(g.nations.TUR.religion == "sunni" and g.nations.FRA.religion == "catholic" and g.nations.BYZ.religion == "orthodox", "start religions")
+	var bp: int = g.nations.BYZ.capital
+	check(g.provinces[bp].religion == "orthodox", "provinces follow their owner at start")
+	check(g.unrest_parts(bp).religion == 0.0, "own faith gives no unrest")
+	g.provinces[bp].owner = "TUR"
+	g.provinces[bp].controller = "TUR"
+	g._rebuild_owned()
+	check(g.unrest_parts(bp).religion > 0.0, "a foreign faith is restless")
+	g.nations.TUR.gold = 500.0
+	check(F.send_missionary(g, "TUR", bp) == "", "missionary sent")
+	check(F.send_missionary(g, "TUR", bp) != "", "one missionary per province")
+	for i in int(g.bal.convert_months):
+		F.monthly(g, g.nations.TUR)
+	check(g.provinces[bp].religion == "sunni", "the missionary converts the province")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.provinces[bp].religion == "sunni" and g2.nations.BYZ.religion == "orthodox", "religion is saved")
+	# state religion change needs enough of the realm
+	check(F.change_religion(g, "FRA", "orthodox") != "", "no change without believers")
+	# the Reformation
+	var h = new_game("FRA", 5)
+	h.month = (int(h.bal.reformation_year) - 1444) * 12
+	F.yearly(h)
+	var prot := 0
+	for p in h.provinces:
+		if p.religion == "protestant":
+			prot += 1
+	check(prot == 1, "the Reformation starts in one province")
+	h.bal.reformation_spread = 1.0
+	for i in 3:
+		h.month += 12
+		F.yearly(h)
+	var prot2 := 0
+	for p in h.provinces:
+		if p.religion == "protestant":
+			prot2 += 1
+	check(prot2 > prot, "Protestantism spreads")
+	check(h.check_conditions("FRA", {"religion": "catholic"}) and not h.check_conditions("FRA", {"religion": "sunni"}), "religion condition")
 
 
 func test_marriage() -> void:

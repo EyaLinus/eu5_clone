@@ -127,6 +127,8 @@ add("⚓", "anchor", layer(["....aaa.....", "...a.d.g....", "....aad.....", "..g
 
 add("🛤", "road", layer(["lLlL.HH.lLlL", "LlL.HOOH.LlL", "lLl.HOwOH.lL", "Ll.HOOOOH.Ll", "lL.HOOwOOH.l", "L.HOOOOOOH.L", "l.HOOOwOOOH.", ".HOOOOOOOOH.", ".HOOOOwOOOOH", "HOOOOOOOOOOH", "HOOOOOwOOOOH"], 2, 3))
 
+add("⛪", "church", layer([".....YY.....", "....YYYY....", ".....YD.....", "....RRRE....", "...RRRRRE...", "...PPkPPQ...", ".RRRRRRRRRE.", "RRRRRRRRRRRE", "PPPPPPPPPPPQ", "PPkPPHHPPkPQ", "PPPPPHHPPPPQ", "QQQQQHHQQQQQ"], 2, 2))
+
 # ---- tech tree states
 add("🔒", "lock", layer(["...aaaa...", "..ag..ga..", "..a....g..", "..a....g..", "YYYYYYYYYD", "YGGGGGGGGD", "YGGGkkGGGD", "YGGGkkGGGD", "YGGGGkGGGD", "DDDDDDDDDD"], 3, 3))
 add("✓", "tick", layer([".........ll", "........lLF", ".......lLF.", "ll....lLF..", "lLl..lLF...", ".lLllLF....", "..lLLF.....", "...LF......"], 2, 4))

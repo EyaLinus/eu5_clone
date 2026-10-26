@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## v0.8.8 – 2026-10-26
+- **Glaube ⛪ (neu):** Jedes Land hat einen Staatsglauben (katholisch, orthodox, sunnitisch, ab 1517 protestantisch),
+  jede Provinz den Glauben ihrer Bevölkerung. Provinzen mit anderem Glauben als ihr Herrscher haben +1 Unruhe und
+  nehmen den Herrscherglauben langsam von selbst an. Mit einem ⛪ Missionar (Gold, 24 Monate, höchstens 2 zugleich)
+  geht es schneller. Eroberungen bringen also Glaubensfragen mit.
+- **Reformation:** Ab 1517 breitet sich der Protestantismus von Sachsen durch das Heilige Römische Reich aus. Länder,
+  deren Bevölkerung mehrheitlich konvertiert ist, wechseln den Staatsglauben. Du kannst ab 40 % Anteil im
+  Nationsfenster wechseln (20 ⭐ Prestige): +15 Beziehung zu Glaubensbrüdern, −15 zu den alten.
+- Neuer Kartenmodus **Glaube** (gestreift = anderer Glaube als der Herrscher). Der diplomatische Kartenmodus zeigt
+  jetzt auch Garantien, Ehen und Durchmarschrecht.
 - **Wissensverbreitung:** Eine Technologie wird billiger, je mehr andere Nationen sie schon kennen (bis −30 %).
   Pioniere zahlen den vollen Preis, Nachzügler holen auf. Das Detailfenster zeigt den Rabatt.
 - Die KI nutzt jetzt königliche Heiraten (mit befreundeten Nachbarn, höchstens 2) und stellt Generäle für ihre größte Armee ein.
