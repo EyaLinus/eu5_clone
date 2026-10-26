@@ -1918,6 +1918,13 @@ func _panel_other(tag: String) -> void:
 		return
 	var b: Dictionary = game.bal
 	side_box.add_child(_btn("❤️ Beziehungen verbessern (%d 🕊️)" % int(b.improve_relation_cost), func(): _act(game.improve_relations(me, tag), "❤️ Beziehungen verbessert")))
+	if game.nations[me].marriages.has(tag):
+		side_box.add_child(_lbl("👑 Eure Häuser sind verheiratet: Beziehung bleibt mindestens bei %d." % int(b.marriage_rel_floor), 15, Color(1, 0.85, 0.5)))
+	else:
+		var mr: String = game.marriage_block_reason(me, tag)
+		side_box.add_child(_btn("👑 Königliche Heirat (%d 🕊️)" % int(b.marriage_cost), func(): _act(game.marry(me, tag), "👑 Hochzeit gefeiert!"),
+				"+%d Beziehung, die nie unter %d fällt. Ist %s klein (höchstens %d Provinzen) und du viel stärker, kann es beim Thronwechsel per Personalunion dein Vasall werden. Ein Krieg gegen den Partner beendet die Ehe.%s" % [
+				int(b.marriage_rel), int(b.marriage_rel_floor), o.name, int(b.marriage_union_max_provinces), ("\n❌ " + mr) if mr != "" else ""], mr != ""))
 	if o.overlord == me:
 		var left: int = game.annex_months_left(tag)
 		var t := "📜 Annektieren (%d 🕊️, %d 📜)" % [int(game.annex_cost(tag)), int(game.annex_adm_cost(tag))]
