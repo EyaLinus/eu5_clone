@@ -56,10 +56,14 @@ var defs: Array = []
 var by_id := {}
 var branches: Array = []
 var early_years: int = 20
+var spread_max: float = 0.3
+var spread_factor: float = 0.5
 
 
 func _init(d: Dictionary = {}) -> void:
 	early_years = int(d.get("early_years", 20))
+	spread_max = float(d.get("spread_max", 0.3))
+	spread_factor = float(d.get("spread_factor", 0.5))
 	branches = d.get("branches", [])
 	for t in d.get("techs", []):
 		defs.append(t)
@@ -122,7 +126,27 @@ func block_reason(g, tag: String, id: String) -> String:
 
 
 func cost(g, tag: String, id: String) -> float:
-	return g.tech_cost(tag, by_id[id].cat)
+	return g.tech_cost(tag, by_id[id].cat) * (1.0 - spread_discount(g, tag, id))
+
+
+## Knowledge spreads: the share of other living nations that already know a generic tech makes it cheaper
+## (spread_factor x share, at most spread_max). Pioneers pay full price, laggards catch up.
+func spread_discount(g, tag: String, id: String) -> float:
+	var t: Dictionary = by_id.get(id, {})
+	if t.is_empty() or is_special(t):
+		return 0.0
+	return minf(spread_max, spread_factor * known_share(g, tag, id))
+
+
+func known_share(g, tag: String, id: String) -> float:
+	var know := 0
+	var others := 0
+	for o in g.nations.values():
+		if o.alive and o.tag != tag:
+			others += 1
+			if o.techs.has(id):
+				know += 1
+	return float(know) / others if others > 0 else 0.0
 
 
 func research(g, tag: String, id: String) -> String:

@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- **Wissensverbreitung:** Eine Technologie wird billiger, je mehr andere Nationen sie schon kennen (bis −30 %).
+  Pioniere zahlen den vollen Preis, Nachzügler holen auf. Das Detailfenster zeigt den Rabatt.
 - Die KI nutzt jetzt königliche Heiraten (mit befreundeten Nachbarn, höchstens 2) und stellt Generäle für ihre größte Armee ein.
 - **Gebäude lohnen sich wieder:** Bauen kostet die Hälfte, höhere Stufen steigen flacher im Preis. Eine Werkstatt
   amortisiert sich jetzt in rund 35 statt 70 Jahren. Die KI baut entsprechend mehr.
