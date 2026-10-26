@@ -22,6 +22,11 @@
   Handelsmacht, +5 % Produktion.
 - **Wachstum sichtbar:** Wächst eine deiner Provinzen (Entwickeln, fertiges Gebäude), schwebt "+1 🏘️" über ihr auf
   und ihr Rand leuchtet kurz. Verluste erscheinen rot.
+- **Haushalt 💰 (neu, wie in EU5):** Vier Schieberegler ganz oben im Regierungs-Screen (auch per Knopf aus der
+  Wirtschaftsübersicht): Steuerdruck, Hofhaltung, Militärbudget und Forschung, je 5 Stufen, die Mitte ist neutral.
+  Mehr Steuern bringen Gold, aber Unruhe und verärgerte Bürger. Ein prächtiger Hof kostet Gold, bringt aber Ansehen
+  und einen zufriedenen Adel. Das Militärbudget hebt Kampfkraft und Moral-Erholung, kostet aber Unterhalt. Forschung
+  kostet Gold und verbilligt Technologien. Die KI spart, wenn sie knapp bei Kasse ist.
 - **Weniger Friedensangebote:** Lehnst du ein Angebot ab, fragt der Gegner frühestens nach 2 Jahren wieder, außer
   der Krieg hat sich deutlich zu seinen Gunsten gedreht (+15 Kriegspunkte).
 

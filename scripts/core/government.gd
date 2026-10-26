@@ -20,6 +20,8 @@ var laws: Array = []
 var law_by_id := {}
 var forms := {}
 var estates: Array = []
+var budget: Array = []
+var budget_by_id := {}
 
 
 func _init(d: Dictionary = {}) -> void:
@@ -35,6 +37,9 @@ func _init(d: Dictionary = {}) -> void:
 		laws.append(l)
 		law_by_id[l.id] = l
 	estates = d.get("estates", [])
+	budget = d.get("budget", [])
+	for b in budget:
+		budget_by_id[b.id] = b
 
 
 func init_nation(n) -> void:
@@ -44,7 +49,10 @@ func init_nation(n) -> void:
 	var es := {}
 	for e in estates:
 		es[e.id] = 50.0
-	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}, "invest": {}, "estates": es, "estate_month": {}}
+	var bu := {}
+	for b in budget:
+		bu[b.id] = budget_default()
+	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}, "invest": {}, "estates": es, "estate_month": {}, "budget": bu}
 	refresh(n)
 	refresh_estates(n)
 
@@ -296,6 +304,61 @@ func refresh(n) -> void:
 		for k in e:
 			b[k] = b.get(k, 0.0) + float(e[k])
 	n.bonus["gov"] = b
+	var bb := {}
+	for id in n.gov.get("budget", {}):
+		var e := budget_effects(id, int(n.gov.budget[id]))
+		for k in e:
+			bb[k] = bb.get(k, 0.0) + float(e[k])
+	n.bonus["budget"] = bb
+
+
+# ---------------------------------------------------------------- budget sliders (EU5-like)
+# Every slider has steps 0..4; the middle step is neutral (no effect, no cost). Each step away from it
+# adds `per_step` effects and costs (or saves) `cost` x monthly income in gold.
+
+func budget_default() -> int:
+	return int(cfg.get("budget_default", 2))
+
+
+func budget_max() -> int:
+	return budget[0].steps.size() - 1 if not budget.is_empty() else 0
+
+
+func budget_step(n, id: String) -> int:
+	return int(n.gov.get("budget", {}).get(id, budget_default()))
+
+
+func budget_effects(id: String, step: int) -> Dictionary:
+	var r := {}
+	var d: int = step - budget_default()
+	if d == 0 or not budget_by_id.has(id):
+		return r
+	var ps: Dictionary = budget_by_id[id].per_step
+	for k in ps:
+		r[k] = float(ps[k]) * d
+	return r
+
+
+## Gold per month of one slider at `step` (negative = savings).
+func budget_slider_cost(n, id: String, step: int) -> float:
+	return float(budget_by_id[id].get("cost", 0.0)) * (step - budget_default()) * maxf(0.0, n.income)
+
+
+## Monthly gold of all sliders together; part of n.expenses (game._economy).
+func budget_cost(_g, n) -> float:
+	var c := 0.0
+	for id in n.gov.get("budget", {}):
+		c += budget_slider_cost(n, id, int(n.gov.budget[id]))
+	return c
+
+
+func set_budget(g, tag: String, id: String, step: int) -> String:
+	var n = g.nations[tag]
+	if not budget_by_id.has(id):
+		return "Unbekannter Haushaltsposten."
+	n.gov.budget[id] = clampi(step, 0, budget_max())
+	_changed(g, n)
+	return ""
 
 
 ## Yearly: prestige drift from all sources, national advisors leave court after their time.
@@ -464,6 +527,10 @@ func load_save(n, d) -> void:
 	var em: Dictionary = d.get("estate_month", {})
 	for k in em:
 		n.gov.estate_month[k] = int(em[k])
+	var bu: Dictionary = d.get("budget", {})
+	for k in bu:
+		if budget_by_id.has(k):
+			n.gov.budget[k] = clampi(int(bu[k]), 0, budget_max())
 	refresh(n)
 	refresh_estates(n)
 
@@ -482,6 +549,8 @@ func ai_think(g, n) -> void:
 		_ai_company(g, n)
 	elif slot == 3:
 		_ai_estates(g, n)
+	elif slot == 11:
+		_ai_budget(g, n)
 
 
 func _ai_laws(g, n) -> void:
@@ -574,3 +643,28 @@ func _ai_estates(g, n) -> void:
 				and n.gold >= concession_cost(g, n) + reserve and concession_block(g, n.tag, e.id) == "":
 			grant_concession(g, n.tag, e.id)
 			return
+
+
+## AI budget: tighten the purse when poor, spend on court and research when rich, pay the army in war.
+func _ai_budget(g, n) -> void:
+	var war: bool = g.is_at_war(n.tag)
+	var poor: bool = n.gold < 20.0 + n.expenses * 3.0 or n.income - n.expenses < 0.0
+	var rich: bool = n.gold > 300.0 + n.expenses * 12.0
+	var want := {"steuern": 2, "hof": 2, "heer": 3 if war else 2, "bildung": 2}
+	if poor:
+		want.hof = 1
+		want.bildung = 1
+		want.heer = 2 if war else 1
+		if n.gov.estates.get("buerger", 50.0) > 40.0:
+			want.steuern = 3
+	elif rich:
+		want.hof = 3
+		want.bildung = 3
+	var changed := false
+	for id in want:
+		if budget_by_id.has(id) and budget_step(n, id) != want[id]:
+			n.gov.budget[id] = want[id]
+			changed = true
+	if changed:
+		_changed(g, n)
+
