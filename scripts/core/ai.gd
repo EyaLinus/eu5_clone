@@ -45,6 +45,28 @@ func _spend_power(g, n) -> void:
 			g.annex_vassal(n.tag, v)
 	if n.dip > cap * 0.7:
 		_fabricate_claim(g, n)
+	_power_actions(g, n, cap)
+
+
+## Surplus diplomatic and military power (tech comes first): reputation, integration, conscription, drill.
+func _power_actions(g, n, cap: float) -> void:
+	if n.ae > 30.0 and n.dip >= float(g.bal.reputation_cost) + 50.0:
+		g.restore_reputation(n.tag)
+	if n.dip > cap * 0.6:
+		var best := -1
+		for pid in g.provinces_of(n.tag):
+			if g.provinces[pid].core_months > 0 and (best < 0 or g.provinces[pid].dev > g.provinces[best].dev):
+				best = pid
+		if best >= 0:
+			g.integrate(n.tag, best)
+	if not g.is_at_war(n.tag) or n.mil < 50.0:
+		return
+	if n.manpower < n.max_manpower * 0.2 and n.mil >= float(g.bal.conscript_cost) + 40.0:
+		g.conscript(n.tag)
+	for a in g.armies_of(n.tag):
+		if a.power < 0.5 * g.power_max(n.tag) and n.mil >= g.drill_cost(a) + 50.0:
+			if g.drill_army(n.tag, a.id) == "":
+				break
 
 
 func _cheapest_province(g, tag: String) -> int:
