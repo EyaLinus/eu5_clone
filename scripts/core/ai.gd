@@ -358,7 +358,7 @@ func control_armies(g, tag: String) -> void:
 	var enemy_power := {}
 	for e in g.armies:
 		if enemies.has(e.owner):
-			enemy_power[e.pid] = enemy_power.get(e.pid, 0.0) + e.regs * g.combat_mult(e.owner)
+			enemy_power[e.pid] = enemy_power.get(e.pid, 0.0) + e.regs * g.combat_mult(e.owner) * g.power_factor(e)
 	for a in mine:
 		_command(g, a, enemies, enemy_power)
 
@@ -371,7 +371,13 @@ func _friendly(g, tag: String, owner: String) -> bool:
 func _command(g, a, enemies: Array, enemy_power: Dictionary) -> void:
 	var tag: String = a.owner
 	var defend: bool = a.stance == "defend"
-	var my_power: float = a.regs * g.combat_mult(tag)
+	var my_power: float = a.regs * g.combat_mult(tag) * g.power_factor(a)
+	# exhausted armies fall back to friendly land to recover before fighting again
+	if a.power < 0.3 * g.power_max(tag) and not _friendly(g, tag, g.provinces[a.pid].controller):
+		var back: int = _nearest(g, a, func(pid): return _friendly(g, tag, g.provinces[pid].controller) and enemy_power.get(pid, 0.0) == 0.0)
+		if back >= 0:
+			g.move_army(a, back)
+			return
 	# flee if a much stronger enemy stands next to us
 	for nb in g.provinces[a.pid].adj:
 		if enemy_power.get(nb, 0.0) > my_power * 1.4 and enemy_power.get(a.pid, 0.0) == 0.0:

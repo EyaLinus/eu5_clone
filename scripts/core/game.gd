@@ -100,6 +100,7 @@ class Army:
 	var auto: bool = true
 	var stance: String = "attack"  # when auto: "attack" (seek battles and sieges) or "defend" (own and allied land)
 	var path: Array = []
+	var power: float = 1.0  # fighting power 0..power_max: recovers with supply over time, battles drain it
 
 
 class War:
@@ -129,6 +130,7 @@ var mission_defs := {}
 var log_lines: Array = []
 var pending_events: Array = []
 var pending_peace: Array = []
+var peace_offer_memo := {}  # war id -> {"month", "ws"} of the last AI offer to the player (anti-spam)
 var owned := {}
 var next_army_id: int = 1
 var next_war_id: int = 1
@@ -890,6 +892,7 @@ func spawn_army(tag: String, pid: int, regs: float) -> Army:
 	a.pid = pid
 	a.regs = regs
 	a.full = regs
+	a.power = float(bal.army_power_start) * power_max(tag)
 	a.auto = tag != player or nations[tag].army_stance != ""
 	if tag == player and nations[tag].army_stance != "":
 		a.stance = nations[tag].army_stance
@@ -933,6 +936,7 @@ func _armies_tick() -> void:
 		_siege(p)
 	for a in armies:
 		_reinforce(a)
+		_recover_power(a)
 
 
 func _resolve_battles(pid: int) -> void:
@@ -963,7 +967,7 @@ func _side_power(arms: Array, pid: int) -> float:
 		var m := combat_mult(a.owner)
 		if provinces[pid].owner == a.owner:
 			m += float(bal.home_defense)
-		s += a.regs * m
+		s += a.regs * m * power_factor(a)
 	return s
 
 
@@ -978,6 +982,10 @@ func _battle(war: War, att: Array, def: Array, pid: int) -> void:
 	var lose_frac: float = clampf(float(bal.battle_loser_loss) / sqrt(maxf(ratio, 0.05)), 0.2, 0.85)
 	var win_frac: float = clampf(float(bal.battle_winner_loss) * sqrt(ratio), 0.03, 0.4)
 	var lost := 0.0
+	for a in win:
+		a.power = maxf(0.0, a.power - power_max(a.owner) * float(bal.army_power_loss_win))
+	for a in lose:
+		a.power = maxf(0.0, a.power - power_max(a.owner) * float(bal.army_power_loss_lose))
 	for a in win:
 		a.regs *= 1.0 - win_frac
 	for a in lose:
@@ -1064,6 +1072,32 @@ func _siege(p: Province) -> void:
 		else:
 			p.controller = sieger
 		log_msg("🏳️ %s wurde von %s eingenommen." % [p.name, nations[p.controller].name], [sieger, old, p.owner])
+
+
+## Highest fighting power of `tag`'s armies (1.0 base; techs, laws and advisors may add "army_power").
+func power_max(tag: String) -> float:
+	return maxf(0.5, 1.0 + mod(nations[tag], "army_power"))
+
+
+## Battle multiplier from fighting power: full power x1, exhausted troops fight at army_power_floor.
+func power_factor(a: Army) -> float:
+	var fl := float(bal.army_power_floor)
+	return fl + (1.0 - fl) * a.power
+
+
+## Monthly recovery towards the maximum: full speed with supply (own or allied land, more with roads),
+## slowly abroad. Modifier "army_power_regen" scales it.
+func power_regen(a: Army) -> float:
+	var p: Province = provinces[a.pid]
+	var supplied: bool = p.controller == a.owner or is_allied(a.owner, p.controller)
+	var r: float = float(bal.army_power_regen) * (1.0 if supplied else float(bal.army_power_regen_foreign))
+	if supplied:
+		r *= 1.0 + Economy.local(self, p, "supply") * float(bal.army_power_regen_road)
+	return r * maxf(0.2, 1.0 + mod(nations[a.owner], "army_power_regen"))
+
+
+func _recover_power(a: Army) -> void:
+	a.power = minf(power_max(a.owner), a.power + power_regen(a))
 
 
 func _reinforce(a: Army) -> void:
@@ -1296,6 +1330,7 @@ func has_claim_on(tag: String, target: String) -> bool:
 
 ## Ends the war. `winner_att` tells which side receives `pids`.
 func make_peace(w: War, winner_att: bool, pids: Array, vassalize: bool = false) -> void:
+	peace_offer_memo.erase(w.id)
 	var winners: Array = side_tags(w, winner_att)
 	var losers: Array = side_tags(w, not winner_att)
 	var lead: String = winners[0]
@@ -1505,6 +1540,12 @@ func offer_peace(from: String, w: War, pids: Array, from_receives: bool = true, 
 		for o in pending_peace:
 			if o.war == w.id:
 				return false
+		# no spam: a new offer only after the cooldown, or when the war has clearly turned further
+		var memo: Dictionary = peace_offer_memo.get(w.id, {})
+		if not memo.is_empty() and month - int(memo.month) < int(bal.peace_offer_cooldown) \
+				and ws < float(memo.ws) + float(bal.peace_offer_ws_step):
+			return false
+		peace_offer_memo[w.id] = {"month": month, "ws": ws}
 		pending_peace.append({"war": w.id, "from": from, "pids": pids, "from_receives": from_receives, "vassal": vassalize})
 		return false
 	# an exhausted receiver gives in sooner
@@ -1636,6 +1677,8 @@ func recruit(tag: String, pid: int, count: int) -> String:
 	n.manpower -= count
 	for a in armies_in(pid):
 		if a.owner == tag:
+			# fresh troops dilute the army's fighting power
+			a.power = (a.power * a.regs + float(bal.army_power_start) * power_max(tag) * count) / maxf(0.01, a.regs + count)
 			a.regs += count
 			a.full += count
 			return ""
@@ -1669,6 +1712,8 @@ func hire_mercs(tag: String, pid: int) -> String:
 	n.flags["merc_month"] = month
 	for a in armies_in(pid):
 		if a.owner == tag:
+			# fresh troops dilute the army's fighting power
+			a.power = (a.power * a.regs + float(bal.army_power_start) * power_max(tag) * count) / maxf(0.01, a.regs + count)
 			a.regs += count
 			a.full += count
 			return ""
@@ -1689,6 +1734,9 @@ func merge_armies(tag: String, pid: int) -> void:
 		if a.owner == tag:
 			here.append(a)
 	for i in range(1, here.size()):
+		var tot: float = here[0].regs + here[i].regs
+		if tot > 0.0:
+			here[0].power = (here[0].power * here[0].regs + here[i].power * here[i].regs) / tot
 		here[0].regs += here[i].regs
 		here[0].full += here[i].full
 		armies.erase(here[i])
@@ -1703,6 +1751,7 @@ func split_army(army: Army) -> Army:
 	var b := spawn_army(army.owner, army.pid, half)
 	b.auto = army.auto
 	b.stance = army.stance
+	b.power = army.power
 	return b
 
 
@@ -2070,7 +2119,7 @@ func complete_mission(tag: String, mission_id: String) -> String:
 func to_dict() -> Dictionary:
 	var d := {"month": month, "player": player, "rng_state": str(rng.state), "rng_seed": str(rng.seed),
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
-			"pending_peace": pending_peace, "log": log_lines, "stats": stats, "game_over": game_over, "emperor": emperor,
+			"pending_peace": pending_peace, "peace_offer_memo": peace_offer_memo, "log": log_lines, "stats": stats, "game_over": game_over, "emperor": emperor,
 			"history": history, "prices": prices, "prev_prices": prev_prices, "shocks": shocks}
 	var ps := []
 	for p in provinces:
@@ -2095,7 +2144,7 @@ func to_dict() -> Dictionary:
 	var ar := []
 	for a in armies:
 		ar.append({"id": a.id, "owner": a.owner, "pid": a.pid, "regs": a.regs, "full": a.full,
-				"target": a.target, "auto": a.auto, "stance": a.stance})
+				"target": a.target, "auto": a.auto, "stance": a.stance, "power": a.power})
 	d.armies = ar
 	var ws := []
 	for w in wars:
@@ -2113,6 +2162,10 @@ func from_dict(d: Dictionary) -> void:
 	next_army_id = int(d.next_army_id)
 	next_war_id = int(d.next_war_id)
 	pending_events = d.pending_events
+	peace_offer_memo = {}
+	var pm: Dictionary = d.get("peace_offer_memo", {})
+	for k in pm:
+		peace_offer_memo[int(k)] = {"month": int(pm[k].month), "ws": float(pm[k].ws)}
 	pending_peace = []
 	for o in d.pending_peace:
 		var pids := []
@@ -2211,6 +2264,7 @@ func from_dict(d: Dictionary) -> void:
 		a.target = int(e.target)
 		a.auto = e.auto
 		a.stance = e.get("stance", "attack")
+		a.power = float(e.get("power", 1.0))
 		armies.append(a)
 	wars.clear()
 	for e in d.wars:
