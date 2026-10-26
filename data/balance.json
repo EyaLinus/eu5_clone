@@ -119,5 +119,14 @@
   "trade_pact_min_rel": 25,
   "merc_regs": 3,
   "merc_cost_mult": 2.0,
-  "merc_cooldown": 12
+  "merc_cooldown": 12,
+  "peace_offer_cooldown": 24,
+  "peace_offer_ws_step": 15,
+  "army_power_start": 0.6,
+  "army_power_regen": 0.08,
+  "army_power_regen_foreign": 0.35,
+  "army_power_regen_road": 0.25,
+  "army_power_loss_win": 0.15,
+  "army_power_loss_lose": 0.5,
+  "army_power_floor": 0.4
 }

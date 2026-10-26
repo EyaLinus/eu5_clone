@@ -276,6 +276,12 @@ func _draw() -> void:
 	if selected_pid >= 0:
 		_outline(selected_pid, Color(0, 0, 0, 0.75), 6.0)
 		_outline(selected_pid, SELECT, 3.0)
+	for f in _flashes:
+		var age: float = (_now() - float(f.t0)) / FLASH_S
+		if age < 1.0:
+			var gc: Color = f.color
+			gc.a = 0.9 * (1.0 - age)
+			_outline(f.pid, gc, 4.0)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_draw_labels()
 	_draw_armies()
@@ -551,6 +557,54 @@ func _draw_armies() -> void:
 		var tp := s + Vector2(-w / 2, 5)
 		draw_string_outline(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color.BLACK)
 		draw_string(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+		_draw_power_bar(a, Rect2(s.x - ARMY_R, s.y + ARMY_R + 3, ARMY_R * 2, 4))
+	_draw_flashes()
+
+
+# ---------------------------------------------------------------- development feedback
+
+const FLASH_S := 2.2
+var _dev_seen := {}  # pid -> last seen development
+var _flashes: Array = []  # {pid, text, color, t0}
+
+
+## Call after every tick or action: a floating "+1 🏘️" and a glowing outline on the player's provinces that grew.
+func check_dev_changes() -> void:
+	if game == null:
+		return
+	var first: bool = _dev_seen.is_empty()
+	for p in game.provinces:
+		var old: int = _dev_seen.get(p.id, p.dev)
+		_dev_seen[p.id] = p.dev
+		if first or p.dev == old or p.owner != game.player:
+			continue
+		var up: bool = p.dev > old
+		_flashes.append({"pid": p.id, "text": "%+d 🏘️" % (p.dev - old), "color": Color(0.55, 1.0, 0.45) if up else Color(1.0, 0.4, 0.3), "t0": _now()})
+	if not _flashes.is_empty():
+		queue_redraw()
+
+
+func reset_dev_seen() -> void:
+	_dev_seen.clear()
+	_flashes.clear()
+
+
+func _draw_flashes() -> void:
+	var now := _now()
+	var keep: Array = []
+	for f in _flashes:
+		var age: float = (now - float(f.t0)) / FLASH_S
+		if age >= 1.0:
+			continue
+		keep.append(f)
+		var c: Color = f.color
+		c.a = 1.0 - age * age
+		var s := to_screen(game.provinces[f.pid].center) - Vector2(0, 26 + age * 34)
+		var fs := int(20 * label_scale)
+		var w := font.get_string_size(f.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		draw_string_outline(font, s - Vector2(w / 2, 0), f.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0, 0, 0, c.a))
+		draw_string(font, s - Vector2(w / 2, 0), f.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, c)
+	_flashes = keep
 
 
 # ---------------------------------------------------------------- input
@@ -560,6 +614,8 @@ func _now() -> float:
 
 
 func _process(delta: float) -> void:
+	if not _flashes.is_empty():
+		queue_redraw()
 	# long press: hold still on a province to open its info (even while an army is selected)
 	var holding: bool = (_touches.size() == 1 or _mouse_down) and not _moved and not _long_fired
 	if holding and _now() - _press_time >= LONG_PRESS_S:
@@ -719,6 +775,16 @@ func _draw_counter(a, s: Vector2, c: Color, counter: Texture2D) -> void:
 	var tp := Vector2(cx - w / 2, s.y + fs * 0.36)
 	draw_string_outline(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 2 if compact else 3, Color.BLACK)
 	draw_string(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+	_draw_power_bar(a, Rect2(r.position.x, r.end.y + 1, r.size.x, 3.0 if compact else 5.0))
+
+
+## Fighting power under each army: green full, yellow worn, red exhausted.
+func _draw_power_bar(a, r: Rect2) -> void:
+	var f: float = clampf(a.power / maxf(0.01, game.power_max(a.owner)), 0.0, 1.0)
+	draw_rect(r.grow(1.0), Color(0, 0, 0, 0.85))
+	var col := Color(0.85, 0.2, 0.15).lerp(Color(0.95, 0.8, 0.2), clampf(f * 2.0, 0.0, 1.0)) if f < 0.5 \
+			else Color(0.95, 0.8, 0.2).lerp(Color(0.3, 0.85, 0.3), (f - 0.5) * 2.0)
+	draw_rect(Rect2(r.position, Vector2(r.size.x * f, r.size.y)), col)
 
 
 func _notification(what: int) -> void:

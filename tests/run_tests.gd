@@ -15,7 +15,7 @@ func _init() -> void:
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
-		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
@@ -515,6 +515,58 @@ func test_mercenaries() -> void:
 		g.tick()
 	n.gold = 1000.0
 	check(g.merc_ready_in("FRA") == 0, "cooldown ends")
+
+
+func test_army_power() -> void:
+	var g = new_game("FRA", 5)
+	var cap: int = g.nations.FRA.capital
+	var a = g.spawn_army("FRA", cap, 5.0)
+	check(a.power < g.power_max("FRA"), "fresh armies start below full power")
+	var p0: float = a.power
+	g._recover_power(a)
+	check(a.power > p0, "power recovers over time")
+	var regen_home: float = g.power_regen(a)
+	var prov = g.provinces[cap]
+	prov.buildings["road"] = 2
+	g.Economy.refresh_local(g, prov)
+	check(g.power_regen(a) > regen_home, "roads speed up recovery")
+	for i in 40:
+		g._recover_power(a)
+	check(absf(a.power - g.power_max("FRA")) < 0.0001, "power ticks up to the maximum and stops")
+	var full_f: float = g.power_factor(a)
+	a.power = 0.0
+	check(g.power_factor(a) < full_f and g.power_factor(a) > 0.0, "low power weakens the army in battle")
+	# battle: winner loses a little, loser a lot
+	var w = g.spawn_army("FRA", cap, 20.0)
+	var l = g.spawn_army("ENG", cap, 2.0)
+	w.power = 1.0
+	l.power = 1.0
+	g.nations.FRA.truces.erase("ENG")
+	g.nations.ENG.truces.erase("FRA")
+	g.declare_war("FRA", "ENG")
+	var war = g.war_between("FRA", "ENG")
+	g._battle(war, [w], [l], cap)
+	check(w.power > 0.75 and w.power < 1.0, "a won battle costs some power")
+	check(l.power < 0.6, "a lost battle costs a lot of power")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(absf(g2.army_by_id(w.id).power - w.power) < 0.0001, "army power is saved")
+
+
+func test_peace_offer_cooldown() -> void:
+	var g = new_game("ENG", 5)
+	g.nations.FRA.truces.erase("ENG")
+	g.nations.ENG.truces.erase("FRA")
+	g.declare_war("FRA", "ENG")
+	var w = g.war_between("FRA", "ENG")
+	g.offer_peace("FRA", w, [], true)
+	check(g.pending_peace.size() == 1, "AI offer to the player is queued")
+	g.answer_player_peace(g.pending_peace[0], false)
+	g.offer_peace("FRA", w, [], true)
+	check(g.pending_peace.is_empty(), "no new offer right after a rejection")
+	g.month += int(g.bal.peace_offer_cooldown)
+	g.offer_peace("FRA", w, [], true)
+	check(g.pending_peace.size() == 1, "after the cooldown the AI may offer again")
 
 
 func test_autobuild() -> void:

@@ -466,6 +466,7 @@ func _act(err: String, ok_text: String = "") -> void:
 	elif ok_text != "":
 		_toast(ok_text)
 		_sfx("success")
+	map.check_dev_changes()
 	_refresh()
 
 
@@ -543,6 +544,8 @@ func _save_game() -> void:
 
 func _after_game_loaded() -> void:
 	map.setup(game, data.map)
+	map.reset_dev_seen()
+	map.check_dev_changes()
 	hud.visible = true
 	speed = 0
 	selected_army = -1
@@ -731,6 +734,7 @@ func _process(delta: float) -> void:
 
 func _after_tick() -> void:
 	_update_top()
+	map.check_dev_changes()
 	var battles: int = game.stats.get("player_battles_won", 0) + game.stats.get("player_battles_lost", 0)
 	if battles > last_battles:
 		_sfx("battle", -10.0)
@@ -1680,6 +1684,13 @@ func _panel_army(id: int) -> void:
 	if a.target >= 0:
 		info += "\nZiel: %s (%d Monate)" % [game.provinces[a.target].name, maxi(1, a.path.size() - 1)]
 	side_box.add_child(_lbl(info))
+	var pm: float = game.power_max(a.owner)
+	var ml := _lbl("🔥 Moral %d %% (max. %d %%, +%.1f %%/Monat)" % [int(round(a.power * 100)), int(round(pm * 100)), game.power_regen(a) * 100],
+			17, Color(0.55, 0.95, 0.45) if a.power >= pm * 0.7 else (Color(0.95, 0.8, 0.3) if a.power >= pm * 0.35 else Color(1.0, 0.45, 0.35)))
+	ml.tooltip_text = "Moral bestimmt, wie gut die Armee kämpft (bei 0 %% nur noch mit %d %% Kraft). Sie steigt jeden Monat, im eigenen und verbündeten Land schneller, mit Straßen noch schneller. Eine gewonnene Schlacht kostet %d %%, eine verlorene %d %%. Der Balken unter der Armee auf der Karte zeigt sie." % [
+			int(float(game.bal.army_power_floor) * 100), int(float(game.bal.army_power_loss_win) * 100), int(float(game.bal.army_power_loss_lose) * 100)]
+	ml.mouse_filter = Control.MOUSE_FILTER_STOP
+	side_box.add_child(ml)
 	if a.owner != game.player:
 		return
 	if selected_army == a.id:
@@ -1747,7 +1758,7 @@ const MOD_SOURCES := {"": "Nationalgeist & Ereignisse", "goods": "Handelsgüter"
 		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte"}
 const MOD_GROUPS := [
 	["💰 Wirtschaft", ["income", "tax", "production", "trade", "merchants", "build_cost", "develop_cost"]],
-	["⚔️ Militär", ["combat", "manpower", "force_limit", "maintenance", "siege"]],
+	["⚔️ Militär", ["combat", "army_power", "army_power_regen", "manpower", "force_limit", "maintenance", "siege"]],
 	["📜 Staat", ["adm", "dip", "mil", "tech_cost", "coring", "unrest", "ae_gen", "ae_decay", "prestige", "advisor_slots", "company_slots"]],
 	["⚖️ Stände", ["estate_adel", "estate_klerus", "estate_buerger"]],
 ]
@@ -1806,7 +1817,7 @@ func _panel_modifiers() -> void:
 			v.add_theme_constant_override("separation", 0)
 			card.add_child(v)
 			if total.is_empty():  # sources cancel out
-				v.add_child(_lbl("%s: ±0" % Tech.LABELS.get(key, [key])[0], 17, UiTheme.NEUTRAL))
+				v.add_child(_lbl("%s: ±0" % UiTheme.label(key)[0], 17, UiTheme.NEUTRAL))
 			else:
 				v.add_child(UiTheme.mod_row(total[0][0], total[0][1], total[0][2], 18))
 			if Tech.DESCS.has(key):
@@ -2246,7 +2257,7 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["📜 Anspruch: " + ", ".join(names), 1])
 		elif k == "mods":
 			for m in v:
-				var lab: Array = Tech.LABELS.get(m, [m, true, true])
+				var lab: Array = UiTheme.label(m)
 				if m in ["adm", "dip", "mil"]:
 					parts.append(["%s %+d" % [lab[0], int(v[m])], sgn.call(float(v[m]))])
 				else:

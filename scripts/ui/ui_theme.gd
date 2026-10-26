@@ -147,6 +147,16 @@ static func mods_bb(eff: Dictionary, sep: String = "   ", px: int = 14) -> Strin
 	return sep.join(parts)
 
 
+## Modifier keys that are not tech effects (and so not in Tech.LABELS): [name, percent, higher is good].
+const EXTRA_LABELS := {
+	"army_power": ["Max. Moral", true, true], "army_power_regen": ["Moral-Erholung", true, true],
+}
+
+
+static func label(key: String) -> Array:
+	return Tech.LABELS.get(key, EXTRA_LABELS.get(key, [key, true, true]))
+
+
 ## [label, value, good] rows for a modifier dictionary (keys and wording from Tech.LABELS).
 static func mod_rows(eff: Dictionary) -> Array:
 	var r := []
@@ -154,7 +164,7 @@ static func mod_rows(eff: Dictionary) -> Array:
 		var v: float = float(eff[k])
 		if absf(v) < 0.0005:
 			continue
-		var lab: Array = Tech.LABELS.get(k, [k, false, true])
+		var lab: Array = label(k)
 		var num: String
 		if lab[1]:
 			num = "%+d %%" % roundi(v * 100.0) if absf(v) >= 0.005 else "%+.1f %%" % (v * 100.0)
