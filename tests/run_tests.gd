@@ -15,7 +15,7 @@ func _init() -> void:
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
-		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
@@ -629,6 +629,42 @@ func test_building_gain() -> void:
 	check(gain > 0.0, "a workshop raises income")
 	check(p.buildings == before and p.dev == dev and absf(g.Economy.province_income(g, p) - inc) < 0.0001, "estimate leaves the province untouched")
 	check(g.Economy.building_gain(g, p, "road") < gain, "a road brings less income than a workshop")
+
+
+func test_marriage() -> void:
+	var g = new_game("FRA", 5)
+	g.nations.FRA.dip = 200.0
+	g.add_rel("FRA", "SAV", -100.0)
+	check(g.marry("FRA", "SAV") != "", "a hostile house refuses")
+	g.add_rel("FRA", "SAV", 200.0)
+	check(g.marry("FRA", "SAV") == "", "marriage with a friendly house")
+	check(g.nations.FRA.marriages.has("SAV") and g.nations.SAV.marriages.has("FRA"), "marriage on both sides")
+	check(g.marry("FRA", "SAV") != "", "no double marriage")
+	g.nations.SAV.relations["FRA"] = 10.0
+	g.nations.FRA.relations["SAV"] = 10.0
+	for i in 24:
+		g.tick()
+	check(g.get_rel("SAV", "FRA") >= float(g.bal.marriage_rel_floor) - 0.001, "married relations stay friendly")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.FRA.marriages.has("SAV"), "marriages are saved")
+	# personal union on succession
+	g.bal.marriage_union_chance = 1.0
+	g._marriage_succession(g.nations.SAV)
+	check(g.nations.SAV.overlord == "" or g.nations.SAV.overlord == "FRA", "union only to the partner")
+	var h = new_game("ENG", 5)
+	h.nations.FRA.marriages.append("SAV")
+	h.nations.SAV.marriages.append("FRA")
+	h.bal.marriage_union_chance = 1.0
+	h._marriage_succession(h.nations.SAV)
+	check(h.nations.SAV.overlord == "FRA", "a small married realm can fall to a strong house")
+	h.nations.FRA.truces.erase("SAV")
+	h.nations.SAV.truces.erase("FRA")
+	h.nations.ENG.marriages.append("BRI")
+	h.nations.BRI.marriages.append("ENG")
+	h.nations.ENG.truces.erase("BRI")
+	h.declare_war("ENG", "BRI")
+	check(not h.nations.ENG.marriages.has("BRI"), "war ends a marriage")
 
 
 func test_peace_offer_cooldown() -> void:
