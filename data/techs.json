@@ -1188,7 +1188,8 @@
    "effects": {
     "income": 0.08,
     "tech_cost": -0.03,
-    "unrest": 0.5
+    "unrest": 0.5,
+    "estate_klerus": -15
    },
    "text": "Die Krone wird Oberhaupt der Kirche und zieht die Klostergüter ein."
   },
@@ -1499,7 +1500,8 @@
    ],
    "effects": {
     "unrest": -1.0,
-    "tech_cost": 0.03
+    "tech_cost": 0.03,
+    "estate_adel": 20
    },
    "text": "Nichts Neues ohne Zustimmung des Sejm, Reformen werden zäh."
   },

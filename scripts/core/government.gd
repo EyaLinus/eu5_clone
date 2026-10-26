@@ -1,9 +1,12 @@
 extends RefCounted
 ## Government (data/government.json), inspired by the Hearts of Iron politics screen:
 ## - political advisors (3 slots, hired with power of their type, national ones only in their lifetime)
-## - investment companies (2 slots, +1 from tech; bought with gold)
+## - investment companies (2 slots, +1 from tech; bought with gold, then invested into up to level 5:
+##   every level raises the benefits by 50 %, the drawbacks stay as they are)
 ## - laws with buff/nerf trade-offs (changing one costs power and has a cooldown)
-## State lives in `n.gov`; the summed effects go into n.bonus["gov"].
+## - estates (nobility, clergy, burghers): satisfaction drifts monthly toward 50 + the estate_<id> modifiers
+##   of laws, advisors, companies and techs; loyal estates give bonuses, angry ones penalties and crisis events
+## State lives in `n.gov`; the summed effects go into n.bonus["gov"], estate tiers into n.bonus["estates"].
 ## `g` is the game (scripts/core/game.gd); untyped to avoid a cyclic preload.
 
 const Tech = preload("res://scripts/core/tech.gd")
@@ -16,6 +19,7 @@ var comp_by_id := {}
 var laws: Array = []
 var law_by_id := {}
 var forms := {}
+var estates: Array = []
 
 
 func _init(d: Dictionary = {}) -> void:
@@ -30,14 +34,19 @@ func _init(d: Dictionary = {}) -> void:
 	for l in d.get("laws", []):
 		laws.append(l)
 		law_by_id[l.id] = l
+	estates = d.get("estates", [])
 
 
 func init_nation(n) -> void:
 	var lw := {}
 	for l in laws:
 		lw[l.id] = l.options[0].id
-	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}}
+	var es := {}
+	for e in estates:
+		es[e.id] = 50.0
+	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}, "invest": {}, "estates": es, "estate_month": {}}
 	refresh(n)
+	refresh_estates(n)
 
 
 func form_name(tag: String) -> String:
@@ -148,6 +157,7 @@ func found_company(g, tag: String, id: String) -> String:
 	var n = g.nations[tag]
 	n.gold -= company_cost(g, n, id)
 	n.gov.companies.append(id)
+	n.gov.invest[id] = 1
 	_changed(g, n)
 	return ""
 
@@ -155,7 +165,61 @@ func found_company(g, tag: String, id: String) -> String:
 func dissolve_company(g, tag: String, id: String) -> void:
 	var n = g.nations[tag]
 	n.gov.companies.erase(id)
+	n.gov.invest.erase(id)
 	_changed(g, n)
+
+
+func max_invest() -> int:
+	return int(cfg.get("invest_max_level", 5))
+
+
+func invest_level(n, id: String) -> int:
+	return int(n.gov.invest.get(id, 1))
+
+
+## Effects of company `id` at investment `level`: benefits grow by invest_step per level, drawbacks do not.
+func company_effects(id: String, level: int) -> Dictionary:
+	var base: Dictionary = comp_by_id.get(id, {}).get("effects", {})
+	var mult: float = 1.0 + float(cfg.get("invest_step", 0.5)) * (level - 1)
+	var r := {}
+	for k in base:
+		var v := float(base[k])
+		var good: bool = (v > 0.0) == Tech.LABELS.get(k, [k, false, true])[2]
+		r[k] = v * mult if good else v
+	return r
+
+
+## Gold needed to raise company `id` from its current level to `to_level`.
+func invest_cost(g, n, id: String, to_level: int) -> float:
+	var c := 0.0
+	for l in range(invest_level(n, id), to_level):
+		c += company_cost(g, n, id) * float(cfg.get("invest_cost_mult", 0.5)) * l
+	return roundf(c)
+
+
+func invest_block(g, tag: String, id: String, to_level: int) -> String:
+	var n = g.nations[tag]
+	if not n.gov.companies.has(id):
+		return "Kompanie nicht gegründet."
+	if to_level <= invest_level(n, id):
+		return "Wähle eine höhere Stufe."
+	if to_level > max_invest():
+		return "Höchststufe ist %d." % max_invest()
+	var c := invest_cost(g, n, id, to_level)
+	if n.gold < c:
+		return "Zu wenig Gold (%d benötigt)." % c
+	return ""
+
+
+func invest(g, tag: String, id: String, to_level: int) -> String:
+	var err := invest_block(g, tag, id, to_level)
+	if err != "":
+		return err
+	var n = g.nations[tag]
+	n.gold -= invest_cost(g, n, id, to_level)
+	n.gov.invest[id] = to_level
+	_changed(g, n)
+	return ""
 
 
 # ---------------------------------------------------------------- laws
@@ -224,7 +288,7 @@ func refresh(n) -> void:
 	for id in n.gov.advisors:
 		effs.append(adv_by_id.get(id, {}).get("effects", {}))
 	for id in n.gov.companies:
-		effs.append(comp_by_id.get(id, {}).get("effects", {}))
+		effs.append(company_effects(id, invest_level(n, id)))
 	for law_id in n.gov.laws:
 		if law_by_id.has(law_id):
 			effs.append(law_option(law_id, n.gov.laws[law_id]).get("effects", {}))
@@ -245,6 +309,130 @@ func yearly(g, n) -> void:
 			n.gov.advisors.erase(id)
 			g.log_msg("🎓 %s verlässt den Hof." % a.name, [n.tag])
 			_changed(g, n)
+	_estate_crisis(g, n)
+
+
+# ---------------------------------------------------------------- estates
+
+## Satisfaction an estate drifts toward: 50 plus all estate_<id> modifiers, 0..100.
+func estate_target(g, n, id: String) -> float:
+	return clampf(50.0 + g.mod(n, "estate_" + id), 0.0, 100.0)
+
+
+## "loyal", "neutral" or "angry".
+func estate_tier(n, id: String) -> String:
+	var v: float = n.gov.estates.get(id, 50.0)
+	if v >= float(cfg.get("estate_loyal", 60)):
+		return "loyal"
+	if v < float(cfg.get("estate_angry", 30)):
+		return "angry"
+	return "neutral"
+
+
+func refresh_estates(n) -> void:
+	var b := {}
+	for e in estates:
+		var t := estate_tier(n, e.id)
+		if t == "neutral":
+			continue
+		var eff: Dictionary = e[t]
+		for k in eff:
+			b[k] = b.get(k, 0.0) + float(eff[k])
+	n.bonus["estates"] = b
+
+
+## Monthly drift toward the target (snapped to 0.01 so saves stay exact).
+func estates_monthly(g, n) -> void:
+	var before := {}
+	for e in estates:
+		before[e.id] = estate_tier(n, e.id)
+		var v: float = n.gov.estates[e.id]
+		v += (estate_target(g, n, e.id) - v) * float(cfg.get("estate_drift", 0.03))
+		n.gov.estates[e.id] = snappedf(clampf(v, 0.0, 100.0), 0.01)
+	for e in estates:
+		if estate_tier(n, e.id) != before[e.id]:
+			refresh_estates(n)
+			g._update_cached(n)
+			if n.tag == g.player:
+				var word: String = {"loyal": "ist dir treu ergeben", "neutral": "ist wieder ruhig", "angry": "ist zornig"}[estate_tier(n, e.id)]
+				g.log_msg("⚖️ Der Stand %s %s." % [e.name, word], [n.tag])
+			break
+
+
+func change_estate(g, n, id: String, amount: float) -> void:
+	if not n.gov.estates.has(id):
+		return
+	n.gov.estates[id] = snappedf(clampf(n.gov.estates[id] + amount, 0.0, 100.0), 0.01)
+	refresh_estates(n)
+	g._update_cached(n)
+
+
+func concession_cost(_g, n) -> float:
+	return roundf(maxf(float(cfg.get("concession_min_gold", 30)), float(cfg.get("concession_months", 6)) * maxf(n.income, 0.0)))
+
+
+func concession_cooldown_left(g, n, id: String) -> int:
+	if not n.gov.estate_month.has(id):
+		return 0
+	return maxi(0, int(n.gov.estate_month[id]) + int(cfg.get("concession_cooldown_years", 5)) * 12 - g.month)
+
+
+func concession_block(g, tag: String, id: String) -> String:
+	var n = g.nations[tag]
+	if not n.gov.estates.has(id):
+		return "Unbekannter Stand."
+	var cd := concession_cooldown_left(g, n, id)
+	if cd > 0:
+		return "Erst in %d Monaten wieder möglich." % cd
+	var c := concession_cost(g, n)
+	if n.gold < c:
+		return "Zu wenig Gold (%d benötigt)." % c
+	return ""
+
+
+## Buy goodwill: gold for an immediate satisfaction boost (it still drifts back toward the target).
+func grant_concession(g, tag: String, id: String) -> String:
+	var err := concession_block(g, tag, id)
+	if err != "":
+		return err
+	var n = g.nations[tag]
+	n.gold -= concession_cost(g, n)
+	n.gov.estate_month[id] = g.month
+	change_estate(g, n, id, float(cfg.get("concession_amount", 20)))
+	return ""
+
+
+func estate_name(id: String) -> String:
+	for e in estates:
+		if e.id == id:
+			return e.name
+	return id
+
+
+func estate_event_defs() -> Array:
+	return cfg.get("estate_events", [])
+
+
+## Yearly: an estate below estate_crisis may raise demands (at most one crisis per estate_crisis_years).
+func _estate_crisis(g, n) -> void:
+	var last: int = int(n.gov.estate_month.get("crisis", -1000))
+	if g.month - last < int(cfg.get("estate_crisis_years", 4)) * 12:
+		return
+	for e in estates:
+		if n.gov.estates[e.id] >= float(cfg.get("estate_crisis", 25)):
+			continue
+		if g.rng.randf() > float(cfg.get("estate_crisis_chance", 0.35)):
+			continue
+		n.gov.estate_month["crisis"] = g.month
+		var ev_id: String = "estate_crisis_" + e.id
+		g.stats.events += 1
+		if n.tag == g.player:
+			if not g.pending_events.has(ev_id):
+				g.pending_events.append(ev_id)
+		else:
+			var ev: Dictionary = g.event_by_id[ev_id]
+			g.apply_effects(n.tag, ev.options[g.ai.pick_event_option(g, n, ev)].get("effects", {}))
+		return
 
 
 func to_save(n) -> Dictionary:
@@ -261,6 +449,7 @@ func load_save(n, d) -> void:
 	for id in d.get("companies", []):
 		if comp_by_id.has(id):
 			n.gov.companies.append(id)
+			n.gov.invest[id] = clampi(int(d.get("invest", {}).get(id, 1)), 1, max_invest())
 	var lw: Dictionary = d.get("laws", {})
 	for law_id in lw:
 		if law_by_id.has(law_id) and not law_option(law_id, lw[law_id]).is_empty():
@@ -268,7 +457,15 @@ func load_save(n, d) -> void:
 	var lm: Dictionary = d.get("law_month", {})
 	for law_id in lm:
 		n.gov.law_month[law_id] = int(lm[law_id])
+	var es: Dictionary = d.get("estates", {})
+	for e in es:
+		if n.gov.estates.has(e):
+			n.gov.estates[e] = float(es[e])
+	var em: Dictionary = d.get("estate_month", {})
+	for k in em:
+		n.gov.estate_month[k] = int(em[k])
 	refresh(n)
+	refresh_estates(n)
 
 
 # ---------------------------------------------------------------- AI
@@ -283,6 +480,8 @@ func ai_think(g, n) -> void:
 		_ai_advisor(g, n)
 	elif slot == 7 and not g.is_at_war(tag):
 		_ai_company(g, n)
+	elif slot == 3:
+		_ai_estates(g, n)
 
 
 func _ai_laws(g, n) -> void:
@@ -333,6 +532,7 @@ func _ai_advisor(g, n) -> void:
 
 func _ai_company(g, n) -> void:
 	if n.gov.companies.size() >= company_slots(g, n):
+		_ai_invest(g, n)
 		return
 	var best := ""
 	var best_v := 0.0
@@ -348,3 +548,29 @@ func _ai_company(g, n) -> void:
 	var reserve: float = 10.0 + n.expenses * 4.0 + 40.0
 	if n.gold >= company_cost(g, n, best) + reserve:
 		found_company(g, n.tag, best)
+
+
+## Rich AI states put surplus gold into their companies (one level at a time, the cheapest first).
+func _ai_invest(g, n) -> void:
+	var reserve: float = 10.0 + n.expenses * 4.0 + 150.0
+	var best := ""
+	var best_c := 1e18
+	for id in n.gov.companies:
+		var l := invest_level(n, id)
+		if l >= max_invest():
+			continue
+		var c := invest_cost(g, n, id, l + 1)
+		if c < best_c:
+			best_c = c
+			best = id
+	if best != "" and n.gold >= best_c + reserve:
+		invest(g, n.tag, best, invest_level(n, best) + 1)
+
+
+func _ai_estates(g, n) -> void:
+	var reserve: float = 10.0 + n.expenses * 4.0 + 30.0
+	for e in estates:
+		if n.gov.estates[e.id] < float(cfg.get("estate_angry", 30)) + 5.0 \
+				and n.gold >= concession_cost(g, n) + reserve and concession_block(g, n.tag, e.id) == "":
+			grant_concession(g, n.tag, e.id)
+			return
