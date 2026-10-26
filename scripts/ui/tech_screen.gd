@@ -1,7 +1,8 @@
 extends RefCounted
 ## Tech tree screen in the side panel: one category at a time as a 3-column tree (one column per
 ## branch, one row per tier), national special techs on top. Tapping a tech opens a detail popup
-## with the research button, so a stray tap on a phone never spends points.
+## with the research button, so a stray tap on a phone never spends points. Only the next WINDOW tiers
+## and the national techs not yet researched are shown, to keep scrolling short.
 ## `m` is the main UI (scripts/ui/main.gd); it owns the side panel, modal and button helpers.
 
 const Tech = preload("res://scripts/core/tech.gd")
@@ -9,8 +10,12 @@ const Icons = preload("res://scripts/ui/icons.gd")
 
 const CAT_NAMES := {"adm": "Verwaltung", "dip": "Diplomatie", "mil": "Militär"}
 
+## Tiers shown at once (from the first one not fully researched); the rest behind a button.
+const WINDOW := 3
+
 var m
 var cat := "adm"
+var show_all := false
 
 
 func _init(main) -> void:
@@ -49,9 +54,18 @@ func build() -> void:
 	var info := "Zeitalter der %s · Stufe %d · nächste Technologie %d %s" % [Tech.age_name(g.year()), lvl, g.tech_cost(me, cat), Icons.emoji(cat)]
 	if ahead >= 1.0:
 		info += "\nDu bist der Zeit voraus: +%d %% Kosten." % roundi(ahead * float(g.bal.tech_ahead_penalty) * 100.0)
-	m.side_box.add_child(m._lbl(info, 15, Color(0.8, 0.82, 0.9)))
-	m.side_box.add_child(m._lbl("Gold umrandet: jetzt erforschbar · 🔒 Vorgänger fehlt · Antippen zeigt Details", 13, Color(0.65, 0.68, 0.75)))
-	var specials: Array = g.tree.specials_of(me)
+	var il: Label = m._lbl(info, 15, Color(0.8, 0.82, 0.9))
+	il.tooltip_text = "Gold umrandet: jetzt erforschbar · 🔒 Vorgänger fehlt · Antippen zeigt Details"
+	il.mouse_filter = Control.MOUSE_FILTER_STOP
+	il.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var sum: Button = m._btn("📈 Gesamt", _overview, "Gesamtwirkung deiner Technologien")
+	sum.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	m.side_box.add_child(m._row([il, sum]))
+	sum.size_flags_horizontal = Control.SIZE_SHRINK_END
+	sum.clip_text = false
+	sum.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	sum.add_theme_font_size_override("font_size", 15)
+	var specials: Array = g.tree.specials_of(me).filter(func(t): return not n.techs.has(t.id))
 	if not specials.is_empty():
 		m.side_box.add_child(m._lbl("⭐ Nationale Technologien", 20, Color(1.0, 0.85, 0.4)))
 		var sg := GridContainer.new()
@@ -94,7 +108,8 @@ func build() -> void:
 		first += 1
 	if first > 0:
 		m.side_box.add_child(m._lbl("✓ Die ersten %d Stufen aller drei Zweige sind erforscht (ausgeblendet)." % first, 14, Color(0.7, 0.9, 0.7)))
-	for i in range(first, rows):
+	var last: int = rows if show_all else mini(rows, first + WINDOW)
+	for i in range(first, last):
 		for b in cols:
 			var lst: Array = per.get(b.id, [])
 			if i < lst.size():
@@ -102,9 +117,21 @@ func build() -> void:
 			else:
 				grid.add_child(Control.new())
 	m.side_box.add_child(grid)
-	m.side_box.add_child(m._lbl("Gesamtwirkung deiner Technologien", 18))
-	m.side_box.add_child(effects_rich(n.bonus.get("tech", {}), 15))
-	m.side_box.add_child(m._lbl("Jede Stufe zählt außerdem: Verwaltung +4 % Einkommen, Diplomatie schnellerer AE-Abbau, Militär +6 % Kampfkraft und +½ Truppenlimit.", 14, Color(0.65, 0.68, 0.75)))
+	if rows - first > WINDOW:
+		var more: String = "➖ Nur die nächsten %d Stufen zeigen" % WINDOW if show_all else "➕ Alle Stufen zeigen (%d weitere)" % (rows - last)
+		m.side_box.add_child(m._btn(more, func():
+			show_all = not show_all
+			m._refresh()))
+
+
+## Popup with the summed effects of all researched techs.
+func _overview() -> void:
+	var n = m.game.nations[m.game.player]
+	m._open_modal()
+	m.modal_box.add_child(m._lbl("📈 Gesamtwirkung deiner Technologien", 24))
+	m.modal_box.add_child(effects_rich(n.bonus.get("tech", {}), 17))
+	m.modal_box.add_child(m._lbl("Jede Stufe zählt außerdem: Verwaltung +4 % Einkommen, Diplomatie schnellerer AE-Abbau, Militär +6 % Kampfkraft und +½ Truppenlimit.", 15, Color(0.65, 0.68, 0.75)))
+	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
 
 
 func _select(k: String) -> void:

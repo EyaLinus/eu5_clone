@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- **Weniger Scrollen in Regierung und Technologie:** Die Regierung hat vier Reiter (💰 Haushalt, 🎓 Hof, 📜 Recht,
+  👥 Stände); ein goldener Reiter zeigt, dass dort etwas zu tun ist. Der Technologiebaum zeigt nur die nächsten drei
+  Stufen (Rest per Knopf), erforschte Nationaltechs verschwinden. Die Gesamtwirkung steckt jeweils hinter „📈 Gesamt“.
 - **Reichsreformen 👑:** Das Heilige Römische Reich sammelt kaiserliche Autorität (mehr Mitglieder = schneller,
   Kriege zwischen Mitgliedern bremsen). Der Kaiser verabschiedet damit fünf Reformen nacheinander, vom Reichstag
   bis zum Ewigen Landfrieden, wenn mehr als die Hälfte der Kurfürsten hinter ihm steht. Alle Mitglieder bekommen

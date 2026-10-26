@@ -1,6 +1,7 @@
 extends RefCounted
 ## Government screen in the side panel (inspired by the Hearts of Iron politics view):
-## ruler and form of government, political advisors, investment companies and laws.
+## ruler and form of government on top, then four sub-tabs (budget, court = advisors and companies,
+## law = laws and state reforms, estates) so no tab needs much scrolling; 📈 shows the summed effects.
 ## Picking a new advisor, company or law opens a list popup with costs and buff/nerf effects.
 ## `m` is the main UI (scripts/ui/main.gd).
 
@@ -9,8 +10,11 @@ const TechScreen = preload("res://scripts/ui/tech_screen.gd")
 const Icons = preload("res://scripts/ui/icons.gd")
 
 const POWER_NAMES := {"adm": "Verwaltung", "dip": "Diplomatie", "mil": "Militär"}
+## Sub-tabs, so no section needs a long scroll: [id, button text].
+const TABS := [["haushalt", "💰 Haushalt"], ["hof", "🎓 Hof"], ["recht", "📜 Recht"], ["staende", "👥 Stände"]]
 
 var m
+var tab := "haushalt"
 
 
 func _init(main) -> void:
@@ -41,51 +45,122 @@ func build() -> void:
 	var me: String = g.player
 	var n = g.nations[me]
 	m.side_title.text = "⚖️ Regierung"
-	var head: String = "%s · %s" % [m.nname(me), gv.form_name(me)]
-	m.side_box.add_child(m._lbl(head, 20))
 	var ruler: String = n.ruler_name if n.ruler_name != "" else "Herrscher"
-	m.side_box.add_child(m._lbl("👑 %s  📜%d 🕊️%d ⚔️%d · noch ca. %d Jahre" % [ruler, n.ruler.adm, n.ruler.dip, n.ruler.mil, n.ruler.years], 16))
+	var head: Label = m._lbl("%s · %s\n👑 %s  📜%d 🕊️%d ⚔️%d · noch ca. %d Jahre" % [m.nname(me), gv.form_name(me), ruler,
+			n.ruler.adm, n.ruler.dip, n.ruler.mil, n.ruler.years], 16)
 	if n.idea != "":
-		m.side_box.add_child(m._lbl("Nationalgeist: " + n.idea, 15, Color(0.8, 0.85, 0.7)))
+		head.tooltip_text = "Nationalgeist: " + n.idea
+		head.mouse_filter = Control.MOUSE_FILTER_STOP
+	var sum: Button = m._btn("📈 Gesamt", _overview, "Gesamtwirkung von Regierung, Haushalt, Ständen und Reich")
+	sum.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	head.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	m.side_box.add_child(m._row([head, sum]))
+	sum.size_flags_horizontal = Control.SIZE_SHRINK_END
+	sum.clip_text = false
+	sum.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	sum.add_theme_font_size_override("font_size", 15)
+	var tabs := []
+	for t in TABS:
+		var b: Button = m._btn(t[1], _select.bind(t[0]))
+		b.clip_text = false
+		b.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+		b.add_theme_font_size_override("font_size", 14)
+		if t[0] == tab:
+			b.add_theme_stylebox_override("normal", UiTheme.box("button_pressed", 10))
+		if _tab_has_action(g, n, t[0]):
+			b.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
+		tabs.append(b)
+	m.side_box.add_child(m._row(tabs))
+	match tab:
+		"haushalt":
+			_build_budget(g, gv, n)
+		"hof":
+			_build_court(g, gv, me, n)
+		"recht":
+			_build_law(g, gv, n)
+		_:
+			_build_estates(gv)
 
-	var bh: Label = m._lbl("💰 Haushalt", 22)
-	bh.tooltip_text = "Wie im großen Vorbild: Schieberegler für Steuern und Ausgaben. Die Mitte ist neutral. Jede Stufe darüber oder darunter bringt Vor- und Nachteile, Hof und Forschung kosten oder sparen dazu Gold pro Monat. Änderungen wirken sofort und kosten nichts."
-	bh.mouse_filter = Control.MOUSE_FILTER_PASS
-	m.side_box.add_child(bh)
+
+func _select(t: String) -> void:
+	tab = t
+	m._refresh()
+
+
+## Gold text on a tab: something there can be done now (free slot, open reform) or needs care (angry estate).
+func _tab_has_action(g, n, t: String) -> bool:
+	var gv = g.govt
+	match t:
+		"hof":
+			if n.gov.advisors.size() < gv.advisor_slots(g, n):
+				for a in gv.advisor_pool(g, n.tag):
+					if gv.advisor_block(g, n.tag, a.id) == "":
+						return true
+			if n.gov.companies.size() < gv.company_slots(g, n):
+				for c in gv.company_pool(g, n.tag):
+					if gv.company_block(g, n.tag, c.id) == "":
+						return true
+		"recht":
+			for tier in gv.open_reform_tiers(g, n):
+				if n.adm >= gv.reform_cost(g, n, tier):
+					return true
+		"staende":
+			for e in gv.estates:
+				if gv.estate_tier(n, e.id) == "angry":
+					return true
+	return false
+
+
+func _section(text: String, tip: String = "") -> void:
+	var l: Label = m._lbl(text, 20)
+	if tip != "":
+		l.tooltip_text = tip
+		l.mouse_filter = Control.MOUSE_FILTER_STOP
+	m.side_box.add_child(l)
+
+
+func _build_budget(g, gv, n) -> void:
+	m.side_box.add_child(m._lbl("Die Mitte ist neutral. Jede Stufe darüber oder darunter bringt Vor- und Nachteile, Hof und Forschung kosten oder sparen Gold. Änderungen wirken sofort.", 14, Color(0.65, 0.68, 0.75)))
 	for b in gv.budget:
 		m.side_box.add_child(_budget_card(b))
-	m.side_box.add_child(m._lbl("🎓 Politische Berater (%d/%d)" % [n.gov.advisors.size(), gv.advisor_slots(g, n)], 22))
+	var c: float = gv.budget_cost(g, n)
+	m.side_box.add_child(m._lbl("Haushalt gesamt: %s %+.2f Gold pro Monat" % [Icons.emoji("gold"), -c], 15,
+			Color(0.95, 0.6, 0.55) if c > 0.0 else Color(0.6, 0.9, 0.6)))
+
+
+func _build_court(g, gv, me: String, n) -> void:
+	_section("🎓 Berater (%d/%d)" % [n.gov.advisors.size(), gv.advisor_slots(g, n)],
+			"Kosten %d Punkte der jeweiligen Art. Historische Persönlichkeiten dienen nur zu ihren Lebzeiten." % gv.advisor_cost(g, n, ""))
 	for id in n.gov.advisors:
 		var a: Dictionary = gv.adv_by_id[id]
-		var sub: String = Icons.emoji(a.type) + " " + ("Historische Persönlichkeit, bis %d" % int(a.to) if a.has("to") else "Berater")
+		var sub: String = Icons.emoji(a.type) + " " + ("Historisch, bis %d" % int(a.to) if a.has("to") else "Berater")
 		m.side_box.add_child(_card(a.name, sub, a.effects, a.has("tag"), "Entlassen", func():
 			gv.dismiss(g, me, id)
 			m._act("", "🎓 %s entlassen" % a.name)))
-	for i in gv.advisor_slots(g, n) - n.gov.advisors.size():
-		m.side_box.add_child(m._btn("➕ Berater ernennen (%d Punkte)" % gv.advisor_cost(g, n, ""), _pick_advisor))
-
-	m.side_box.add_child(m._lbl("🏦 Investitionskompanien (%d/%d)" % [n.gov.companies.size(), gv.company_slots(g, n)], 22))
+	var free: int = gv.advisor_slots(g, n) - n.gov.advisors.size()
+	if free > 0:
+		m.side_box.add_child(m._btn("➕ Berater ernennen (%d frei, %d Punkte)" % [free, gv.advisor_cost(g, n, "")], _pick_advisor))
+	_section("🏦 Kompanien (%d/%d)" % [n.gov.companies.size(), gv.company_slots(g, n)],
+			"Mit Gold gegründet, danach bis Stufe %d ausbaubar. Ein dritter Platz kommt mit der Technologie Aktiengesellschaften." % gv.max_invest())
 	for id in n.gov.companies:
 		var c: Dictionary = gv.comp_by_id[id]
 		var lvl: int = gv.invest_level(n, id)
-		m.side_box.add_child(_card(c.name, "Investitionsstufe %d von %d" % [lvl, gv.max_invest()], gv.company_effects(id, lvl),
+		m.side_box.add_child(_card(c.name, "Stufe %d von %d" % [lvl, gv.max_invest()], gv.company_effects(id, lvl),
 				c.has("tag"), "Investieren", _invest.bind(id)))
-	for i in gv.company_slots(g, n) - n.gov.companies.size():
-		m.side_box.add_child(m._btn("➕ Kompanie gründen (%d %s)" % [gv.company_cost(g, n, ""), Icons.emoji("gold")], _pick_company))
-	if gv.company_slots(g, n) < 3:
-		m.side_box.add_child(m._lbl("Ein dritter Platz kommt mit der Technologie Aktiengesellschaften.", 14, Color(0.65, 0.68, 0.75)))
+	var cfree: int = gv.company_slots(g, n) - n.gov.companies.size()
+	if cfree > 0:
+		m.side_box.add_child(m._btn("➕ Kompanie gründen (%d frei, %d %s)" % [cfree, gv.company_cost(g, n, ""), Icons.emoji("gold")], _pick_company))
 
-	m.side_box.add_child(m._lbl("📜 Gesetze", 22))
+
+func _build_law(g, gv, n) -> void:
+	_section("📜 Gesetze", "Ein Wechsel kostet Punkte und ist danach %d Jahre gesperrt." % int(gv.cfg.get("law_cooldown_years", 10)))
 	for l in gv.laws:
 		var o: Dictionary = gv.law_option(l.id, n.gov.laws[l.id])
 		var cd: int = gv.law_cooldown_left(g, n, l.id)
 		var sub: String = l.name + (" · änderbar in %d Monaten" % cd if cd > 0 else "")
 		m.side_box.add_child(_card(o.name, sub, o.effects, false, "Ändern", _pick_law.bind(l.id)))
-
-	var rh: Label = m._lbl("🏛️ Staatsreformen", 22)
-	rh.tooltip_text = "Dauerhafte Reformen in vier Stufen, jede ab einem bestimmten Jahr. Pro Stufe gilt eine Reform, bezahlt mit Verwaltungspunkten. Ein späterer Wechsel kostet erneut und ist nur alle %d Jahre möglich." % int(gv.cfg.get("reform_change_years", 25))
-	rh.mouse_filter = Control.MOUSE_FILTER_PASS
-	m.side_box.add_child(rh)
+	_section("🏛️ Staatsreformen", "Dauerhafte Reformen in vier Stufen, jede ab einem bestimmten Jahr. Pro Stufe gilt eine Reform, bezahlt mit Verwaltungspunkten. Ein späterer Wechsel kostet erneut und ist nur alle %d Jahre möglich." % int(gv.cfg.get("reform_change_years", 25)))
+	var locked := []
 	for t in gv.reforms:
 		if n.gov.reforms.has(t.id):
 			var o: Dictionary = gv.reform_option(t.id, n.gov.reforms[t.id])
@@ -95,20 +170,32 @@ func build() -> void:
 		elif g.year() >= int(t.year):
 			m.side_box.add_child(m._btn("➕ %s: Reform wählen (%d %s)" % [t.name, gv.reform_cost(g, n, t.id), Icons.emoji("adm")], _pick_reform.bind(t.id)))
 		else:
-			m.side_box.add_child(m._lbl("🔒 %s ab %d" % [t.name, int(t.year)], 15, Color(0.65, 0.68, 0.75)))
+			locked.append("%s ab %d" % [t.name, int(t.year)])
+	if not locked.is_empty():
+		m.side_box.add_child(m._lbl("🔒 " + ", ".join(locked), 14, Color(0.65, 0.68, 0.75)))
 
+
+func _build_estates(gv) -> void:
 	var est_tip := "Die Zufriedenheit wandert langsam zum Zielwert (50 plus Wirkung von Gesetzen, Beratern, Kompanien und Technologien). Ab %d ist ein Stand treu und gibt Boni, unter %d ist er zornig und schadet, unter %d drohen Forderungen." % [
 			int(gv.cfg.get("estate_loyal", 60)), int(gv.cfg.get("estate_angry", 30)), int(gv.cfg.get("estate_crisis", 25))]
-	var eh: Label = m._lbl("⚖️ Stände", 22)
-	eh.tooltip_text = est_tip
-	eh.mouse_filter = Control.MOUSE_FILTER_STOP
-	m.side_box.add_child(eh)
-	m.side_box.add_child(m._lbl("Gesetze, Berater und Kompanien verschieben den Zielwert. Langes Drücken auf einen Stand erklärt mehr.", 14, Color(0.65, 0.68, 0.75)))
+	m.side_box.add_child(m._lbl("Gesetze, Berater und Kompanien verschieben den Zielwert. Langes Drücken erklärt mehr.", 14, Color(0.65, 0.68, 0.75)))
 	for e in gv.estates:
 		m.side_box.add_child(_estate_card(e, est_tip))
 
-	m.side_box.add_child(m._lbl("Gesamtwirkung der Regierung", 18))
-	m.side_box.add_child(TechScreen.effects_rich(n.bonus.get("gov", {}), 15))
+
+## Popup with everything the government side adds up to, split by source.
+func _overview() -> void:
+	var g = m.game
+	var n = g.nations[g.player]
+	m._open_modal()
+	m.modal_box.add_child(m._lbl("📈 Gesamtwirkung", 26))
+	for src in [["gov", "⚖️ Berater, Kompanien, Gesetze, Reformen"], ["budget", "💰 Haushalt"], ["estates", "👥 Stände"], ["empire", "👑 Reichsreformen"]]:
+		var e: Dictionary = n.bonus.get(src[0], {})
+		if e.is_empty() and src[0] != "gov":
+			continue
+		m.modal_box.add_child(m._lbl(src[1], 18))
+		m.modal_box.add_child(TechScreen.effects_rich(e, 16))
+	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
 
 
 func _card(title: String, sub: String, eff: Dictionary, national: bool, action: String, cb: Callable) -> Control:
@@ -309,8 +396,14 @@ func _budget_card(b: Dictionary) -> Control:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 2)
 	pc.add_child(v)
-	var title: Label = m._lbl("", 18)
-	v.add_child(title)
+	var title: Label = m._lbl("", 17)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var gold: Label = m._lbl("", 15)
+	gold.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	var top := HBoxContainer.new()
+	top.add_child(title)
+	top.add_child(gold)
+	v.add_child(top)
 	var slider := HSlider.new()
 	slider.min_value = 0
 	slider.max_value = gv.budget_max()
@@ -318,7 +411,7 @@ func _budget_card(b: Dictionary) -> Control:
 	slider.tick_count = gv.budget_max() + 1
 	slider.ticks_on_borders = true
 	slider.value = gv.budget_step(g.nations[me], b.id)
-	slider.custom_minimum_size = Vector2(0, 48 if m._big() else 36)
+	slider.custom_minimum_size = Vector2(0, 44 if m._big() else 30)
 	slider.focus_mode = Control.FOCUS_NONE
 	v.add_child(slider)
 	var info := VBoxContainer.new()
@@ -328,17 +421,15 @@ func _budget_card(b: Dictionary) -> Control:
 		var n = g.nations[me]
 		if step != gv.budget_step(n, b.id):
 			gv.set_budget(g, me, b.id, step)
-		title.text = "%s: %s" % [b.name, b.steps[step]]
-		m._clear(info)
 		var eff: Dictionary = gv.budget_effects(b.id, step)
 		var cost: float = gv.budget_slider_cost(n, b.id, step)
-		if eff.is_empty():
-			info.add_child(m._lbl("Keine Wirkung (normal)", 14, Color(0.65, 0.68, 0.75)))
-		else:
+		title.text = "%s: %s" % [b.name, b.steps[step]]
+		gold.text = "%s %+.2f/Monat" % [Icons.emoji("gold"), -cost] if absf(cost) >= 0.01 else ""
+		gold.add_theme_color_override("font_color", Color(0.95, 0.6, 0.55) if cost > 0.0 else Color(0.6, 0.9, 0.6))
+		m._clear(info)
+		info.visible = not eff.is_empty()
+		if not eff.is_empty():
 			info.add_child(TechScreen.effects_rich(eff, 15))
-		if absf(cost) >= 0.01:
-			info.add_child(m._lbl("%s %+.2f Gold pro Monat" % [Icons.emoji("gold"), -cost], 15,
-					Color(0.95, 0.6, 0.55) if cost > 0.0 else Color(0.6, 0.9, 0.6)))
 	slider.value_changed.connect(upd)
 	upd.call(slider.value)
 	return pc
