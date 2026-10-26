@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- **Schwierigkeitsgrade:** Im Startmenü wählbar (Leicht, Normal, Schwer, Sehr schwer). Normal ist etwas leichter als bisher: +10 % Einkommen, +5 % Kampfkraft, −0,5 Unruhe für dich, und die KI greift dich seltener an. Leicht gibt mehr Boni und eine friedlichere KI, Schwer entspricht der alten Balance, Sehr schwer gibt der KI Einkommens-, Kampf- und Mannstärke-Boni und macht sie aggressiver. Alte Spielstände laden als Schwer.
 - **Späte Wirtschaft gedämpft:** Einkommensboni (Admin-Tech, Einkommen) addieren sich jetzt zu Steuer-, Produktions- und Handelsboni, statt sie zu vervielfachen. Armeen werden mit jeder Militär-Tech 8 % teurer (Anwerben und Unterhalt). England hatte um 1600 vorher ~330 Gold/Monat bei 30 Ausgaben.
 - Die KI nutzt Durchmarschrecht und garantiert kleine befreundete Nachbarn.
 
