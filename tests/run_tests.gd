@@ -20,6 +20,7 @@ func _init() -> void:
 		"test_military_access",
 		"test_guarantee",
 		"test_religion",
+		"test_monuments_and_feast",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_morale_modifiers", "test_reforms",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
@@ -767,6 +768,30 @@ func test_religion() -> void:
 			prot2 += 1
 	check(prot2 > prot, "Protestantism spreads")
 	check(h.check_conditions("FRA", {"religion": "catholic"}) and not h.check_conditions("FRA", {"religion": "sunni"}), "religion condition")
+
+
+func test_monuments_and_feast() -> void:
+	var M = load("res://scripts/core/monuments.gd")
+	var g = new_game("FRA", 5)
+	var n = g.nations.FRA
+	n.gold = 100000.0
+	check(M.start(g, "FRA", "university") != "", "great works need technology")
+	n.tech.adm = 3
+	var before: float = n.gold
+	check(M.start(g, "FRA", "cathedral") == "", "the cathedral is started")
+	check(n.gold < before - 250.0, "great works cost more for developed realms")
+	check(M.start(g, "FRA", "cathedral") != "", "one great work at a time")
+	var u0: float = g.mod(n, "unrest")
+	for i in int(g.monument_defs.cathedral.months):
+		M.tick(g, n)
+	check(n.monuments.has("cathedral") and n.monument_build.is_empty(), "the cathedral is finished")
+	check(g.mod(n, "unrest") < u0, "its bonus applies")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.FRA.monuments.has("cathedral") and g2.mod(g2.nations.FRA, "unrest") < u0 + 0.001, "great works are saved")
+	var p0: float = n.prestige
+	check(g.hold_feast("FRA") == "" and n.prestige > p0, "a feast brings prestige")
+	check(g.hold_feast("FRA") != "", "feasts have a cooldown")
 
 
 func test_marriage() -> void:

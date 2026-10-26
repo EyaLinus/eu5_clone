@@ -1,0 +1,16 @@
+{
+ "cathedral": {"name": "Kathedrale", "emoji": "⛪", "cost": 250, "months": 48, "tech": ["adm", 3], "bonus": {"unrest": -0.5, "prestige": 0.5},
+  "text": "Ein Dom in der Hauptstadt: weniger Unruhe im ganzen Land, jedes Jahr etwas Prestige."},
+ "embassy": {"name": "Gesandtenhof", "emoji": "🕊️", "cost": 300, "months": 36, "tech": ["dip", 4], "bonus": {"dip": 1.0, "ae_decay": 0.15},
+  "text": "Ständige Gesandtschaften: +1 Diplomatie im Monat, aggressive Expansion wird schneller vergessen."},
+ "arsenal": {"name": "Arsenal", "emoji": "⚔️", "cost": 300, "months": 36, "tech": ["mil", 4], "bonus": {"force_limit": 3.0, "army_power_regen": 0.1},
+  "text": "Zeughaus und Werkstätten für das Heer: +3 Truppenlimit, Armeen erholen sich schneller."},
+ "university": {"name": "Universität", "emoji": "🎓", "cost": 450, "months": 60, "tech": ["adm", 8], "bonus": {"tech_cost": -0.08, "adm": 1.0},
+  "text": "Gelehrte aus ganz Europa: Technologie 8 % billiger, +1 Verwaltung im Monat."},
+ "exchange": {"name": "Börse", "emoji": "🏦", "cost": 500, "months": 48, "tech": ["dip", 10], "bonus": {"trade": 0.05, "merchants": 1.0},
+  "text": "Wechsel, Anleihen und Handelshäuser: +5 % Handel und ein Händler mehr."},
+ "academy": {"name": "Kriegsakademie", "emoji": "🎯", "cost": 500, "months": 48, "tech": ["mil", 10], "bonus": {"combat": 0.05, "mil": 1.0},
+  "text": "Offiziere lernen ihr Handwerk: +5 % Kampfkraft, +1 Militär im Monat."},
+ "palace": {"name": "Prunkpalast", "emoji": "🏛️", "cost": 800, "months": 72, "tech": ["adm", 14], "bonus": {"prestige": 1.5, "dip": 1.0, "unrest": -0.5},
+  "text": "Ein Palast, der ganz Europa staunen lässt: viel Prestige, +1 Diplomatie, ruhigeres Land."}
+}
