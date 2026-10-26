@@ -91,7 +91,7 @@ TREE = {
             ("mil_arkebusiere", "Arkebusiere", {"combat": 0.04}),
             ("mil_gevierthaufen", "Gevierthaufen", {"combat": 0.04}),
             ("mil_pistoliere", "Reiterpistoliere", {"combat": 0.04}),
-            ("mil_exerzieren", "Exerzierreglement", {"combat": 0.05}),
+            ("mil_exerzieren", "Exerzierreglement", {"combat": 0.05, "army_power": 0.05}),
             ("mil_salven", "Salvenfeuer", {"combat": 0.05}),
             ("mil_brigade", "Schwedische Brigade", {"combat": 0.05}),
             ("mil_lineartaktik", "Lineartaktik", {"combat": 0.06}),
@@ -111,12 +111,12 @@ TREE = {
             ("mil_lehnsaufgebot", "Lehnsaufgebot", {"manpower": 0.05}),
             ("mil_soldwesen", "Soldwesen", {"force_limit": 1}),
             ("mil_landsknechte", "Landsknechte", {"manpower": 0.1}),
-            ("mil_magazine", "Magazinsystem", {"maintenance": -0.05}),
+            ("mil_magazine", "Magazinsystem", {"maintenance": -0.05, "army_power_regen": 0.25}),
             ("mil_musterrollen", "Musterungsrollen", {"force_limit": 2}),
             ("mil_kriegskanzlei", "Kriegskanzlei", {"maintenance": -0.05}),
             ("mil_garnisonen", "Stehende Garnisonen", {"unrest": -0.25, "force_limit": 1}),
             ("mil_kasernen", "Kasernen", {"manpower": 0.1, "force_limit": 2}),
-            ("mil_stehendes_heer", "Stehendes Heer", {"mil": 1}),
+            ("mil_stehendes_heer", "Stehendes Heer", {"mil": 1, "army_power": 0.1}),
         ]),
     ],
 }
@@ -223,7 +223,8 @@ ADVISORS = [
     ("feldhauptmann", "Feldhauptmann", "mil", {"combat": 0.05}),
     ("zeugmeister", "Zeugmeister", "mil", {"siege": 0.2}),
     ("werbeoffizier", "Werbeoffizier", "mil", {"manpower": 0.15}),
-    ("quartiermeister", "Generalquartiermeister", "mil", {"maintenance": -0.1}),
+    ("quartiermeister", "Generalquartiermeister", "mil", {"maintenance": -0.1, "army_power_regen": 0.2}),
+    ("drillmeister", "Drillmeister", "mil", {"army_power": 0.1, "army_power_regen": 0.2}),
     ("kriegstreiber", "Kriegstreiber", "mil", {"combat": 0.08, "ae_gen": 0.1}),
 ]
 
@@ -313,9 +314,9 @@ LAWS = [
     ]),
     ("heer", "Heeresverfassung", "mil", [
         ("lehnsheer", "Lehnsheer", "", {}, "Die Vasallen stellen Truppen im Kriegsfall."),
-        ("soeldner", "Söldnerheere", "", {"force_limit": 3, "maintenance": 0.1, "manpower": -0.1}, "Geld statt Blut, solange die Kasse reicht."),
-        ("landesaufgebot", "Allgemeines Landesaufgebot", "", {"manpower": 0.25, "combat": -0.04, "unrest": 0.5, "estate_adel": -10}, "Jeder wehrfähige Mann wird gemustert."),
-        ("stehendes_heer", "Stehendes Heer", "mil_kriegskanzlei", {"combat": 0.08, "maintenance": 0.1, "estate_adel": -10}, "Gedrillte Berufssoldaten, auch im Frieden besoldet."),
+        ("soeldner", "Söldnerheere", "", {"force_limit": 3, "maintenance": 0.1, "manpower": -0.1, "army_power": -0.05}, "Geld statt Blut, solange die Kasse reicht."),
+        ("landesaufgebot", "Allgemeines Landesaufgebot", "", {"manpower": 0.25, "combat": -0.04, "unrest": 0.5, "estate_adel": -10, "army_power_regen": 0.2}, "Jeder wehrfähige Mann wird gemustert."),
+        ("stehendes_heer", "Stehendes Heer", "mil_kriegskanzlei", {"combat": 0.08, "maintenance": 0.1, "estate_adel": -10, "army_power": 0.1}, "Gedrillte Berufssoldaten, auch im Frieden besoldet."),
     ]),
     ("staat", "Staatsaufbau", "adm", [
         ("feudal", "Feudalordnung", "", {}, "Der König ist Erster unter den Großen."),
@@ -376,6 +377,31 @@ ESTATE_EVENTS = {
         ("Die Stadttore besetzen.", {"estate": {"buerger": -10}, "we": 2, "prestige": 3}),
     ]),
 }
+
+# State reforms (EU4-like tiers): (tier id, name, year, options). One option per tier, bought once with
+# administrative power (reform_cost + reform_cost_step x tier index), every option is a trade-off.
+REFORMS = [
+    ("grundlage", "Herrschaftsgrundlage", 1444, [
+        ("lehnswesen", "Lehnswesen", {"manpower": 0.15, "tax": -0.05, "estate_adel": 5}, "Vasallen stellen Truppen statt Steuern."),
+        ("domaenen", "Domänenwirtschaft", {"tax": 0.1, "manpower": -0.1}, "Die Krone lebt von ihren eigenen Gütern."),
+        ("staedtebund", "Städtische Freiheiten", {"trade": 0.1, "estate_buerger": 10, "force_limit": -2}, "Die Städte regieren sich selbst und zahlen dafür."),
+    ]),
+    ("verwaltung", "Verwaltung", 1480, [
+        ("hofrat", "Hofrat", {"adm": 1, "estate_adel": -5}, "Gelehrte Räte statt Hochadel am Hof."),
+        ("landtage", "Landtage", {"estate_adel": 10, "estate_buerger": 10, "adm": -0.5, "tax": 0.05}, "Die Stände bewilligen Steuern und reden mit."),
+        ("kreisordnung", "Kreisordnung", {"unrest": -0.5, "build_cost": 0.1}, "Amtleute in jedem Kreis halten Ordnung."),
+    ]),
+    ("heerwesen", "Heerwesen", 1520, [
+        ("kriegsrat", "Hofkriegsrat", {"combat": 0.05, "army_power": 0.05, "maintenance": 0.05}, "Ein ständiger Rat plant die Feldzüge."),
+        ("werbewesen", "Werbewesen", {"force_limit": 3, "army_power": -0.05}, "Werber füllen die Reihen, doch nicht jeder will kämpfen."),
+        ("miliz", "Landesdefension", {"manpower": 0.2, "army_power_regen": 0.25, "combat": -0.03}, "Jede Gemeinde stellt geübte Männer."),
+    ]),
+    ("staatsidee", "Staatsidee", 1570, [
+        ("gottesgnaden", "Gottesgnadentum", {"prestige": 1.0, "unrest": -0.5, "estate_klerus": 10, "tech_cost": 0.05}, "Der Herrscher regiert von Gottes Gnaden."),
+        ("staatsraison", "Staatsräson", {"ae_decay": 0.2, "dip": 1, "estate_klerus": -10}, "Was dem Staat nützt, ist recht."),
+        ("gemeinwohl", "Gemeines Bestes", {"production": 0.1, "estate_buerger": 10, "estate_adel": -10}, "Der Fürst als erster Diener des Landes."),
+    ]),
+]
 
 GOV_FORMS = {
     "default": "Feudalmonarchie",
@@ -452,6 +478,9 @@ def build():
            "budget": [{"id": i, "name": nm, "text": tx, "steps": st, "per_step": e, "cost": c}
                       for i, nm, tx, st, e, c in BUDGET],
            "budget_default": 2,
+           "reforms": [{"id": i, "name": nm, "year": y, "options": [{"id": oi, "name": on, "effects": oe, "text": ot}
+                                                                for oi, on, oe, ot in opts]} for i, nm, y, opts in REFORMS],
+           "reform_cost": 100, "reform_cost_step": 50, "reform_change_years": 25,
            "law_cost": 60, "law_cooldown_years": 10, "forms": GOV_FORMS,
            "advisors": adv, "companies": comp, "laws": laws}
     json.dump(gov, open(os.path.join(ROOT, "data/government.json"), "w"), ensure_ascii=False, indent=1)

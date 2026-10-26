@@ -820,7 +820,8 @@
    "name": "Exerzierreglement",
    "year": 1550,
    "effects": {
-    "combat": 0.05
+    "combat": 0.05,
+    "army_power": 0.05
    },
    "req": [
     "mil_pistoliere"
@@ -1026,7 +1027,8 @@
    "name": "Magazinsystem",
    "year": 1506,
    "effects": {
-    "maintenance": -0.05
+    "maintenance": -0.05,
+    "army_power_regen": 0.25
    },
    "req": [
     "mil_landsknechte"
@@ -1093,7 +1095,8 @@
    "name": "Stehendes Heer",
    "year": 1616,
    "effects": {
-    "mil": 1
+    "mil": 1,
+    "army_power": 0.1
    },
    "req": [
     "mil_kasernen"

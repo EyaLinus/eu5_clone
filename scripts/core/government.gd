@@ -21,6 +21,8 @@ var law_by_id := {}
 var forms := {}
 var estates: Array = []
 var budget: Array = []
+var reforms: Array = []
+var reform_by_id := {}
 var budget_by_id := {}
 
 
@@ -38,6 +40,9 @@ func _init(d: Dictionary = {}) -> void:
 		law_by_id[l.id] = l
 	estates = d.get("estates", [])
 	budget = d.get("budget", [])
+	reforms = d.get("reforms", [])
+	for r in reforms:
+		reform_by_id[r.id] = r
 	for b in budget:
 		budget_by_id[b.id] = b
 
@@ -52,7 +57,7 @@ func init_nation(n) -> void:
 	var bu := {}
 	for b in budget:
 		bu[b.id] = budget_default()
-	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}, "invest": {}, "estates": es, "estate_month": {}, "budget": bu}
+	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}, "invest": {}, "estates": es, "estate_month": {}, "budget": bu, "reforms": {}, "reform_month": {}}
 	refresh(n)
 	refresh_estates(n)
 
@@ -300,6 +305,8 @@ func refresh(n) -> void:
 	for law_id in n.gov.laws:
 		if law_by_id.has(law_id):
 			effs.append(law_option(law_id, n.gov.laws[law_id]).get("effects", {}))
+	for tier in n.gov.get("reforms", {}):
+		effs.append(reform_option(tier, n.gov.reforms[tier]).get("effects", {}))
 	for e in effs:
 		for k in e:
 			b[k] = b.get(k, 0.0) + float(e[k])
@@ -310,6 +317,67 @@ func refresh(n) -> void:
 		for k in e:
 			bb[k] = bb.get(k, 0.0) + float(e[k])
 	n.bonus["budget"] = bb
+
+
+# ---------------------------------------------------------------- state reforms (EU4-like tiers)
+# One option per tier, unlocked by year, bought with administrative power. Changing an enacted tier costs
+# again and is possible only every reform_change_years.
+
+func reform_option(tier: String, opt_id: String) -> Dictionary:
+	if not reform_by_id.has(tier):
+		return {}
+	for o in reform_by_id[tier].options:
+		if o.id == opt_id:
+			return o
+	return {}
+
+
+func reform_cost(_g, _n, tier: String) -> float:
+	return float(cfg.get("reform_cost", 100)) + float(cfg.get("reform_cost_step", 50)) * reforms.find(reform_by_id.get(tier))
+
+
+func reform_cooldown_left(g, n, tier: String) -> int:
+	if not n.gov.reform_month.has(tier):
+		return 0
+	return maxi(0, int(n.gov.reform_month[tier]) + int(cfg.get("reform_change_years", 25)) * 12 - g.month)
+
+
+func reform_block(g, tag: String, tier: String, opt_id: String) -> String:
+	var n = g.nations[tag]
+	if reform_option(tier, opt_id).is_empty():
+		return "Unbekannte Reform."
+	if n.gov.reforms.get(tier, "") == opt_id:
+		return "Bereits eingeführt."
+	if g.year() < int(reform_by_id[tier].year):
+		return "Verfügbar ab %d." % int(reform_by_id[tier].year)
+	var cd := reform_cooldown_left(g, n, tier)
+	if cd > 0:
+		return "Erst in %d Monaten wieder änderbar." % cd
+	var c := reform_cost(g, n, tier)
+	if n.adm < c:
+		return "Zu wenig Verwaltungspunkte (%d benötigt)." % c
+	return ""
+
+
+func enact_reform(g, tag: String, tier: String, opt_id: String) -> String:
+	var err := reform_block(g, tag, tier, opt_id)
+	if err != "":
+		return err
+	var n = g.nations[tag]
+	n.adm -= reform_cost(g, n, tier)
+	n.gov.reforms[tier] = opt_id
+	n.gov.reform_month[tier] = g.month
+	_changed(g, n)
+	return ""
+
+
+## Tiers the nation may fill right now (unlocked by year, still empty).
+func open_reform_tiers(g, n) -> Array:
+	var r := []
+	for t in reforms:
+		if not n.gov.reforms.has(t.id) and g.year() >= int(t.year):
+			r.append(t.id)
+	return r
 
 
 # ---------------------------------------------------------------- budget sliders (EU5-like)
@@ -527,6 +595,13 @@ func load_save(n, d) -> void:
 	var em: Dictionary = d.get("estate_month", {})
 	for k in em:
 		n.gov.estate_month[k] = int(em[k])
+	var rf: Dictionary = d.get("reforms", {})
+	for k in rf:
+		if not reform_option(k, rf[k]).is_empty():
+			n.gov.reforms[k] = rf[k]
+	var rm: Dictionary = d.get("reform_month", {})
+	for k in rm:
+		n.gov.reform_month[k] = int(rm[k])
 	var bu: Dictionary = d.get("budget", {})
 	for k in bu:
 		if budget_by_id.has(k):
@@ -551,6 +626,8 @@ func ai_think(g, n) -> void:
 		_ai_estates(g, n)
 	elif slot == 11:
 		_ai_budget(g, n)
+	elif slot == 6:
+		_ai_reforms(g, n)
 
 
 func _ai_laws(g, n) -> void:
@@ -667,4 +744,22 @@ func _ai_budget(g, n) -> void:
 			changed = true
 	if changed:
 		_changed(g, n)
+
+
+## AI: fill the oldest open reform tier with its most valuable option, keeping half a tech in reserve.
+func _ai_reforms(g, n) -> void:
+	var open := open_reform_tiers(g, n)
+	if open.is_empty():
+		return
+	var tier: String = open[0]
+	if n.adm < reform_cost(g, n, tier) + g.tech_cost(n.tag, "adm") * 0.5:
+		return
+	var best := ""
+	var best_v := -1e9
+	for o in reform_by_id[tier].options:
+		var v: float = Tech.effect_value(o.effects, n.aggression) + g.rng.randf() * 2.0
+		if v > best_v:
+			best_v = v
+			best = o.id
+	enact_reform(g, n.tag, tier, best)
 
