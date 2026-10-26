@@ -91,7 +91,7 @@ TREE = {
             ("mil_arkebusiere", "Arkebusiere", {"combat": 0.04}),
             ("mil_gevierthaufen", "Gevierthaufen", {"combat": 0.04}),
             ("mil_pistoliere", "Reiterpistoliere", {"combat": 0.04}),
-            ("mil_exerzieren", "Exerzierreglement", {"combat": 0.05}),
+            ("mil_exerzieren", "Exerzierreglement", {"combat": 0.05, "army_power": 0.05}),
             ("mil_salven", "Salvenfeuer", {"combat": 0.05}),
             ("mil_brigade", "Schwedische Brigade", {"combat": 0.05}),
             ("mil_lineartaktik", "Lineartaktik", {"combat": 0.06}),
@@ -111,12 +111,12 @@ TREE = {
             ("mil_lehnsaufgebot", "Lehnsaufgebot", {"manpower": 0.05}),
             ("mil_soldwesen", "Soldwesen", {"force_limit": 1}),
             ("mil_landsknechte", "Landsknechte", {"manpower": 0.1}),
-            ("mil_magazine", "Magazinsystem", {"maintenance": -0.05}),
+            ("mil_magazine", "Magazinsystem", {"maintenance": -0.05, "army_power_regen": 0.25}),
             ("mil_musterrollen", "Musterungsrollen", {"force_limit": 2}),
             ("mil_kriegskanzlei", "Kriegskanzlei", {"maintenance": -0.05}),
             ("mil_garnisonen", "Stehende Garnisonen", {"unrest": -0.25, "force_limit": 1}),
             ("mil_kasernen", "Kasernen", {"manpower": 0.1, "force_limit": 2}),
-            ("mil_stehendes_heer", "Stehendes Heer", {"mil": 1}),
+            ("mil_stehendes_heer", "Stehendes Heer", {"mil": 1, "army_power": 0.1}),
         ]),
     ],
 }
@@ -223,7 +223,8 @@ ADVISORS = [
     ("feldhauptmann", "Feldhauptmann", "mil", {"combat": 0.05}),
     ("zeugmeister", "Zeugmeister", "mil", {"siege": 0.2}),
     ("werbeoffizier", "Werbeoffizier", "mil", {"manpower": 0.15}),
-    ("quartiermeister", "Generalquartiermeister", "mil", {"maintenance": -0.1}),
+    ("quartiermeister", "Generalquartiermeister", "mil", {"maintenance": -0.1, "army_power_regen": 0.2}),
+    ("drillmeister", "Drillmeister", "mil", {"army_power": 0.1, "army_power_regen": 0.2}),
     ("kriegstreiber", "Kriegstreiber", "mil", {"combat": 0.08, "ae_gen": 0.1}),
 ]
 
@@ -313,9 +314,9 @@ LAWS = [
     ]),
     ("heer", "Heeresverfassung", "mil", [
         ("lehnsheer", "Lehnsheer", "", {}, "Die Vasallen stellen Truppen im Kriegsfall."),
-        ("soeldner", "Söldnerheere", "", {"force_limit": 3, "maintenance": 0.1, "manpower": -0.1}, "Geld statt Blut, solange die Kasse reicht."),
-        ("landesaufgebot", "Allgemeines Landesaufgebot", "", {"manpower": 0.25, "combat": -0.04, "unrest": 0.5, "estate_adel": -10}, "Jeder wehrfähige Mann wird gemustert."),
-        ("stehendes_heer", "Stehendes Heer", "mil_kriegskanzlei", {"combat": 0.08, "maintenance": 0.1, "estate_adel": -10}, "Gedrillte Berufssoldaten, auch im Frieden besoldet."),
+        ("soeldner", "Söldnerheere", "", {"force_limit": 3, "maintenance": 0.1, "manpower": -0.1, "army_power": -0.05}, "Geld statt Blut, solange die Kasse reicht."),
+        ("landesaufgebot", "Allgemeines Landesaufgebot", "", {"manpower": 0.25, "combat": -0.04, "unrest": 0.5, "estate_adel": -10, "army_power_regen": 0.2}, "Jeder wehrfähige Mann wird gemustert."),
+        ("stehendes_heer", "Stehendes Heer", "mil_kriegskanzlei", {"combat": 0.08, "maintenance": 0.1, "estate_adel": -10, "army_power": 0.1}, "Gedrillte Berufssoldaten, auch im Frieden besoldet."),
     ]),
     ("staat", "Staatsaufbau", "adm", [
         ("feudal", "Feudalordnung", "", {}, "Der König ist Erster unter den Großen."),

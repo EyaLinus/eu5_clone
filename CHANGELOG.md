@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+- **Moral in Technik und Regierung:** Exerzierreglement (+5 % max. Moral), Stehendes Heer als Technik und als Gesetz
+  (je +10 %), Magazinsystem und Landesaufgebot beschleunigen die Moral-Erholung, Söldnerheere senken die max. Moral
+  um 5 %. Neuer Berater Drillmeister, der Generalquartiermeister hilft jetzt auch bei der Erholung.
+
 ## v0.8.0 – 2026-10-26
 - **Armee-Moral (neu):** Jede Armee hat Moral bis zu einem Maximum (100 %, Boni können es erhöhen). Sie steigt jeden
   Monat, im eigenen und verbündeten Land schneller, mit Straßen noch schneller, im Feindesland langsam. Eine

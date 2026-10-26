@@ -17,7 +17,7 @@ func _init() -> void:
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_morale_modifiers",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1198,4 +1198,21 @@ func test_budget() -> void:
 	ai.gold = 5000.0
 	gv._ai_budget(g, ai)
 	check(gv.budget_step(ai, "hof") == 3 and gv.budget_step(ai, "bildung") == 3, "rich AI spends on court and research")
+
+
+## Techs, laws, advisors and the army budget feed the morale system (army_power / army_power_regen).
+func test_morale_modifiers() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	var base: float = g.power_max("FRA")
+	n.techs["mil_stehendes_heer"] = 0
+	g.tree.refresh(n)
+	check(absf(g.power_max("FRA") - base - 0.1) < 0.001, "standing army tech raises max morale")
+	n.gov.laws["heer"] = "stehendes_heer"
+	g.govt.refresh(n)
+	check(absf(g.power_max("FRA") - base - 0.2) < 0.001, "standing army law raises max morale")
+	var r0: float = g.mod(n, "army_power_regen")
+	g.govt.set_budget(g, "FRA", "heer", 4)
+	check(absf(g.mod(n, "army_power_regen") - r0 - 0.5) < 0.001, "lavish army budget speeds up morale recovery")
+	check(g.govt.adv_by_id.has("drillmeister") and g.govt.adv_by_id.drillmeister.effects.has("army_power"), "drill master advisor")
 

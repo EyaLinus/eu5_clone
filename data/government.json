@@ -403,7 +403,17 @@
    "name": "Generalquartiermeister",
    "type": "mil",
    "effects": {
-    "maintenance": -0.1
+    "maintenance": -0.1,
+    "army_power_regen": 0.2
+   }
+  },
+  {
+   "id": "drillmeister",
+   "name": "Drillmeister",
+   "type": "mil",
+   "effects": {
+    "army_power": 0.1,
+    "army_power_regen": 0.2
    }
   },
   {
@@ -1104,7 +1114,8 @@
      "effects": {
       "force_limit": 3,
       "maintenance": 0.1,
-      "manpower": -0.1
+      "manpower": -0.1,
+      "army_power": -0.05
      },
      "text": "Geld statt Blut, solange die Kasse reicht."
     },
@@ -1115,7 +1126,8 @@
       "manpower": 0.25,
       "combat": -0.04,
       "unrest": 0.5,
-      "estate_adel": -10
+      "estate_adel": -10,
+      "army_power_regen": 0.2
      },
      "text": "Jeder wehrfähige Mann wird gemustert."
     },
@@ -1125,7 +1137,8 @@
      "effects": {
       "combat": 0.08,
       "maintenance": 0.1,
-      "estate_adel": -10
+      "estate_adel": -10,
+      "army_power": 0.1
      },
      "text": "Gedrillte Berufssoldaten, auch im Frieden besoldet.",
      "req": "mil_kriegskanzlei"
