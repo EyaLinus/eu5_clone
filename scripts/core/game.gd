@@ -175,6 +175,29 @@ func _init() -> void:
 
 # ---------------------------------------------------------------- setup
 
+## Difficulty levels (data in balance.json "difficulty"): modifiers for the player and the AI nations
+## (n.bonus["difficulty"], derived, not saved) plus how aggressive the AI is, toward the player above all.
+const DIFFICULTIES := ["easy", "normal", "hard", "very_hard"]
+const DIFFICULTY_NAMES := {"easy": "Leicht", "normal": "Normal", "hard": "Schwer", "very_hard": "Sehr schwer"}
+var difficulty := "normal"
+
+
+func set_difficulty(id: String) -> void:
+	difficulty = id if DIFFICULTIES.has(id) else "normal"
+	_apply_difficulty()
+
+
+func _apply_difficulty() -> void:
+	var d: Dictionary = bal.get("difficulty", {}).get(difficulty, {})
+	for tag in nations:
+		nations[tag].bonus["difficulty"] = (d.get("player", {}) if tag == player else d.get("ai", {})).duplicate()
+
+
+## A difficulty number such as "ai_aggression" (1.0 when the level does not set it).
+func diff(key: String) -> float:
+	return float(bal.get("difficulty", {}).get(difficulty, {}).get(key, 1.0))
+
+
 func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	bal = data.balance
 	tree = Tech.new(data.get("techs", {}))
@@ -245,6 +268,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		event_by_id[e.id] = e
 	mission_defs = data.get("missions", {})
 	_apply_start_diplomacy(data.get("diplomacy", {}))
+	_apply_difficulty()
 	# mission targets act as permanent claims (historical expansion goals)
 	for tag in mission_defs:
 		if not nations.has(tag):
@@ -606,13 +630,12 @@ func _economy(n: Nation) -> void:
 			p.core_months -= 1
 			if p.core_months == 0 and n.tag == player:
 				log_msg("🤝 %s ist jetzt Kernland: volles Einkommen, weniger Unruhe." % p.name, [n.tag])
-	var inc_mult: float = 1.0 + n.tech.adm * float(bal.adm_tech_income) + mod(n, "income")
-	n.tax_income = tax * inc_mult
-	n.prod_income = prod * inc_mult
-	n.trade_income = Economy.trade_income(self, n) * inc_mult
+	n.tax_income = tax
+	n.prod_income = prod
+	n.trade_income = Economy.trade_income(self, n)
 	n.income = n.tax_income + n.prod_income + n.trade_income
 	Economy.construction_tick(self, n)
-	var maint: float = army_regs(n.tag) * float(bal.regiment_maintenance) * maxf(0.2, 1.0 + mod(n, "maintenance"))
+	var maint: float = army_regs(n.tag) * regiment_upkeep(n.tag) * maxf(0.2, 1.0 + mod(n, "maintenance"))
 	var war := is_at_war(n.tag)
 	if not war:
 		maint *= float(bal.peace_maintenance_mult)
@@ -1162,7 +1185,7 @@ func _reinforce(a: Army) -> void:
 		return
 	a.regs += amt
 	n.manpower -= amt
-	n.gold -= amt * float(bal.regiment_cost) * 0.5
+	n.gold -= amt * regiment_cost(a.owner) * 0.5
 
 
 # ---------------------------------------------------------------- wars
@@ -1773,11 +1796,24 @@ func research(tag: String, id: String) -> String:
 	return tree.research(self, tag, id)
 
 
+## Armies get dearer as they modernise: recruiting and upkeep rise with military tech.
+func army_cost_mult(tag: String) -> float:
+	return 1.0 + nations[tag].tech.mil * float(bal.army_cost_per_mil_tech)
+
+
+func regiment_cost(tag: String) -> float:
+	return float(bal.regiment_cost) * army_cost_mult(tag)
+
+
+func regiment_upkeep(tag: String) -> float:
+	return float(bal.regiment_maintenance) * army_cost_mult(tag)
+
+
 func recruit(tag: String, pid: int, count: int) -> String:
 	var n: Nation = nations[tag]
 	if provinces[pid].owner != tag or provinces[pid].controller != tag:
 		return "Rekrutierung nur in eigenen, unbesetzten Provinzen."
-	var cost: float = count * float(bal.regiment_cost)
+	var cost: float = count * regiment_cost(tag)
 	if n.gold < cost:
 		return "Zu wenig Gold (%d benötigt)." % cost
 	if n.manpower < count:
@@ -1799,7 +1835,7 @@ func recruit(tag: String, pid: int, count: int) -> String:
 
 ## Mercenaries: up to merc_regs regiments without manpower, for merc_cost_mult × the gold, once per merc_cooldown months.
 func merc_cost(tag: String) -> float:
-	return float(bal.merc_regs) * float(bal.regiment_cost) * float(bal.merc_cost_mult)
+	return float(bal.merc_regs) * regiment_cost(tag) * float(bal.merc_cost_mult)
 
 
 func merc_ready_in(tag: String) -> int:
@@ -2580,7 +2616,7 @@ func complete_mission(tag: String, mission_id: String) -> String:
 # ---------------------------------------------------------------- save / load
 
 func to_dict() -> Dictionary:
-	var d := {"month": month, "player": player, "rng_state": str(rng.state), "rng_seed": str(rng.seed),
+	var d := {"month": month, "player": player, "difficulty": difficulty, "rng_state": str(rng.state), "rng_seed": str(rng.seed),
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
 			"pending_peace": pending_peace, "peace_offer_memo": peace_offer_memo, "log": log_lines, "stats": stats, "game_over": game_over, "emperor": emperor,
 			"history": history, "prices": prices, "prev_prices": prev_prices, "shocks": shocks}
@@ -2620,6 +2656,7 @@ func to_dict() -> Dictionary:
 func from_dict(d: Dictionary) -> void:
 	month = int(d.month)
 	player = d.player
+	set_difficulty(d.get("difficulty", "hard"))  # saves from before difficulty levels played like "hard"
 	rng.seed = int(d.rng_seed)
 	rng.state = int(d.rng_state)
 	next_army_id = int(d.next_army_id)

@@ -16,7 +16,8 @@ func _init() -> void:
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_generals", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
-		"test_separate_peace", "test_tired_ai_seeks_peace", "test_ai_marriage_and_generals", "test_ai_access_and_guarantee",
+		"test_separate_peace", "test_tired_ai_seeks_peace", "test_ai_marriage_and_generals", "test_ai_access_and_guarantee", "test_income_bonus_and_army_cost",
+		"test_difficulty",
 		"test_military_access",
 		"test_guarantee",
 		"test_religion",
@@ -1223,8 +1224,28 @@ func test_companies() -> void:
 	check(not n.gov.companies.has("bergbau"), "dissolve company")
 
 
+func test_difficulty() -> void:
+	var g = new_game("ENG")
+	check(g.difficulty == "normal", "default difficulty is normal")
+	g.set_difficulty("easy")
+	check(absf(float(g.nations.ENG.bonus.difficulty.income) - 0.25) < 0.001, "easy gives player income bonus")
+	check(g.nations.FRA.bonus.difficulty.is_empty(), "easy gives AI no bonus")
+	g.set_difficulty("very_hard")
+	check(g.nations.ENG.bonus.difficulty.is_empty(), "very hard: no player bonus")
+	check(g.mod(g.nations.FRA, "income") >= 0.15 - 0.001, "very hard: AI income bonus")
+	check(g.diff("ai_vs_player") > 1.0, "very hard: AI targets player more")
+	g.set_difficulty("nonsense")
+	check(g.difficulty == "normal", "unknown difficulty falls back to normal")
+	g.set_difficulty("hard")
+	var g2 = new_game("ENG")
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.difficulty == "hard", "difficulty survives save/load")
+	check(g2.nations.ENG.bonus.difficulty.is_empty(), "loaded difficulty replaces the player bonus")
+
+
 func test_laws() -> void:
 	var g = new_game("SPA")
+	g.set_difficulty("hard")  # no player bonus from difficulty
 	var n = g.nations.SPA
 	n.adm = 500.0
 	n.mil = 500.0
@@ -1718,3 +1739,18 @@ func test_rel_content() -> void:
 	g.apply_effects("BOH", {"convert_random": 99})
 	check(g.check_conditions("BOH", {"faith_share_max": 1.0}) and not g.check_conditions("BOH", {"province_faith": "protestant"}), "convert_random never overshoots")
 
+
+func test_income_bonus_and_army_cost() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	var p = g.provinces[n.capital]
+	var base_tax: float = g.Economy.tax(g, p)
+	n.tech.adm = 10
+	var ib: float = g.Economy.income_bonus(g, n)
+	check(absf(g.Economy.tax(g, p) - base_tax * (1.0 + ib + g.mod(n, "tax")) / (1.0 + ib - 10 * float(g.bal.adm_tech_income) + g.mod(n, "tax"))) < 0.001,
+			"admin tech adds to the tax bonus instead of multiplying it")
+	var c0: float = g.regiment_cost("FRA")
+	n.tech.mil += 5
+	check(absf(g.regiment_cost("FRA") - c0 - 5 * float(g.bal.army_cost_per_mil_tech) * float(g.bal.regiment_cost)) < 0.001,
+			"regiments get dearer with military tech")
+	check(g.regiment_upkeep("FRA") > float(g.bal.regiment_maintenance), "and so does their upkeep")

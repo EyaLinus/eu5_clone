@@ -55,7 +55,7 @@ var modal_box: VBoxContainer
 var toast: Label
 var toast_time := 0.0
 var hud: Control
-var settings := {"ui_scale": 1.0, "tips": true, "tips_seen": [], "sound": true}
+var settings := {"ui_scale": 1.0, "tips": true, "tips_seen": [], "sound": true, "difficulty": "normal"}
 var sfx_players: Array = []
 # touch layer: drag-to-scroll over buttons and long-press tooltips (see _input)
 const DRAG_START := 14.0
@@ -145,6 +145,14 @@ func _save_settings() -> void:
 	var f := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
 	if f:
 		f.store_string(JSON.stringify(settings))
+
+
+## Difficulty for new games (start menu); saved in the settings, each save keeps its own.
+func _cycle_difficulty() -> void:
+	var i: int = Game.DIFFICULTIES.find(String(settings.difficulty))
+	settings.difficulty = Game.DIFFICULTIES[(i + 1) % Game.DIFFICULTIES.size()]
+	_save_settings()
+	_show_start_menu()
 
 
 func _cycle_ui_scale() -> void:
@@ -497,6 +505,7 @@ func _show_start_menu() -> void:
 	if FileAccess.file_exists(SAVE_PATH):
 		modal_box.add_child(_btn("💾 Weiterspielen", _load_game))
 	modal_box.add_child(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
+	modal_box.add_child(_btn("⚔️ Schwierigkeit: %s" % Game.DIFFICULTY_NAMES.get(settings.difficulty, "Normal"), _cycle_difficulty))
 	for tag in MAJORS + EXTRA_PLAYABLE:
 		if tag == EXTRA_PLAYABLE[0]:
 			modal_box.add_child(_lbl("Weitere Nationen (weniger Missionen und Events):", 16, Color(0.85, 0.75, 0.5)))
@@ -516,6 +525,7 @@ func _idea_bb(idea: String, bonus: Dictionary) -> String:
 func _start_game(tag: String) -> void:
 	game = Game.new()
 	game.setup(data, int(Time.get_unix_time_from_system()) % 100000, tag)
+	game.set_difficulty(String(settings.difficulty))
 	_after_game_loaded()
 	_show_intro()
 
@@ -1487,7 +1497,7 @@ func _panel_province(pid: int) -> void:
 func _province_army(p) -> void:
 	var me: String = game.player
 	var pid: int = p.id
-	var c := int(game.bal.regiment_cost)
+	var c := int(game.regiment_cost(me))
 	var n = game.nations[me]
 	side_box.add_child(_lbl("👥 Mannschaften %.0f · 🛡️ %.0f / %.0f Regimenter" % [n.manpower, game.army_regs(me), game.force_limit(me)], 16, Color(0.75, 0.8, 0.85)))
 	side_box.add_child(_row([

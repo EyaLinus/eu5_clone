@@ -5,6 +5,11 @@
   Bauernkrieg, Bibelübersetzung, Klosterauflösung, Bildersturm, Jesuiten, Konzil von Trient, Augsburger
   Religionsfriede, Religionsgespräche, Union und Liga, dazu ein eigener Patriarch für orthodoxe und eine Medrese für
   sunnitische Länder. Viele Optionen holen abgefallene Provinzen zum Staatsglauben zurück.
+- **Schwierigkeitsgrade:** Im Startmenü wählbar (Leicht, Normal, Schwer, Sehr schwer). Normal ist etwas leichter als bisher: +10 % Einkommen, +5 % Kampfkraft, −0,5 Unruhe für dich, und die KI greift dich seltener an. Leicht gibt mehr Boni und eine friedlichere KI, Schwer entspricht der alten Balance, Sehr schwer gibt der KI Einkommens-, Kampf- und Mannstärke-Boni und macht sie aggressiver. Alte Spielstände laden als Schwer.
+- **Späte Wirtschaft gedämpft:** Einkommensboni (Admin-Tech, Einkommen) addieren sich jetzt zu Steuer-, Produktions- und Handelsboni, statt sie zu vervielfachen. Armeen werden mit jeder Militär-Tech 8 % teurer (Anwerben und Unterhalt). England hatte um 1600 vorher ~330 Gold/Monat bei 30 Ausgaben.
+- Die KI nutzt Durchmarschrecht und garantiert kleine befreundete Nachbarn.
+
+## v0.8.9 – 2026-10-26
 - **45 neue Ereignisse zu den neuen Systemen:** Knappheit und Überangebot auf den Märkten, Monopole, Messen und
   Streit mit Handelspartnern, Silberadern, Weinjahrgänge, Heringszüge, Weberstreiks; Ereignisse zu Marktplätzen,
   Manufakturen, Kasernen, Festungen und Gerichtshöfen; Häfen (Piraten, Schiffbauer, Hafenbrand, Kaufleute wollen
@@ -15,7 +20,6 @@
   Böhmens Silber, Russlands Pelzhandel und Straßen, Brügges Messen.
 - Ereignisse können jetzt Gebäudestufen schenken, Kredite erlassen, die Moral heben oder Söldner sofort
   bereitstellen.
-
 - **Großprojekte 🏛️ (neu):** Sieben Bauwerke für die Hauptstadt im Nationsfenster: Kathedrale, Gesandtenhof, Arsenal,
   Universität, Börse, Kriegsakademie, Prunkpalast. Jedes braucht eine Technologiestufe, kostet viel Gold (mehr, je
   entwickelter dein Reich) und baut 3 bis 6 Jahre. Fertig gibt es dauerhafte Boni (z. B. Technologie −8 %,

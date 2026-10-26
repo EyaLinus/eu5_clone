@@ -104,6 +104,13 @@
   "building_dev": 1,
   "building_level_exp": 1.25,
   "building_cost_mult": 0.5,
+  "difficulty": {
+    "easy": {"player": {"income": 0.25, "combat": 0.1, "manpower": 0.25, "unrest": -1.5, "tech_cost": -0.1}, "ai": {}, "ai_aggression": 0.75, "ai_vs_player": 0.6},
+    "normal": {"player": {"income": 0.1, "combat": 0.05, "unrest": -0.5}, "ai": {}, "ai_aggression": 1.0, "ai_vs_player": 0.85},
+    "hard": {"player": {}, "ai": {}, "ai_aggression": 1.0, "ai_vs_player": 1.0},
+    "very_hard": {"player": {}, "ai": {"income": 0.15, "combat": 0.1, "manpower": 0.15}, "ai_aggression": 1.15, "ai_vs_player": 1.3}
+  },
+  "army_cost_per_mil_tech": 0.08,
   "ai_max_marriages": 2,
   "ai_marriage_chance": 0.15,
   "ai_max_guarantees": 1,

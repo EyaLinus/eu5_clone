@@ -102,7 +102,7 @@ func _spend_gold(g, n) -> void:
 	var war: bool = g.is_at_war(tag)
 	var want: float = fl if war else fl * 0.75
 	# never plan an army the treasury cannot pay for (small states would go bankrupt and desert)
-	var upkeep: float = float(g.bal.regiment_maintenance) * (1.0 if war else float(g.bal.peace_maintenance_mult))
+	var upkeep: float = g.regiment_upkeep(tag) * (1.0 if war else float(g.bal.peace_maintenance_mult))
 	var affordable: float = maxf(1.0, n.income * (0.85 if war else 0.7) / maxf(upkeep, 0.001))
 	want = minf(want, affordable)
 	var Eco = g.Economy
@@ -117,7 +117,7 @@ func _spend_gold(g, n) -> void:
 			arms.sort_custom(func(x, y): return x.regs > y.regs)
 			g.disband(arms[0], 1.0)
 		return
-	var cost := float(g.bal.regiment_cost)
+	var cost: float = g.regiment_cost(tag)
 	var reserve: float = 10.0 + n.expenses * 4.0
 	var k: int = int(minf(minf((n.gold - reserve) / cost, want - regs), n.manpower))
 	# out of manpower in a war: hire mercenaries if the chest allows
@@ -314,7 +314,8 @@ func _consider_war(g, n) -> void:
 		return
 	if n.adm < float(g.bal.core_cost_per_dev) * 8.0:
 		return
-	if g.rng.randf() > float(g.bal.ai_war_chance) * n.aggression:
+	var aggression: float = n.aggression * g.diff("ai_aggression")
+	if g.rng.randf() > float(g.bal.ai_war_chance) * aggression:
 		return
 	var mine: float = g.strength(tag)
 	for ally in n.allies:
@@ -334,7 +335,9 @@ func _consider_war(g, n) -> void:
 		for ally in g.defenders_for(tag, t):
 			theirs += g.strength(ally)
 		var ratio: float = mine / maxf(theirs, 0.5)
-		var need: float = float(g.bal.ai_war_ratio) / n.aggression * (0.85 if claim else 1.0)
+		var need: float = float(g.bal.ai_war_ratio) / aggression * (0.85 if claim else 1.0)
+		if t == g.player:
+			need /= g.diff("ai_vs_player")
 		if ratio < need:
 			continue
 		var s: float = ratio + (1.0 if claim else 0.0)
