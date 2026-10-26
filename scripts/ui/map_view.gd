@@ -360,13 +360,22 @@ func _draw_hover_tip() -> void:
 	var txt := "%s · %s %s" % [p.name, PixelEmoji.nation(p.owner, game.nations[p.owner].emoji), game.nations[p.owner].name]
 	if p.controller != p.owner:
 		txt += " (besetzt: %s)" % game.nations[p.controller].name
+	var line2 := "Entwicklung %d" % p.dev
+	for bid in p.buildings:
+		var lv: int = int(p.buildings[bid])
+		if lv > 0 and game.buildings_def.has(bid):
+			line2 += "  %s%d" % [game.buildings_def[bid].get("emoji", "🏠"), lv]
 	var fs := 15
 	var sz := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
+	var sz2 := font.get_string_size(line2, HORIZONTAL_ALIGNMENT_LEFT, -1, fs - 2)
+	var w := maxf(sz.x, sz2.x)
+	var lh := sz.y + 2.0
 	var pos := _hover_pos + Vector2(16, 26)
-	pos.x = minf(pos.x, size.x - sz.x - 12)
-	pos.y = minf(pos.y, size.y - 12)
-	draw_rect(Rect2(pos - Vector2(6, sz.y - 2), sz + Vector2(12, 6)), Color(0.09, 0.1, 0.13, 0.88))
+	pos.x = minf(pos.x, size.x - w - 12)
+	pos.y = minf(pos.y, size.y - 12 - lh)
+	draw_rect(Rect2(pos - Vector2(6, sz.y - 2), Vector2(w + 12, sz.y + 6 + lh)), Color(0.09, 0.1, 0.13, 0.88))
 	draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+	draw_string(font, pos + Vector2(0, lh), line2, HORIZONTAL_ALIGNMENT_LEFT, -1, fs - 2, Color(0.85, 0.85, 0.8))
 
 
 ## Province borders thin, coasts medium, borders between different owners thick.
