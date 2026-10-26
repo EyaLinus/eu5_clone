@@ -139,7 +139,7 @@ func _cheapest_building_cost(g, n) -> float:
 	var c := 1e9
 	for bid in g.buildings_def:
 		c = minf(c, float(g.buildings_def[bid].cost))
-	return c * maxf(0.3, 1.0 + g.mod(n, "build_cost")) - 1.0
+	return c * float(g.bal.building_cost_mult) * maxf(0.3, 1.0 + g.mod(n, "build_cost")) - 1.0
 
 
 # ---------------------------------------------------------------- diplomacy
