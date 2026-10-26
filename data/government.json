@@ -221,7 +221,8 @@
    "per_step": {
     "maintenance": 0.15,
     "combat": 0.04,
-    "manpower": 0.05
+    "manpower": 0.05,
+    "army_power_regen": 0.25
    },
    "cost": 0.0
   },

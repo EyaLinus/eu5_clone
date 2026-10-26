@@ -352,7 +352,7 @@ BUDGET = [
      {"prestige": 1.0, "dip": 0.5, "estate_adel": 5}, 0.04),
     ("heer", "Militärbudget", "Sold, Ausrüstung und Drill der Armee.",
      ["minimal", "knapp", "normal", "großzügig", "Kriegsfuß"],
-     {"maintenance": 0.15, "combat": 0.04, "manpower": 0.05}, 0.0),
+     {"maintenance": 0.15, "combat": 0.04, "manpower": 0.05, "army_power_regen": 0.25}, 0.0),
     ("bildung", "Forschung", "Universitäten, Gelehrte und Druckereien.",
      ["keine", "wenig", "normal", "gefördert", "Akademien"],
      {"tech_cost": -0.07, "adm": 0.25, "estate_klerus": 3}, 0.04),
