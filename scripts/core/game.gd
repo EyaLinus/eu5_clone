@@ -86,6 +86,8 @@ class Nation:
 	var loans: Array = []  # loan amounts (gold) still owed
 	var trade_pacts: Array = []  # tags with a trade agreement (+trade income for both)
 	var marriages: Array = []  # royal marriages: lasting good relations, a chance of personal union
+	var access := {}  # nations whose land our armies may cross (military access)
+	var guarantees := {}  # nations whose independence we defend
 	var autobuild: bool = false  # player: build the best building whenever the treasury stays above the reserve
 	var autobuild_reserve: float = 100.0
 	var army_stance: String = ""  # player's default for new armies: "" manual, "attack" or "defend"
@@ -447,7 +449,7 @@ func can_enter(tag: String, pid: int) -> bool:
 	for t in [p.owner, p.controller]:
 		if t == tag or is_allied(tag, t) or at_war(tag, t):
 			return true
-	return false
+	return nations[tag].access.has(p.owner) and p.controller == p.owner
 
 
 func find_path(tag: String, from: int, to: int) -> Array:
@@ -627,6 +629,12 @@ func _economy(n: Nation) -> void:
 			n.relations[t] = maxf(r, float(bal.marriage_rel_floor))
 			continue
 		n.relations[t] = r - signf(r) * minf(absf(r), 0.15)
+	for t in n.access.keys():
+		if at_war(n.tag, t):
+			n.access.erase(t)
+		elif get_rel(t, n.tag) < float(bal.access_lost_rel):
+			revoke_access(n.tag, t)
+			log_msg("🚶 %s entzieht %s das Durchmarschrecht." % [nations[t].name, n.name], [n.tag, t])
 	if n.gold < -20.0:
 		stats.bankrupt_months += 1
 		# bankruptcy: troops desert until the budget recovers
@@ -1263,6 +1271,11 @@ func declare_war(att: String, def: String, coalition_members: Array = []) -> Str
 	if n.marriages.has(def):
 		end_marriage(att, def)
 		log_msg("💔 %s bricht die Ehe mit %s und erklärt den Krieg." % [n.name, nations[def].name], [att, def])
+	n.access.erase(def)
+	nations[def].access.erase(att)
+	if n.guarantees.has(def):
+		n.guarantees.erase(def)
+		log_msg("🛡️ %s bricht die Garantie für %s." % [n.name, nations[def].name], [att, def])
 	var has_cb := coalition_members.size() > 0 or has_claim_on(att, def)
 	if not has_cb:
 		if n.dip < float(bal.nocb_war_dip):
@@ -1314,6 +1327,11 @@ func defenders_for(att: String, def: String) -> Array:
 	for ally in nations[def].allies:
 		if not is_allied(ally, att) and nations[ally].alive and not has_truce(ally, att) and not r.has(ally):
 			r.append(ally)
+	for t in nations:
+		var gn: Nation = nations[t]
+		if gn.alive and gn.guarantees.has(def) and t != att and not r.has(t) and not is_allied(t, att) \
+				and not has_truce(t, att) and nations[att].overlord != t:
+			r.append(t)
 	if emperor != "" and nations[emperor].alive and hre.has(def) and not hre.has(att) and emperor != def \
 			and emperor != att and not r.has(emperor) and not is_allied(emperor, att) and not has_truce(emperor, att):
 		r.append(emperor)
@@ -1574,6 +1592,11 @@ func _check_alive(tag: String) -> void:
 	for t in n.marriages:
 		nations[t].marriages.erase(tag)
 	n.marriages.clear()
+	n.access.clear()
+	n.guarantees.clear()
+	for o in nations.values():
+		o.access.erase(tag)
+		o.guarantees.erase(tag)
 	for ally in n.allies:
 		nations[ally].allies.erase(tag)
 	n.allies.clear()
@@ -1928,7 +1951,7 @@ func split_army(army: Army) -> Army:
 func move_army(army: Army, pid: int) -> String:
 	var path := find_path(army.owner, army.pid, pid)
 	if path.is_empty():
-		return "Kein Weg dorthin (kein Zugang)."
+		return "Kein Weg dorthin. Fremdes Land braucht 🚶 Durchmarschrecht (Diplomatie-Fenster des Landes)."
 	army.target = pid
 	army.path = path
 	return ""
@@ -1942,6 +1965,85 @@ func improve_relations(tag: String, target: String) -> String:
 	n.dip -= c
 	add_rel(tag, target, float(bal.improve_relation_amount))
 	return ""
+
+
+# ---- military access
+
+func access_block_reason(tag: String, target: String) -> String:
+	var n: Nation = nations[tag]
+	if tag == target or not nations.has(target) or not nations[target].alive:
+		return "Ungültiges Ziel."
+	if n.access.has(target):
+		return "Durchmarschrecht besteht schon."
+	if is_allied(tag, target) or nations[target].overlord == tag:
+		return "Verbündete und Vasallen lassen dich ohnehin durch."
+	if at_war(tag, target):
+		return "Ihr seid im Krieg."
+	if n.dip < float(bal.access_cost):
+		return "Zu wenig Diplomatie (%d)." % int(bal.access_cost)
+	if target != player:
+		if get_rel(target, tag) < float(bal.access_min_rel):
+			return "%s lehnt ab (Beziehung %d, braucht %d)." % [nations[target].name, int(get_rel(target, tag)), int(bal.access_min_rel)]
+		for e in enemies_of(tag):
+			if is_allied(target, e) or nations[target].overlord == e:
+				return "%s steht auf der Seite von %s." % [nations[target].name, nations[e].name]
+	return ""
+
+
+func request_access(tag: String, target: String) -> String:
+	var r := access_block_reason(tag, target)
+	if r != "":
+		return r
+	nations[tag].dip -= float(bal.access_cost)
+	nations[tag].access[target] = true
+	log_msg("🚶 %s gewährt %s Durchmarschrecht." % [nations[target].name, nations[tag].name], [tag, target])
+	return ""
+
+
+## Ends tag's right to cross target's land; its armies standing there are sent home.
+func revoke_access(tag: String, target: String) -> void:
+	nations[tag].access.erase(target)
+	for a in armies:
+		if a.owner == tag and not can_enter(tag, a.pid):
+			a.pid = nations[tag].capital
+			a.target = -1
+			a.path = []
+
+
+# ---- guarantees
+
+func guarantee_block_reason(tag: String, target: String) -> String:
+	var n: Nation = nations[tag]
+	if tag == target or not nations.has(target) or not nations[target].alive:
+		return "Ungültiges Ziel."
+	if n.guarantees.has(target):
+		return "Garantie besteht schon."
+	if nations[target].overlord != "":
+		return "Vasallen schützt ihr Lehnsherr."
+	if at_war(tag, target):
+		return "Ihr seid im Krieg."
+	if n.guarantees.size() >= int(bal.max_guarantees):
+		return "Höchstens %d Garantien." % int(bal.max_guarantees)
+	if n.dip < float(bal.guarantee_cost):
+		return "Zu wenig Diplomatie (%d)." % int(bal.guarantee_cost)
+	return ""
+
+
+## Tag promises to join any war declared on target. The protected state is grateful.
+func guarantee(tag: String, target: String) -> String:
+	var r := guarantee_block_reason(tag, target)
+	if r != "":
+		return r
+	nations[tag].dip -= float(bal.guarantee_cost)
+	nations[tag].guarantees[target] = true
+	add_rel(target, tag, float(bal.guarantee_rel))
+	log_msg("🛡️ %s garantiert die Unabhängigkeit von %s." % [nations[tag].name, nations[target].name], [tag, target])
+	return ""
+
+
+func end_guarantee(tag: String, target: String) -> void:
+	if nations[tag].guarantees.erase(target):
+		add_rel(target, tag, -float(bal.guarantee_rel))
 
 
 # ---- royal marriages
@@ -2359,7 +2461,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(),
 				"techs": tree.to_save(n), "gov": govt.to_save(n)}
 	d.nations = ns
 	var ar := []
@@ -2471,6 +2573,12 @@ func from_dict(d: Dictionary) -> void:
 		n.marriages = []
 		for t in e.get("marriages", []):
 			n.marriages.append(str(t))
+		n.access = {}
+		for t in e.get("access", []):
+			n.access[str(t)] = true
+		n.guarantees = {}
+		for t in e.get("guarantees", []):
+			n.guarantees[str(t)] = true
 		n.loans = []
 		for l in e.get("loans", []):
 			n.loans.append(float(l))

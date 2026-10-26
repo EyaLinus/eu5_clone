@@ -103,6 +103,7 @@
   "max_merchants": 5,
   "building_dev": 1,
   "building_level_exp": 1.25,
+  "building_cost_mult": 0.5,
   "loan_months_income": 12,
   "loan_min": 50,
   "loan_interest": 0.05,
@@ -151,5 +152,10 @@
   "general_cost": 40.0,
   "general_bonus": 0.06,
   "general_death_chance": 0.04,
-  "building_cost_mult": 0.5
+  "access_cost": 10.0,
+  "access_min_rel": 0.0,
+  "access_lost_rel": -25.0,
+  "guarantee_cost": 25.0,
+  "max_guarantees": 3,
+  "guarantee_rel": 15.0
 }
