@@ -20,7 +20,7 @@ const LABELS := {
 	"advisor_slots": ["Berater-Platz", false, true],
 	"estate_adel": ["Zufriedenheit Adel", false, true], "estate_klerus": ["Zufriedenheit Klerus", false, true],
 	"estate_buerger": ["Zufriedenheit Bürger", false, true],
-	"army_power": ["Max. Armeestärke", true, true], "army_power_regen": ["Erholung der Armeestärke", true, true],
+	"army_power": ["Max. Moral", true, true], "army_power_regen": ["Moral-Erholung", true, true],
 }
 
 ## What each modifier does, for tooltips and detail popups.
@@ -38,7 +38,7 @@ const DESCS := {
 	"estate_adel": "Zielwert der Zufriedenheit des Adels (Grundwert 50)",
 	"estate_klerus": "Zielwert der Zufriedenheit des Klerus (Grundwert 50)",
 	"estate_buerger": "Zielwert der Zufriedenheit der Bürger (Grundwert 50)",
-	"army_power": "höchste Kampfbereitschaft der Armeen", "army_power_regen": "wie schnell Armeen nach Kämpfen wieder erstarken",
+	"army_power": "höchste Moral der Armeen", "army_power_regen": "wie schnell die Moral nach Kämpfen zurückkehrt",
 }
 
 ## AI weight per modifier unit (combat scales with aggression).

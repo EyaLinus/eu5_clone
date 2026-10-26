@@ -717,6 +717,36 @@ assets:
     source: assets/src/pixel/icons/tab_wars.txt
     status: done
     updated: '2026-10-24'
+  ui_kit:
+    created: '2026-10-26'
+    kind: ui
+    note: '9-slice pixel UI kit (style holz: oak frame, brass corner rivets); variants
+      eisen/krone via --variant; scripts/ui/ui_theme.gd'
+    outputs:
+    - assets/art/ui/bar_fill.png
+    - assets/art/ui/button.png
+    - assets/art/ui/button_accent.png
+    - assets/art/ui/button_disabled.png
+    - assets/art/ui/button_hover.png
+    - assets/art/ui/button_pressed.png
+    - assets/art/ui/card.png
+    - assets/art/ui/card_bad.png
+    - assets/art/ui/card_gold.png
+    - assets/art/ui/card_good.png
+    - assets/art/ui/grabber.png
+    - assets/art/ui/header.png
+    - assets/art/ui/inset.png
+    - assets/art/ui/mod_down.png
+    - assets/art/ui/mod_up.png
+    - assets/art/ui/panel.png
+    - assets/art/ui/scroll_track.png
+    - assets/art/ui/separator.png
+    - assets/art/ui/slider_grabber.png
+    - assets/art/ui/tooltip.png
+    - assets/art/ui/topbar.png
+    source: tools/art/ui_kit.py
+    status: done
+    updated: '2026-10-26'
   vassal:
     created: '2026-10-24'
     kind: icon

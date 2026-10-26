@@ -8,10 +8,6 @@ const Tech = preload("res://scripts/core/tech.gd")
 const Icons = preload("res://scripts/ui/icons.gd")
 
 const CAT_NAMES := {"adm": "Verwaltung", "dip": "Diplomatie", "mil": "Militär"}
-const COL_DONE := Color("2c4a33")
-const COL_READY := Color("6b5520")
-const COL_OPEN := Color("383426")
-const COL_LOCKED := Color("1c2029")
 
 var m
 var cat := "adm"
@@ -41,7 +37,8 @@ func build() -> void:
 		var b: Button = m._btn("%s%s\n%d / %d" % [Icons.prefix(k), CAT_NAMES[k], n.get(k), c], _select.bind(k))
 		b.clip_text = false
 		b.add_theme_font_size_override("font_size", 16)
-		_style(b, Color("4a5a78") if k == cat else Color("2b3445"), Color("8fa7d6") if k == cat else Color(0, 0, 0, 0))
+		if k == cat:  # the selected category looks pressed
+			b.add_theme_stylebox_override("normal", UiTheme.box("button_pressed", 10))
 		if n.get(k) >= c and not g.tree.available(g, me, k).is_empty():
 			b.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
 		cats.append(b)
@@ -154,28 +151,23 @@ func _cell(g, me: String, t: Dictionary, special: bool) -> Button:
 	v.add_child(f)
 	for c in v.get_children():
 		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var bg := COL_LOCKED
-	var border := Color(0, 0, 0, 0)
+	var kind := ""
 	if done:
-		bg = COL_DONE
-	elif reason == "":
-		bg = COL_READY if ready else COL_OPEN
-		border = Color(1.0, 0.8, 0.35) if ready else Color(0.55, 0.5, 0.3)
-	if special:
-		border = Color(1.0, 0.85, 0.4)
-	_style(b, bg, border)
+		kind = "good"
+	elif reason == "" and ready:
+		kind = "gold"
+	if special and not done:
+		kind = "gold"
+	_style(b, kind, reason != "" and not done)
 	return b
 
 
-func _style(b: Button, bg: Color, border: Color) -> void:
+## Tech tile frame: green when researched, gold when affordable (or a national tech), dimmed when locked.
+func _style(b: Button, kind: String, locked: bool) -> void:
 	for st in ["normal", "hover", "pressed"]:
-		var s := StyleBoxFlat.new()
-		s.bg_color = bg.lightened(0.08) if st == "hover" else bg
-		s.set_corner_radius_all(8)
-		s.set_content_margin_all(6)
-		if border.a > 0.0:
-			s.border_color = border
-			s.set_border_width_all(2)
+		var s: StyleBox = UiTheme.card(kind, 6)
+		if s is StyleBoxTexture:
+			s.modulate_color = Color(0.7, 0.7, 0.75) if locked else (Color(1.25, 1.25, 1.25) if st == "hover" else Color.WHITE)
 		b.add_theme_stylebox_override(st, s)
 
 
@@ -229,10 +221,9 @@ static func effects_rich(eff: Dictionary, fs: int = 16, compact: bool = false) -
 	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	r.custom_minimum_size.x = 100
 	r.add_theme_font_size_override("normal_font_size", fs)
-	var parts := []
-	for l in Tech.effect_lines(eff):
-		parts.append("[color=%s]%s[/color]" % ["#8fdc8f" if l[1] else "#f08a7a", l[0]])
-	r.text = ("\n" if compact else "  ·  ").join(parts) if not parts.is_empty() else "[color=#999999]keine Wirkung[/color]"
+	var px: int = 0 if compact else clampi(fs - 2, 12, 18)  # narrow tiles: colour only, no arrows
+	var txt: String = UiTheme.mods_bb(eff, "\n" if compact else "   ", px)
+	r.text = txt if txt != "" else "[color=#999999]keine Wirkung[/color]"
 	if compact:
 		r.text = "[center]" + r.text + "[/center]"
 	return r
