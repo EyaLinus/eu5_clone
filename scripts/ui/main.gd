@@ -2019,10 +2019,25 @@ func _panel_wars() -> void:
 			them.append(nname(t))
 		side_box.add_child(_lbl("🔥 " + w.name, 20, Color(1, 0.8, 0.6)))
 		side_box.add_child(_lbl("Wir: %s\nGegner: %s\nKriegspunkte: %+d · Dauer: %d Monate" % [", ".join(us), ", ".join(them), int(ws), game.month - w.start], 16))
+		var pw := [0.0, 0.0]
+		for a in game.armies:
+			var side := 0 if game.side_tags(w, att).has(a.owner) else (1 if game.side_tags(w, not att).has(a.owner) else -1)
+			if side >= 0:
+				pw[side] += a.regs * game.combat_mult(a.owner) * game.power_factor(a)
+		var sl := _lbl("⚔️ Kampfkraft der Armeen: wir %d · Gegner %d" % [int(round(pw[0])), int(round(pw[1]))], 16,
+				Color(0.55, 0.95, 0.45) if pw[0] >= pw[1] else Color(1.0, 0.55, 0.45))
+		sl.tooltip_text = "Regimenter × Kampfwert × Moral aller Armeen beider Seiten (ohne Heimvorteil, Generäle und Zufall)."
+		sl.mouse_filter = Control.MOUSE_FILTER_STOP
+		side_box.add_child(sl)
 		if game.side_tags(w, att)[0] == me:
 			side_box.add_child(_btn("🕊️ Friedensverhandlung", _open_panel.bind("peace", w.id)))
 		else:
 			side_box.add_child(_lbl("Der Kriegsführer %s verhandelt den Frieden." % game.nations[game.side_tags(w, att)[0]].name, 15, Color(0.7, 0.7, 0.7)))
+			var why: String = game.leave_war_block_reason(me, w)
+			var wid: int = w.id
+			side_box.add_child(_btn("🏳️ Separatfrieden (Krieg verlassen)", func(): _act(game.leave_war(me, game.war_by_id(wid)), "🏳️ Du hast den Krieg verlassen"),
+					"Du steigst aus dem Krieg aus: Waffenstillstand mit allen Gegnern, besetzte Provinzen gehen an ihre Besitzer zurück. Der Kriegsführer %s ist verärgert (−%d Beziehung).%s" % [
+					game.nations[game.side_tags(w, att)[0]].name, int(game.bal.separate_peace_rel), ("\n❌ " + why) if why != "" else ""], why != ""))
 	var n = game.nations[me]
 	if not n.claims.is_empty():
 		side_box.add_child(_lbl("📜 Deine Ansprüche", 20, Color(0.7, 0.8, 0.9)))
