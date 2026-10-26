@@ -1173,7 +1173,7 @@ func test_budget() -> void:
 	var ai = g.nations.ENG
 	ai.gold = 0.0
 	gv._ai_budget(g, ai)
-	check(gv.budget_step(ai, "hof") == 1 and gv.budget_step(ai, "bildung") == 1, "poor AI cuts court and research")
+	check(gv.budget_step(ai, "hof") == 1 and gv.budget_step(ai, "bildung") == 1 and gv.budget_step(ai, "heer") <= 2, "poor AI cuts court, research and never raises the army budget")
 	ai.gold = 5000.0
 	gv._ai_budget(g, ai)
 	check(gv.budget_step(ai, "hof") == 3 and gv.budget_step(ai, "bildung") == 3, "rich AI spends on court and research")

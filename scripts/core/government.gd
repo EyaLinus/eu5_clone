@@ -654,6 +654,7 @@ func _ai_budget(g, n) -> void:
 	if poor:
 		want.hof = 1
 		want.bildung = 1
+		want.heer = 2 if war else 1
 		if n.gov.estates.get("buerger", 50.0) > 40.0:
 			want.steuern = 3
 	elif rich:
