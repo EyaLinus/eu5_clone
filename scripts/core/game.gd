@@ -606,13 +606,12 @@ func _economy(n: Nation) -> void:
 			p.core_months -= 1
 			if p.core_months == 0 and n.tag == player:
 				log_msg("🤝 %s ist jetzt Kernland: volles Einkommen, weniger Unruhe." % p.name, [n.tag])
-	var inc_mult: float = 1.0 + n.tech.adm * float(bal.adm_tech_income) + mod(n, "income")
-	n.tax_income = tax * inc_mult
-	n.prod_income = prod * inc_mult
-	n.trade_income = Economy.trade_income(self, n) * inc_mult
+	n.tax_income = tax
+	n.prod_income = prod
+	n.trade_income = Economy.trade_income(self, n)
 	n.income = n.tax_income + n.prod_income + n.trade_income
 	Economy.construction_tick(self, n)
-	var maint: float = army_regs(n.tag) * float(bal.regiment_maintenance) * maxf(0.2, 1.0 + mod(n, "maintenance"))
+	var maint: float = army_regs(n.tag) * regiment_upkeep(n.tag) * maxf(0.2, 1.0 + mod(n, "maintenance"))
 	var war := is_at_war(n.tag)
 	if not war:
 		maint *= float(bal.peace_maintenance_mult)
@@ -1162,7 +1161,7 @@ func _reinforce(a: Army) -> void:
 		return
 	a.regs += amt
 	n.manpower -= amt
-	n.gold -= amt * float(bal.regiment_cost) * 0.5
+	n.gold -= amt * regiment_cost(a.owner) * 0.5
 
 
 # ---------------------------------------------------------------- wars
@@ -1773,11 +1772,24 @@ func research(tag: String, id: String) -> String:
 	return tree.research(self, tag, id)
 
 
+## Armies get dearer as they modernise: recruiting and upkeep rise with military tech.
+func army_cost_mult(tag: String) -> float:
+	return 1.0 + nations[tag].tech.mil * float(bal.army_cost_per_mil_tech)
+
+
+func regiment_cost(tag: String) -> float:
+	return float(bal.regiment_cost) * army_cost_mult(tag)
+
+
+func regiment_upkeep(tag: String) -> float:
+	return float(bal.regiment_maintenance) * army_cost_mult(tag)
+
+
 func recruit(tag: String, pid: int, count: int) -> String:
 	var n: Nation = nations[tag]
 	if provinces[pid].owner != tag or provinces[pid].controller != tag:
 		return "Rekrutierung nur in eigenen, unbesetzten Provinzen."
-	var cost: float = count * float(bal.regiment_cost)
+	var cost: float = count * regiment_cost(tag)
 	if n.gold < cost:
 		return "Zu wenig Gold (%d benötigt)." % cost
 	if n.manpower < count:
@@ -1799,7 +1811,7 @@ func recruit(tag: String, pid: int, count: int) -> String:
 
 ## Mercenaries: up to merc_regs regiments without manpower, for merc_cost_mult × the gold, once per merc_cooldown months.
 func merc_cost(tag: String) -> float:
-	return float(bal.merc_regs) * float(bal.regiment_cost) * float(bal.merc_cost_mult)
+	return float(bal.merc_regs) * regiment_cost(tag) * float(bal.merc_cost_mult)
 
 
 func merc_ready_in(tag: String) -> int:

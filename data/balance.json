@@ -104,6 +104,7 @@
   "building_dev": 1,
   "building_level_exp": 1.25,
   "building_cost_mult": 0.5,
+  "army_cost_per_mil_tech": 0.08,
   "ai_max_marriages": 2,
   "ai_marriage_chance": 0.15,
   "ai_max_guarantees": 1,
