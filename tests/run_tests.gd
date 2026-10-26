@@ -22,7 +22,7 @@ func _init() -> void:
 		"test_religion",
 		"test_monuments_and_feast",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_morale_modifiers", "test_reforms", "test_tech_spread",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1501,6 +1501,74 @@ func test_budget() -> void:
 	gv._ai_budget(g, ai)
 	check(gv.budget_step(ai, "hof") == 3 and gv.budget_step(ai, "bildung") == 3, "rich AI spends on court and research")
 
+
+## eco_ events/missions (tools/content/eco_events.py): references are valid and the new conditions/effects work.
+func test_eco_content() -> void:
+	var g = new_game("ENG")
+	var n = g.nations.ENG
+	var known := ["building", "no_building", "coastal", "produces", "goods_leader", "shock", "loans_min", "loans_max",
+		"trade_pacts_min", "mercs_recent", "morale_max", "budget_min", "budget_max", "gold_max", "year_min", "at_war",
+		"at_peace", "estate_min", "estate_max"]
+	var reqs := []
+	for e in data.events:
+		if e.id.begins_with("eco_"):
+			reqs.append(e.trigger)
+			for o in e.options:
+				var b = o.effects.get("build", "")
+				check(b == "" or g.buildings_def.has(b), "%s builds a known building" % e.id)
+	for tag in data.missions:
+		for m in data.missions[tag]:
+			if "_eco_" in m.id:
+				reqs.append(m.require)
+	check(reqs.size() >= 60, "eco content present (%d)" % reqs.size())
+	for r in reqs:
+		for k in r:
+			check(known.has(k), "known condition " + k)
+		for bid in r.get("building", {}):
+			check(g.buildings_def.has(bid), "known building " + bid)
+		for key in ["produces", "goods_leader"]:
+			check(not r.has(key) or r[key] is bool or g.goods_def.has(r[key]), "known good in " + key)
+		for key in ["budget_min", "budget_max"]:
+			for id in r.get(key, {}):
+				check(g.govt.budget_by_id.has(id), "known budget slider " + id)
+		g.check_conditions("ENG", r)  # must not crash
+	# conditions
+	check(g.check_conditions("ENG", {"coastal": true}) and not g.check_conditions("BOH", {"coastal": true}), "England is coastal, Bohemia is not")
+	check(g.check_conditions("ENG", {"produces": "wool"}) and not g.check_conditions("ENG", {"produces": "furs"}), "England produces wool, no furs")
+	check(g.check_conditions("ENG", {"no_building": "road"}) and not g.check_conditions("ENG", {"building": {"road": 1}}), "no roads at start")
+	# effects: free building level
+	var dev0: int = n.dev_total
+	g.apply_effects("ENG", {"build": "road"})
+	check(g.Economy.building_total(g, "ENG", "road") == 1 and g.check_conditions("ENG", {"building": {"road": 1}}), "build effect adds a road level")
+	check(g.nation_dev("ENG") == dev0, "free road gives no development (no_dev)")
+	g.apply_effects("ENG", {"build": "marketplace"})
+	check(g.nation_dev("ENG") == dev0 + int(g.bal.building_dev), "free marketplace grows the province like a finished building")
+	# loans
+	g.apply_effects("ENG", {"loan": 2})
+	check(n.loans.size() == 2 and g.check_conditions("ENG", {"loans_min": 2}) and not g.check_conditions("ENG", {"loans_max": 1}), "loan effect + loan conditions")
+	g.apply_effects("ENG", {"loan_forgiven": 5})
+	check(n.loans.is_empty(), "loan_forgiven clears loans and never underflows")
+	# mercenaries
+	n.flags["merc_month"] = g.month
+	check(g.check_conditions("ENG", {"mercs_recent": 12}) and g.merc_ready_in("ENG") > 0, "mercs recently hired")
+	g.apply_effects("ENG", {"merc_ready": true})
+	check(g.merc_ready_in("ENG") == 0 and not g.check_conditions("ENG", {"mercs_recent": 12}), "merc_ready resets the cooldown")
+	# morale
+	var a = g.armies_of("ENG")[0]
+	a.regs = maxf(a.regs, 3.0)
+	a.power = 0.2 * g.power_max("ENG")
+	check(g.check_conditions("ENG", {"morale_max": 0.45}), "worn-out army detected")
+	g.apply_effects("ENG", {"army_power": 0.3})
+	check(absf(a.power - 0.5 * g.power_max("ENG")) < 0.001 and not g.check_conditions("ENG", {"morale_max": 0.35}), "army_power effect raises morale")
+	g.apply_effects("ENG", {"army_power": 5.0})
+	check(a.power <= g.power_max("ENG") + 0.0001, "morale capped at maximum")
+	# budget
+	check(g.check_conditions("ENG", {"budget_max": {"hof": 2}}) and not g.check_conditions("ENG", {"budget_min": {"hof": 4}}), "budget at default")
+	g.govt.set_budget(g, "ENG", "hof", 4)
+	check(g.check_conditions("ENG", {"budget_min": {"hof": 4}}), "budget_min after raising the court")
+	# shocks
+	g.shocks = {"wool": {"mult": 1.4, "years": 3}}
+	check(g.check_conditions("ENG", {"shock": "up"}) and not g.check_conditions("ENG", {"shock": "down"}), "scarcity shock on own good")
 
 ## Techs, laws, advisors and the army budget feed the morale system (army_power / army_power_regen).
 func test_morale_modifiers() -> void:
