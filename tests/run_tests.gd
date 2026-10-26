@@ -16,7 +16,7 @@ func _init() -> void:
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_generals", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
-		"test_separate_peace", "test_tired_ai_seeks_peace",
+		"test_separate_peace", "test_tired_ai_seeks_peace", "test_ai_marriage_and_generals",
 		"test_military_access",
 		"test_guarantee",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
@@ -1483,3 +1483,21 @@ func test_reforms() -> void:
 	gv._ai_reforms(g, ai)
 	check(ai.gov.reforms.has("grundlage"), "AI enacts the oldest open tier")
 
+func test_ai_marriage_and_generals() -> void:
+	var g = new_game("ENG")
+	var fra = g.nations.FRA
+	g.bal.ai_marriage_chance = 1.0
+	fra.dip = 500.0
+	for t in g.order:
+		g.add_rel("FRA", t, 60.0)
+	g.ai._marriage(g, fra)
+	check(fra.marriages.size() == 1, "the AI marries a friendly house")
+	fra.mil = 999.0
+	var arms: Array = g.armies_of("FRA")
+	check(not arms.is_empty(), "France starts with an army")
+	g.ai._hire_general(g, fra, float(g.bal.power_cap))
+	var led := 0
+	for a in g.armies_of("FRA"):
+		if a.general > 0:
+			led += 1
+	check(led == 1, "the largest army gets a general from a power surplus")
