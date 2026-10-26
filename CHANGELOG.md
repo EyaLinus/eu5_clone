@@ -4,6 +4,10 @@
 - **Kirchenpolitik wirkt auf den Glauben:** Toleranz senkt die Unruhe durch Andersgläubige um 75 % (die allgemeine
   Unruhe-Senkung halbiert sich dafür). Glaubenseifer lässt Missionare und die natürliche Bekehrung 50 % schneller
   arbeiten, macht Andersgläubige aber unruhiger. Neuer Berater: Hofprediger (schnellere Bekehrung, weniger Glaubensunruhe).
+- **Kompaktere Menüs:** Weniger Scrollen. Provinz, Nation, fremde Länder und Waren zeigen ihre Werte jetzt als
+  Kacheln im Raster (Details im Tooltip), Aktionen stehen in zwei Spalten. Diplomatie, Missionen, Meilensteine,
+  Großprojekte, Verlauf, Rangliste (Top 10) und weitere Handelsmärkte lassen sich mit ▼/▶ ein- und ausklappen.
+  Das Diplomatiefenster ist von gut sechs Bildschirmhöhen auf eine halbe geschrumpft.
 - **Weniger Scrollen in Regierung und Technologie:** Die Regierung hat vier Reiter (💰 Haushalt, 🎓 Hof, 📜 Recht,
   👥 Stände); ein goldener Reiter zeigt, dass dort etwas zu tun ist. Der Technologiebaum zeigt nur die nächsten drei
   Stufen (Rest per Knopf), erforschte Nationaltechs verschwinden. Die Gesamtwirkung steckt jeweils hinter „📈 Gesamt“.
