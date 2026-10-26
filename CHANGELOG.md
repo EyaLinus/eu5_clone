@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+- **Gebäude lohnen sich wieder:** Bauen kostet die Hälfte, höhere Stufen steigen flacher im Preis. Eine Werkstatt
+  amortisiert sich jetzt in rund 35 statt 70 Jahren. Die KI baut entsprechend mehr.
+
 ## v0.8.6 – 2026-10-26
 - **Separatfrieden 🏳️:** Bist du in einem Krieg nur Verbündeter, kannst du im Kriegsfenster aussteigen:
   Waffenstillstand mit allen Gegnern, besetzte Provinzen gehen zurück, der Kriegsführer ist verärgert.

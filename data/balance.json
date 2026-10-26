@@ -102,7 +102,7 @@
   "dev_per_building_level": 6,
   "max_merchants": 5,
   "building_dev": 1,
-  "building_level_exp": 1.5,
+  "building_level_exp": 1.25,
   "loan_months_income": 12,
   "loan_min": 50,
   "loan_interest": 0.05,
@@ -150,5 +150,6 @@
   "marriage_union_max_provinces": 4,
   "general_cost": 40.0,
   "general_bonus": 0.06,
-  "general_death_chance": 0.04
+  "general_death_chance": 0.04,
+  "building_cost_mult": 0.5
 }
