@@ -177,6 +177,29 @@ func _init() -> void:
 
 # ---------------------------------------------------------------- setup
 
+## Difficulty levels (data in balance.json "difficulty"): modifiers for the player and the AI nations
+## (n.bonus["difficulty"], derived, not saved) plus how aggressive the AI is, toward the player above all.
+const DIFFICULTIES := ["easy", "normal", "hard", "very_hard"]
+const DIFFICULTY_NAMES := {"easy": "Leicht", "normal": "Normal", "hard": "Schwer", "very_hard": "Sehr schwer"}
+var difficulty := "normal"
+
+
+func set_difficulty(id: String) -> void:
+	difficulty = id if DIFFICULTIES.has(id) else "normal"
+	_apply_difficulty()
+
+
+func _apply_difficulty() -> void:
+	var d: Dictionary = bal.get("difficulty", {}).get(difficulty, {})
+	for tag in nations:
+		nations[tag].bonus["difficulty"] = (d.get("player", {}) if tag == player else d.get("ai", {})).duplicate()
+
+
+## A difficulty number such as "ai_aggression" (1.0 when the level does not set it).
+func diff(key: String) -> float:
+	return float(bal.get("difficulty", {}).get(difficulty, {}).get(key, 1.0))
+
+
 func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	bal = data.balance
 	tree = Tech.new(data.get("techs", {}))
@@ -247,6 +270,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		event_by_id[e.id] = e
 	mission_defs = data.get("missions", {})
 	_apply_start_diplomacy(data.get("diplomacy", {}))
+	_apply_difficulty()
 	# mission targets act as permanent claims (historical expansion goals)
 	for tag in mission_defs:
 		if not nations.has(tag):
@@ -2579,7 +2603,7 @@ func complete_mission(tag: String, mission_id: String) -> String:
 # ---------------------------------------------------------------- save / load
 
 func to_dict() -> Dictionary:
-	var d := {"month": month, "player": player, "rng_state": str(rng.state), "rng_seed": str(rng.seed),
+	var d := {"month": month, "player": player, "difficulty": difficulty, "rng_state": str(rng.state), "rng_seed": str(rng.seed),
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
 			"pending_peace": pending_peace, "peace_offer_memo": peace_offer_memo, "log": log_lines, "stats": stats, "game_over": game_over, "emperor": emperor,
 			"hre_authority": hre_authority, "hre_reforms": hre_reforms,
@@ -2620,6 +2644,7 @@ func to_dict() -> Dictionary:
 func from_dict(d: Dictionary) -> void:
 	month = int(d.month)
 	player = d.player
+	set_difficulty(d.get("difficulty", "hard"))  # saves from before difficulty levels played like "hard"
 	rng.seed = int(d.rng_seed)
 	rng.state = int(d.rng_state)
 	next_army_id = int(d.next_army_id)

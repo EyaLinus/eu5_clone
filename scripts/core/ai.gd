@@ -314,7 +314,8 @@ func _consider_war(g, n) -> void:
 		return
 	if n.adm < float(g.bal.core_cost_per_dev) * 8.0:
 		return
-	if g.rng.randf() > float(g.bal.ai_war_chance) * n.aggression:
+	var aggression: float = n.aggression * g.diff("ai_aggression")
+	if g.rng.randf() > float(g.bal.ai_war_chance) * aggression:
 		return
 	var mine: float = g.strength(tag)
 	for ally in n.allies:
@@ -334,7 +335,9 @@ func _consider_war(g, n) -> void:
 		for ally in g.defenders_for(tag, t):
 			theirs += g.strength(ally)
 		var ratio: float = mine / maxf(theirs, 0.5)
-		var need: float = float(g.bal.ai_war_ratio) / n.aggression * (0.85 if claim else 1.0)
+		var need: float = float(g.bal.ai_war_ratio) / aggression * (0.85 if claim else 1.0)
+		if t == g.player:
+			need /= g.diff("ai_vs_player")
 		if ratio < need:
 			continue
 		var s: float = ratio + (1.0 if claim else 0.0)
