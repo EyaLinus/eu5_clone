@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- **Späte Wirtschaft gedämpft:** Einkommensboni (Admin-Tech, Einkommen) addieren sich jetzt zu Steuer-, Produktions- und Handelsboni, statt sie zu vervielfachen. Armeen werden mit jeder Militär-Tech 8 % teurer (Anwerben und Unterhalt). England hatte um 1600 vorher ~330 Gold/Monat bei 30 Ausgaben.
+- Die KI nutzt Durchmarschrecht und garantiert kleine befreundete Nachbarn.
 ## v0.8.8 – 2026-10-26
 - **Glaube ⛪ (neu):** Jedes Land hat einen Staatsglauben (katholisch, orthodox, sunnitisch, ab 1517 protestantisch),
   jede Provinz den Glauben ihrer Bevölkerung. Provinzen mit anderem Glauben als ihr Herrscher haben +1 Unruhe und

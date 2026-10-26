@@ -85,8 +85,7 @@ static func building_gain(g, p, bid: String) -> float:
 		p.buildings[bid] = old_lv
 	p.dev = old_dev
 	refresh_local(g, p)
-	var n = g.nations[p.owner]
-	return (after - before) * (1.0 + n.tech.adm * float(g.bal.adm_tech_income) + g.mod(n, "income"))
+	return after - before
 
 
 static func slots(g, p) -> int:
@@ -200,12 +199,21 @@ static func units(g, p) -> float:
 
 
 static func production_value(g, p) -> float:
-	return units(g, p) * float(g.prices[p.good])
+	var n = g.nations[p.owner]
+	var m: float = 1.0 + local(g, p, "production") + g.mod(n, "production") + g.mod(n, "goods_" + p.good) + income_bonus(g, n)
+	return p.dev * float(g.bal.production_per_dev) * maxf(0.1, m) * float(g.prices[p.good])
 
 
 static func tax(g, p) -> float:
 	var n = g.nations[p.owner]
-	return p.dev * float(g.bal.tax_per_dev) * maxf(0.1, 1.0 + local(g, p, "tax") + g.mod(n, "tax"))
+	return p.dev * float(g.bal.tax_per_dev) * maxf(0.1, 1.0 + local(g, p, "tax") + g.mod(n, "tax") + income_bonus(g, n))
+
+
+## Nation-wide income bonus (admin tech + income modifiers). It adds to the bonus of each income
+## category (tax, production, trade) instead of multiplying it, so late-game modifiers do not stack
+## into a twentyfold economy.
+static func income_bonus(g, n) -> float:
+	return n.tech.adm * float(g.bal.adm_tech_income) + g.mod(n, "income")
 
 
 static func uncored_mult(g, p) -> float:
@@ -367,7 +375,7 @@ static func trade_income(g, n) -> float:
 		var e: Dictionary = g.market_cache[m]
 		if e.total > 0.0 and e.power.has(n.tag):
 			v += e.value * e.power[n.tag] / e.total
-	return v * maxf(0.0, 1.0 + g.mod(n, "trade"))
+	return v * maxf(0.0, 1.0 + g.mod(n, "trade") + income_bonus(g, n))
 
 
 ## Gain in monthly trade income if `tag` sent one (more) merchant to market `m`.
