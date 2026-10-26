@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- **Kompaktere Menüs:** Weniger Scrollen. Provinz, Nation, fremde Länder und Waren zeigen ihre Werte jetzt als
+  Kacheln im Raster (Details im Tooltip), Aktionen stehen in zwei Spalten. Diplomatie, Missionen, Meilensteine,
+  Großprojekte, Verlauf, Rangliste (Top 10) und weitere Handelsmärkte lassen sich mit ▼/▶ ein- und ausklappen.
+  Das Diplomatiefenster ist von gut sechs Bildschirmhöhen auf eine halbe geschrumpft.
 - **Großprojekte 🏛️ (neu):** Sieben Bauwerke für die Hauptstadt im Nationsfenster: Kathedrale, Gesandtenhof, Arsenal,
   Universität, Börse, Kriegsakademie, Prunkpalast. Jedes braucht eine Technologiestufe, kostet viel Gold (mehr, je
   entwickelter dein Reich) und baut 3 bis 6 Jahre. Fertig gibt es dauerhafte Boni (z. B. Technologie −8 %,
