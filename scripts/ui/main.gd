@@ -108,7 +108,22 @@ func _ready() -> void:
 	_show_start_menu()
 
 
+## The game was called "EU5 Lite" until v0.7.3. On desktop the user folder follows the project name, so copy
+## save and settings over once from the old folder (Android keeps its package id and folder).
+func _migrate_old_user_dir() -> void:
+	var cur := OS.get_user_data_dir()
+	var old := cur.get_base_dir().path_join("EU5 Lite")
+	if old == cur or not DirAccess.dir_exists_absolute(old):
+		return
+	for f in ["save.json", "settings.json"]:
+		var src := old.path_join(f)
+		var dst := cur.path_join(f)
+		if FileAccess.file_exists(src) and not FileAccess.file_exists(dst):
+			DirAccess.copy_absolute(src, dst)
+
+
 func _load_settings() -> void:
+	_migrate_old_user_dir()
 	settings.ui_scale = 1.2 if OS.get_name() == "Android" else 1.0
 	var f := FileAccess.open(SETTINGS_PATH, FileAccess.READ)
 	if f:
@@ -448,7 +463,7 @@ func _nation_btn(tag: String, extra: String, cb: Callable, pre: String = "") -> 
 func _show_start_menu() -> void:
 	hud.visible = false
 	_open_modal()
-	modal_box.add_child(_lbl("🌍 EU5 Lite", 40))
+	modal_box.add_child(_lbl("🌍 Rise of EU", 40))
 	modal_box.add_child(_lbl("1444 – 1644 · Wähle deine Nation. Ziel: Am Ende die höchste Punktzahl (Entwicklung + Prestige + Technologie).", 18))
 	if FileAccess.file_exists(SAVE_PATH):
 		modal_box.add_child(_btn("💾 Weiterspielen", _load_game))

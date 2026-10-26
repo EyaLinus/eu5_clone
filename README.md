@@ -1,12 +1,12 @@
-# EU5 Lite
+# Rise of EU
 
 Ein stark vereinfachtes Grand-Strategy-Spiel im Stil von Europa Universalis, 1444 bis 1644 (200 Jahre),
 für **Android (APK)** und **Windows (EXE)**. Einzelspieler, Emoji-Grafik als Platzhalter.
 
-Download: siehe [Releases](../../releases) (`EU5Lite.apk`, `EU5Lite.exe`).
+Download: siehe [Releases](../../releases) (`RiseOfEU.apk`, `RiseOfEU.exe`).
 
 - **Android:** APK aufs Handy laden, Installation aus unbekannten Quellen erlauben, installieren (Querformat).
-- **Windows:** `EU5Lite.exe` starten. SmartScreen warnt, weil die Datei nicht signiert ist: "Weitere Informationen" → "Trotzdem ausführen".
+- **Windows:** `RiseOfEU.exe` starten. SmartScreen warnt, weil die Datei nicht signiert ist: "Weitere Informationen" → "Trotzdem ausführen".
 - Releases baut die CI: Actions → "Test, build and release" → "Run workflow" mit `release_tag` (z. B. `v0.2.0`).
 
 ## Spielbare Nationen

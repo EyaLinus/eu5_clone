@@ -9,9 +9,9 @@ GODOT=${GODOT:-godot}
 APK_SIGNER=${APK_SIGNER:-uber-apk-signer.jar}
 mkdir -p build/windows build/android
 "$GODOT" --headless --path . --import >/dev/null 2>&1 || true
-"$GODOT" --headless --path . --export-release "Windows Desktop" build/windows/EU5Lite.exe
-"$GODOT" --headless --path . --export-release "Android" build/android/EU5Lite-unsigned.apk
-java -jar "$APK_SIGNER" --apks build/android/EU5Lite-unsigned.apk --out build/android
-mv build/android/EU5Lite-aligned-debugSigned.apk build/android/EU5Lite.apk
-rm -f build/android/*.idsig build/android/EU5Lite-unsigned.apk
+"$GODOT" --headless --path . --export-release "Windows Desktop" build/windows/RiseOfEU.exe
+"$GODOT" --headless --path . --export-release "Android" build/android/RiseOfEU-unsigned.apk
+java -jar "$APK_SIGNER" --apks build/android/RiseOfEU-unsigned.apk --out build/android
+mv build/android/RiseOfEU-aligned-debugSigned.apk build/android/RiseOfEU.apk
+rm -f build/android/*.idsig build/android/RiseOfEU-unsigned.apk
 ls -la build/windows build/android

@@ -1,10 +1,10 @@
-# art_profile.yaml — single source of truth for EU5 Lite art.
+# art_profile.yaml — single source of truth for Rise of EU art.
 # Skill: .claude/skills/game-assets-2d (field docs: references/profile.md)
 
 schema_version: 2
 
 project:
-  name: "EU5 Lite"
+  name: "Rise of EU"
   description: >
     Simplified Europa-Universalis-style grand strategy, Europe 1444-1644, single player.
     Serious historical tone (heraldry, coins, parchment), readable on a phone in landscape.
