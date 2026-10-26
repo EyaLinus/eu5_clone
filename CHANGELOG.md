@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- **18 Ereignisse zu Reformation und Gegenreformation (1517–1620):** Nachricht aus Wittenberg, lutherische Prediger,
+  Bauernkrieg, Bibelübersetzung, Klosterauflösung, Bildersturm, Jesuiten, Konzil von Trient, Augsburger
+  Religionsfriede, Religionsgespräche, Union und Liga, dazu ein eigener Patriarch für orthodoxe und eine Medrese für
+  sunnitische Länder. Viele Optionen holen abgefallene Provinzen zum Staatsglauben zurück.
 - **45 neue Ereignisse zu den neuen Systemen:** Knappheit und Überangebot auf den Märkten, Monopole, Messen und
   Streit mit Handelspartnern, Silberadern, Weinjahrgänge, Heringszüge, Weberstreiks; Ereignisse zu Marktplätzen,
   Manufakturen, Kasernen, Festungen und Gerichtshöfen; Häfen (Piraten, Schiffbauer, Hafenbrand, Kaufleute wollen

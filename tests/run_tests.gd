@@ -22,7 +22,7 @@ func _init() -> void:
 		"test_religion",
 		"test_monuments_and_feast",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1692,3 +1692,29 @@ func test_ai_access_and_guarantee() -> void:
 	g.bal.ai_guarantee_chance = 1.0
 	g.ai._guarantee(g, fra)
 	check(fra.guarantees.size() == 1, "a great power guarantees a small friendly neighbour")
+
+
+## rel_ events (tools/content/rel_events.py): faith conditions and the convert_random effect.
+func test_rel_content() -> void:
+	var g = new_game("BOH")
+	var n = g.nations.BOH
+	var cnt := 0
+	for e in data.events:
+		if e.id.begins_with("rel_"):
+			cnt += 1
+			g.check_conditions("BOH", e.trigger)  # must not crash
+	check(cnt >= 15, "religion events present (%d)" % cnt)
+	check(not g.check_conditions("BOH", {"province_faith": "protestant"}) and not g.check_conditions("BOH", {"faith_share_max": 0.9}), "united catholic realm at start")
+	var own: Array = g.provinces_of("BOH")
+	for pid in own:
+		g.provinces[pid].religion = "protestant"
+	check(g.check_conditions("BOH", {"province_faith": "protestant", "faith_share_max": 0.1}), "protestant provinces detected")
+	g.apply_effects("BOH", {"convert_random": 2})
+	var back := 0
+	for pid in own:
+		if g.provinces[pid].religion == n.religion:
+			back += 1
+	check(back == mini(2, own.size()), "convert_random returns two provinces to the state faith (%d)" % back)
+	g.apply_effects("BOH", {"convert_random": 99})
+	check(g.check_conditions("BOH", {"faith_share_max": 1.0}) and not g.check_conditions("BOH", {"province_faith": "protestant"}), "convert_random never overshoots")
+
