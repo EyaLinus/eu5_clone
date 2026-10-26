@@ -833,7 +833,7 @@ const TIPS := {
 	"tech": ["🔬 Technologie", "Du kannst eine Technologie erforschen (🔬 Technologie). Der Punkt am Tab zeigt das an. Jede Kategorie hat drei Zweige, die du in beliebiger Reihenfolge ausbaust, dazu kommen nationale Spezial-Technologien. Unter ⚖️ Regierung ernennst du Berater, gründest Kompanien und wählst Gesetze."],
 	"mission": ["🎯 Mission erfüllt", "Eine Mission ist erfüllt. Hole dir die Belohnung unter 🎯 Missionen."],
 	"debt": ["💸 Schulden", "Deine Kasse ist leer. Unter −20 Gold desertieren Truppen. Nimm unter 💰 Wirtschaft einen Kredit auf, entlasse Regimenter oder schließe Frieden: Im Frieden kosten Armeen weniger."],
-	"build": ["🏗️ Gebäude", "Gold investierst du in Gebäude: Provinz antippen → Gebäude. Jede fertige Stufe bringt +1 Entwicklung. Unter 💰 Wirtschaft kannst du den Autobau einschalten und eine Mindestkasse festlegen."],
+	"build": ["🏗️ Gebäude", "Gold investierst du in Gebäude: Provinz antippen → Gebäude. Jede fertige Stufe bringt +1 Entwicklung (außer Straßen). Unter 💰 Wirtschaft kannst du den Autobau einschalten und eine Mindestkasse festlegen."],
 	"manpower": ["👥 Keine Mannschaften", "Dir gehen die Mannschaften aus. Söldner (Provinzfenster) kosten mehr Gold, brauchen aber keine Mannschaften. Gutshöfe und Kasernen erhöhen das Maximum."],
 	"trade": ["🏬 Handel", "Unter 💰 Wirtschaft → Handel schickst du Händler in reiche Märkte. Handelsabkommen mit befreundeten Reichen (Länderfenster) bringen je +6 % Handelseinnahmen."],
 }
@@ -1514,7 +1514,7 @@ func _province_buildings(p) -> void:
 		side_box.add_child(b)
 		if reason != "" and lvl < maxl and not reason.begins_with("Hier wird") and not reason.begins_with("Höchste"):
 			side_box.add_child(_lbl("   " + reason, 14, Color(0.75, 0.6, 0.5)))
-	side_box.add_child(_lbl("Jede fertige Stufe: +1 Entwicklung.", 14, Color(0.7, 0.75, 0.8)))
+	side_box.add_child(_lbl("Jede fertige Stufe: +1 Entwicklung (außer Straßen).", 14, Color(0.7, 0.75, 0.8)))
 
 
 func _panel_economy() -> void:
