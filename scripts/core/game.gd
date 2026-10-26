@@ -102,6 +102,7 @@ class Army:
 	var stance: String = "attack"  # when auto: "attack" (seek battles and sieges) or "defend" (own and allied land)
 	var path: Array = []
 	var power: float = 1.0  # fighting power 0..power_max: recovers with supply over time, battles drain it
+	var general: int = 0  # 0 = none, 1..3 = skill of the commanding general
 
 
 class War:
@@ -987,6 +988,7 @@ func _side_power(arms: Array, pid: int) -> float:
 		var m := combat_mult(a.owner)
 		if provinces[pid].owner == a.owner:
 			m += float(bal.home_defense)
+		m += float(bal.general_bonus) * a.general
 		s += a.regs * m * power_factor(a)
 	return s
 
@@ -1007,6 +1009,10 @@ func _battle(war: War, att: Array, def: Array, pid: int) -> void:
 	for a in lose:
 		a.power = maxf(0.0, a.power - power_max(a.owner) * float(bal.army_power_loss_lose))
 	for a in win + lose:
+		if a.general > 0 and rng.randf() < float(bal.general_death_chance) * (2.0 if lose.has(a) else 1.0):
+			a.general = 0
+			if a.owner == player:
+				log_msg("⭐ Dein General bei %s ist in der Schlacht gefallen." % provinces[pid].name, [player])
 		if a.owner == player and a.power < 0.3 * power_max(a.owner):
 			log_msg("🔥 Deine Armee bei %s ist erschöpft (Moral %d %%). Drill (⚔️) oder Rückzug auf eigenes Land hilft." % [provinces[pid].name, int(a.power * 100)], [player])
 	for a in win:
@@ -1792,6 +1798,22 @@ func hire_mercs(tag: String, pid: int) -> String:
 
 # ---- military and diplomatic power actions (besides tech)
 
+## Military power: a general leads the army (+general_bonus combat strength per skill point).
+func hire_general(tag: String, id: int) -> String:
+	var a := army_by_id(id)
+	if a == null or a.owner != tag:
+		return "Keine eigene Armee."
+	if a.general > 0:
+		return "Die Armee hat schon einen General."
+	if nations[tag].mil < float(bal.general_cost):
+		return "Zu wenig Militär (%d)." % int(bal.general_cost)
+	nations[tag].mil -= float(bal.general_cost)
+	# better military tech, better officers
+	var roll := rng.randi_range(1, 3) + (1 if rng.randf() < 0.05 * nations[tag].tech.mil else 0)
+	a.general = mini(3, roll)
+	return ""
+
+
 ## Military power: drill an army back to full morale (only on own or allied land).
 func drill_cost(a: Army) -> float:
 	return float(bal.drill_cost_base) + float(bal.drill_cost_per_reg) * a.regs
@@ -1886,6 +1908,7 @@ func merge_armies(tag: String, pid: int) -> void:
 			here[0].power = (here[0].power * here[0].regs + here[i].power * here[i].regs) / tot
 		here[0].regs += here[i].regs
 		here[0].full += here[i].full
+		here[0].general = maxi(here[0].general, here[i].general)
 		armies.erase(here[i])
 
 
@@ -2342,7 +2365,7 @@ func to_dict() -> Dictionary:
 	var ar := []
 	for a in armies:
 		ar.append({"id": a.id, "owner": a.owner, "pid": a.pid, "regs": a.regs, "full": a.full,
-				"target": a.target, "auto": a.auto, "stance": a.stance, "power": a.power})
+				"target": a.target, "auto": a.auto, "stance": a.stance, "power": a.power, "general": a.general})
 	d.armies = ar
 	var ws := []
 	for w in wars:
@@ -2466,6 +2489,7 @@ func from_dict(d: Dictionary) -> void:
 		a.auto = e.auto
 		a.stance = e.get("stance", "attack")
 		a.power = float(e.get("power", 1.0))
+		a.general = int(e.get("general", 0))
 		armies.append(a)
 	wars.clear()
 	for e in d.wars:

@@ -813,6 +813,9 @@ func _draw_counter(a, s: Vector2, c: Color, counter: Texture2D) -> void:
 	var unit := Icons.texture("army_unit")
 	if unit != null and not compact:
 		draw_texture_rect(unit, Rect2(r.position, Vector2(20, 28)), false)
+	if a.general > 0 and not compact:
+		draw_string_outline(font, Vector2(r.position.x - 6, r.position.y + 4), "⭐", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 3, Color.BLACK)
+		draw_string(font, Vector2(r.position.x - 6, r.position.y + 4), "⭐", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
 	if a.target >= 0 and not compact:
 		var arrow := Icons.texture("army_moving")
 		if arrow != null:

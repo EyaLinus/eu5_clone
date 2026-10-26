@@ -1704,8 +1704,13 @@ func _panel_army(id: int) -> void:
 			int(float(game.bal.army_power_floor) * 100), int(float(game.bal.army_power_loss_win) * 100), int(float(game.bal.army_power_loss_lose) * 100)]
 	ml.mouse_filter = Control.MOUSE_FILTER_STOP
 	side_box.add_child(ml)
+	var gen_txt := ("⭐ General: %d von 3 Sternen (+%d %% Kampfkraft)" % [a.general, int(a.general * float(game.bal.general_bonus) * 100)]) if a.general > 0 else "⭐ Kein General"
+	side_box.add_child(_lbl(gen_txt, 16, Color(1, 0.85, 0.5) if a.general > 0 else Color(0.7, 0.7, 0.7)))
 	if a.owner != game.player:
 		return
+	if a.general == 0:
+		side_box.add_child(_btn("⭐ General anwerben (%d ⚔️)" % int(game.bal.general_cost), func(): _act(game.hire_general(a.owner, a.id), "⭐ Ein General übernimmt das Kommando"),
+				"Militär-Macht einsetzen: ein General mit 1 bis 3 Sternen (bessere Militärtechnik, bessere Offiziere). Jeder Stern +%d %% Kampfkraft. Generäle können in Schlachten fallen, nach Niederlagen eher." % int(float(game.bal.general_bonus) * 100)))
 	if a.power < pm - 0.001:
 		side_box.add_child(_btn("🔥 Drill: Moral auf %d %% (%d ⚔️)" % [int(round(pm * 100)), int(game.drill_cost(a))],
 				func(): _act(game.drill_army(a.owner, a.id), "🔥 Die Truppen sind gedrillt"),
@@ -1888,6 +1893,8 @@ func _panel_diplomacy() -> void:
 				txt += "  ⛓️"
 			if game.nations[me].trade_pacts.has(tag):
 				txt += "  🔗"
+			if game.nations[me].marriages.has(tag):
+				txt += "  👑"
 			side_box.add_child(_nation_btn(tag, txt, _open_panel.bind("other", tag)))
 
 
