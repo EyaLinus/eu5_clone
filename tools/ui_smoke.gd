@@ -93,6 +93,8 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 	m._close_modal()
 	m.gov_screen._pick_law(g.govt.laws[month % g.govt.laws.size()].id)
 	m._close_modal()
+	m.gov_screen._pick_reform(g.govt.reforms[month % g.govt.reforms.size()].id)
+	m._close_modal()
 	n += 1
 	var others: Array = g.order.filter(func(t): return t != tag and g.nations[t].alive)
 	if not others.is_empty():

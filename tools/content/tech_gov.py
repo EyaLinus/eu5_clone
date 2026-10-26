@@ -378,6 +378,31 @@ ESTATE_EVENTS = {
     ]),
 }
 
+# State reforms (EU4-like tiers): (tier id, name, year, options). One option per tier, bought once with
+# administrative power (reform_cost + reform_cost_step x tier index), every option is a trade-off.
+REFORMS = [
+    ("grundlage", "Herrschaftsgrundlage", 1444, [
+        ("lehnswesen", "Lehnswesen", {"manpower": 0.15, "tax": -0.05, "estate_adel": 5}, "Vasallen stellen Truppen statt Steuern."),
+        ("domaenen", "Domänenwirtschaft", {"tax": 0.1, "manpower": -0.1}, "Die Krone lebt von ihren eigenen Gütern."),
+        ("staedtebund", "Städtische Freiheiten", {"trade": 0.1, "estate_buerger": 10, "force_limit": -2}, "Die Städte regieren sich selbst und zahlen dafür."),
+    ]),
+    ("verwaltung", "Verwaltung", 1480, [
+        ("hofrat", "Hofrat", {"adm": 1, "estate_adel": -5}, "Gelehrte Räte statt Hochadel am Hof."),
+        ("landtage", "Landtage", {"estate_adel": 10, "estate_buerger": 10, "adm": -0.5, "tax": 0.05}, "Die Stände bewilligen Steuern und reden mit."),
+        ("kreisordnung", "Kreisordnung", {"unrest": -0.5, "build_cost": 0.1}, "Amtleute in jedem Kreis halten Ordnung."),
+    ]),
+    ("heerwesen", "Heerwesen", 1520, [
+        ("kriegsrat", "Hofkriegsrat", {"combat": 0.05, "army_power": 0.05, "maintenance": 0.05}, "Ein ständiger Rat plant die Feldzüge."),
+        ("werbewesen", "Werbewesen", {"force_limit": 3, "army_power": -0.05}, "Werber füllen die Reihen, doch nicht jeder will kämpfen."),
+        ("miliz", "Landesdefension", {"manpower": 0.2, "army_power_regen": 0.25, "combat": -0.03}, "Jede Gemeinde stellt geübte Männer."),
+    ]),
+    ("staatsidee", "Staatsidee", 1570, [
+        ("gottesgnaden", "Gottesgnadentum", {"prestige": 1.0, "unrest": -0.5, "estate_klerus": 10, "tech_cost": 0.05}, "Der Herrscher regiert von Gottes Gnaden."),
+        ("staatsraison", "Staatsräson", {"ae_decay": 0.2, "dip": 1, "estate_klerus": -10}, "Was dem Staat nützt, ist recht."),
+        ("gemeinwohl", "Gemeines Bestes", {"production": 0.1, "estate_buerger": 10, "estate_adel": -10}, "Der Fürst als erster Diener des Landes."),
+    ]),
+]
+
 GOV_FORMS = {
     "default": "Feudalmonarchie",
     "POL": "Wahlmonarchie", "VEN": "Kaufmannsrepublik", "GEN": "Kaufmannsrepublik", "PAP": "Theokratie",
@@ -453,6 +478,9 @@ def build():
            "budget": [{"id": i, "name": nm, "text": tx, "steps": st, "per_step": e, "cost": c}
                       for i, nm, tx, st, e, c in BUDGET],
            "budget_default": 2,
+           "reforms": [{"id": i, "name": nm, "year": y, "options": [{"id": oi, "name": on, "effects": oe, "text": ot}
+                                                                for oi, on, oe, ot in opts]} for i, nm, y, opts in REFORMS],
+           "reform_cost": 100, "reform_cost_step": 50, "reform_change_years": 25,
            "law_cost": 60, "law_cooldown_years": 10, "forms": GOV_FORMS,
            "advisors": adv, "companies": comp, "laws": laws}
     json.dump(gov, open(os.path.join(ROOT, "data/government.json"), "w"), ensure_ascii=False, indent=1)

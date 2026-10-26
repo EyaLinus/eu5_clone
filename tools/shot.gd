@@ -68,6 +68,11 @@ func _run(m) -> void:
 	await process_frame
 	m.side_scroll.scroll_vertical = 0
 	await _shot("04i_budget")
+	m.game.nations.FRA.adm = 500.0
+	m.game.govt.enact_reform(m.game, "FRA", "grundlage", "domaenen")
+	m.gov_screen._pick_reform("grundlage")
+	await _shot("04j_reform")
+	m._close_modal()
 	m.gov_screen._invest("lombarden")
 	await _shot("04g_invest")
 	m._close_modal()

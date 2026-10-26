@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- **Staatsreformen 🏛️ (neu):** Vier Reformstufen im Regierungs-Screen (Herrschaftsgrundlage ab 1444, Verwaltung ab
+  1480, Heerwesen ab 1520, Staatsidee ab 1570) mit je drei Wahlmöglichkeiten, alle mit Vor- und Nachteilen. Kostet
+  Verwaltungspunkte (100, 150, 200, 250), ein Wechsel ist nur alle 25 Jahre möglich. Die KI reformiert ebenfalls.
 - **Moral in Technik und Regierung:** Exerzierreglement (+5 % max. Moral), Stehendes Heer als Technik und als Gesetz
   (je +10 %), Magazinsystem und Landesaufgebot beschleunigen die Moral-Erholung, Söldnerheere senken die max. Moral
   um 5 %. Neuer Berater Drillmeister, der Generalquartiermeister hilft jetzt auch bei der Erholung.

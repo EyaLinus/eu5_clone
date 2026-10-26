@@ -17,7 +17,7 @@ func _init() -> void:
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_morale_modifiers",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_morale_modifiers", "test_reforms",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1215,4 +1215,38 @@ func test_morale_modifiers() -> void:
 	g.govt.set_budget(g, "FRA", "heer", 4)
 	check(absf(g.mod(n, "army_power_regen") - r0 - 0.5) < 0.001, "lavish army budget speeds up morale recovery")
 	check(g.govt.adv_by_id.has("drillmeister") and g.govt.adv_by_id.drillmeister.effects.has("army_power"), "drill master advisor")
+
+
+## State reforms: tiers unlock by year, cost administrative power, are trade-offs, survive save/load, AI fills them.
+func test_reforms() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	var gv = g.govt
+	check(gv.reforms.size() == 4, "four reform tiers")
+	for t in gv.reforms:
+		for o in t.options:
+			var good := false
+			var bad := false
+			for l in Tech.effect_lines(o.effects):
+				good = good or l[1]
+				bad = bad or not l[1]
+			check(good and bad, "reform %s has a buff and a nerf" % o.id)
+	n.adm = 1000.0
+	check(gv.open_reform_tiers(g, n) == ["grundlage"], "only the first tier is open in 1444")
+	check(gv.reform_block(g, "FRA", "verwaltung", "hofrat") != "", "second tier locked in 1444")
+	check(gv.enact_reform(g, "FRA", "grundlage", "domaenen") == "", "enact a reform")
+	check(absf(n.adm - 900.0) < 0.01, "first tier costs 100 adm")
+	check(absf(n.bonus.gov.get("tax", 0.0) - 0.1) < 0.001 and n.bonus.gov.get("manpower", 0.0) < 0.0, "reform effects apply")
+	check(gv.enact_reform(g, "FRA", "grundlage", "lehnswesen") != "", "reform change has a cooldown")
+	g.month = (1530 - 1444) * 12
+	check(gv.open_reform_tiers(g, n) == ["verwaltung", "heerwesen"], "tiers unlock over time")
+	check(absf(gv.reform_cost(g, n, "heerwesen") - 200.0) < 0.01, "later tiers cost more")
+	var text := JSON.stringify(g.to_dict())
+	var g2 = new_game("FRA", 3)
+	g2.from_dict(JSON.parse_string(text))
+	check(g2.nations.FRA.gov.reforms.get("grundlage", "") == "domaenen", "reforms survive save/load")
+	var ai = g.nations.ENG
+	ai.adm = 1000.0
+	gv._ai_reforms(g, ai)
+	check(ai.gov.reforms.has("grundlage"), "AI enacts the oldest open tier")
 
