@@ -165,6 +165,43 @@ static func construction_tick(g, n) -> void:
 				g.log_msg("%s %s (Stufe %d) in %s fertig." % [g.buildings_def[bid].emoji, g.buildings_def[bid].name, p.buildings[bid], p.name])
 
 
+## Sum of all levels of `bid` in `tag`'s provinces (event and mission conditions).
+static func building_total(g, tag: String, bid: String) -> int:
+	var v := 0
+	for pid in g.provinces_of(tag):
+		v += level(g.provinces[pid], bid)
+	return v
+
+
+## Event/mission reward: one free level of `bid` in the most developed province that could build it
+## (gold ignored, no construction time). Returns false if no province qualifies.
+static func free_level(g, tag: String, bid: String) -> bool:
+	if not g.buildings_def.has(bid):
+		return false
+	var best = null
+	for pid in g.provinces_of(tag):
+		var p = g.provinces[pid]
+		var d: Dictionary = g.buildings_def[bid]
+		if p.controller != tag or level(p, bid) >= max_level(g, bid) or not p.constructing.is_empty():
+			continue
+		if not p.buildings.has(bid) and p.buildings.size() >= slots(g, p):
+			continue
+		if (d.get("coastal", false) and not p.coastal) or (d.has("requires") and not p.buildings.has(d.requires)):
+			continue
+		if p.dev < level_dev(g, p, bid):
+			continue
+		if best == null or p.dev > best.dev:
+			best = p
+	if best == null:
+		return false
+	best.buildings[bid] = level(best, bid) + 1
+	if not g.buildings_def[bid].get("no_dev", false):
+		best.dev = mini(int(g.bal.max_dev), best.dev + int(g.bal.building_dev))
+	refresh_local(g, best)
+	refresh_building_bonus(g, g.nations[tag])
+	return true
+
+
 static func fort_level(g, p) -> int:
 	return p.fort + int(local(g, p, "fort"))
 
