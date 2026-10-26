@@ -1,8 +1,9 @@
 extends RefCounted
 ## Tech tree screen in the side panel: one category at a time as a 3-column tree (one column per
-## branch, one row per tier), national special techs on top. Tapping a tech opens a detail popup
+## branch, one row per tier); the category's national techs sit on top while researchable, else
+## below the tree. Tapping a tech opens a detail popup
 ## with the research button, so a stray tap on a phone never spends points. Only the next WINDOW tiers
-## and the national techs not yet researched are shown, to keep scrolling short.
+## and national techs not yet researched are shown, to keep scrolling short.
 ## `m` is the main UI (scripts/ui/main.gd); it owns the side panel, modal and button helpers.
 
 const Tech = preload("res://scripts/core/tech.gd")
@@ -65,16 +66,10 @@ func build() -> void:
 	sum.clip_text = false
 	sum.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	sum.add_theme_font_size_override("font_size", 15)
-	var specials: Array = g.tree.specials_of(me).filter(func(t): return not n.techs.has(t.id))
-	if not specials.is_empty():
-		m.side_box.add_child(m._lbl("⭐ Nationale Technologien", 20, Color(1.0, 0.85, 0.4)))
-		var sg := GridContainer.new()
-		sg.columns = 3
-		sg.add_theme_constant_override("h_separation", 6)
-		sg.add_theme_constant_override("v_separation", 6)
-		for t in specials:
-			sg.add_child(_cell(g, me, t, true))
-		m.side_box.add_child(sg)
+	# national techs of this category only: researchable ones above the tree, locked ones below it
+	var specials: Array = g.tree.specials_of(me).filter(func(t): return t.cat == cat and not n.techs.has(t.id))
+	var open_sp: Array = specials.filter(func(t): return g.tree.block_reason(g, me, t.id) == "")
+	_specials(g, me, open_sp)
 	var grid := GridContainer.new()
 	grid.columns = 3
 	grid.add_theme_constant_override("h_separation", 6)
@@ -117,6 +112,7 @@ func build() -> void:
 			else:
 				grid.add_child(Control.new())
 	m.side_box.add_child(grid)
+	_specials(g, me, specials.filter(func(t): return not open_sp.has(t)))
 	if rows - first > WINDOW:
 		var more: String = "➖ Nur die nächsten %d Stufen zeigen" % WINDOW if show_all else "➕ Alle Stufen zeigen (%d weitere)" % (rows - last)
 		m.side_box.add_child(m._btn(more, func():
@@ -132,6 +128,19 @@ func _overview() -> void:
 	m.modal_box.add_child(effects_rich(n.bonus.get("tech", {}), 17))
 	m.modal_box.add_child(m._lbl("Jede Stufe zählt außerdem: Verwaltung +4 % Einkommen, Diplomatie schnellerer AE-Abbau, Militär +6 % Kampfkraft und +½ Truppenlimit.", 15, Color(0.65, 0.68, 0.75)))
 	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
+
+
+func _specials(g, me: String, lst: Array) -> void:
+	if lst.is_empty():
+		return
+	m.side_box.add_child(m._lbl("⭐ Nationale Technologie", 17, Color(1.0, 0.85, 0.4)))
+	var sg := GridContainer.new()
+	sg.columns = 3
+	sg.add_theme_constant_override("h_separation", 6)
+	sg.add_theme_constant_override("v_separation", 6)
+	for t in lst:
+		sg.add_child(_cell(g, me, t, true))
+	m.side_box.add_child(sg)
 
 
 func _select(k: String) -> void:
