@@ -34,8 +34,8 @@ func _run() -> void:
 	m._start_game("FRA")
 	m.settings.tips = false
 	m._close_modal()
-	m.econ_tab = "goods"  # long list: needs scrolling
-	m._open_panel("economy")
+	m.section_open["rank_more"] = true  # full ranking: long list that needs scrolling
+	m._open_panel("ranking")
 	await create_timer(0.3).timeout
 	var fails := []
 	# find a button in the lower half of the scroll area

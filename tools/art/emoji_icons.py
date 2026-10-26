@@ -50,6 +50,7 @@ add("✅", "check", layer(["LLLLLLLLLLLL", "LLLLLLLLLwLL", "LLLLLLLLwwLF", "LLLL
                           "LwwLLwwLLLLF", "LLwwwwLLLLLF", "LLLwwLLLLLLF", "LLLLLLLLLLLF", "LLLLLLLLLLLF",
                           "FFFFFFFFFFFF"], 2, 2))
 add("▶", "play", layer(["ww......", "wwww....", "wwwwww..", "wwwwwwww", "wwwwwwww", "wwwwwwa.", "wwwwa...", "wwa....."], 5, 4))
+add("▼", "down", layer(["wwwwwwww", "wwwwwwww", "awwwwwwa", ".wwwwww.", ".awwwwa.", "..wwww..", "..awwa..", "...ww..."], 4, 5))
 add("◀", "back", layer(["......ww", "....wwww", "..wwwwww", "wwwwwwww", "wwwwwwww", ".awwwwww", "...awwww", ".....aww"], 3, 4))
 add("⬅", "arrow_left", layer(["...Y......", "..YG......", ".YGGGGGGGG", "YGGGGGGGGG", ".DGDDDDDDD", "..DD......", "...D......"], 3, 4))
 add("⏸", "pause", layer(["www..www", "wwa..wwa", "wwa..wwa", "wwa..wwa", "wwa..wwa", "wwa..wwa", "wwa..wwa", "aaa..aaa"], 4, 4))
