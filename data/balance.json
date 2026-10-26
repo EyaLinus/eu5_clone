@@ -138,5 +138,12 @@
   "integrate_cost": 25.0,
   "integrate_months": 24,
   "reputation_cost": 30.0,
-  "reputation_ae": 5.0
+  "reputation_ae": 5.0,
+  "marriage_cost": 40.0,
+  "max_marriages": 3,
+  "marriage_min_rel": 20.0,
+  "marriage_rel": 25.0,
+  "marriage_rel_floor": 25.0,
+  "marriage_union_chance": 0.15,
+  "marriage_union_max_provinces": 4
 }
