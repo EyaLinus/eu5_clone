@@ -62,6 +62,12 @@ func _run(m) -> void:
 	await process_frame
 	m.side_scroll.scroll_vertical = 100000
 	await _shot("04h_estates")
+	m.game.govt.set_budget(m.game, "FRA", "steuern", 3)
+	m.game.govt.set_budget(m.game, "FRA", "bildung", 4)
+	m._open_panel("government")
+	await process_frame
+	m.side_scroll.scroll_vertical = 0
+	await _shot("04i_budget")
 	m.gov_screen._invest("lombarden")
 	await _shot("04g_invest")
 	m._close_modal()

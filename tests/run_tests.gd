@@ -17,7 +17,7 @@ func _init() -> void:
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1192,3 +1192,36 @@ func test_gov_events() -> void:
 	var before: float = n.gov.estates.klerus
 	g.choose_event_option("FRA", "gov_heretics", 0)
 	check(n.gov.estates.klerus > before, "inquisition pleases the clergy")
+
+
+## EU5-style budget sliders: neutral by default, effects and gold per step, saved, AI tightens when poor.
+func test_budget() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	var gv = g.govt
+	check(gv.budget.size() == 4, "four budget sliders")
+	check(n.bonus.budget.is_empty() and absf(gv.budget_cost(g, n)) < 0.001, "default budget is neutral")
+	g.tick()
+	var inc: float = n.income
+	check(gv.set_budget(g, "FRA", "hof", 4) == "", "set court to max")
+	check(absf(gv.budget_cost(g, n) - 0.08 * inc) < 0.001, "lavish court costs 8 % of income")
+	check(absf(n.bonus.budget.prestige - 2.0) < 0.001 and n.bonus.budget.estate_adel > 0.0, "court gives prestige and pleases the nobility")
+	check(gv.set_budget(g, "FRA", "steuern", 0) == "", "set taxes to minimum")
+	check(absf(n.bonus.budget.tax + 0.2) < 0.001 and n.bonus.budget.unrest < 0.0, "mild taxes: less tax, less unrest")
+	check(gv.set_budget(g, "FRA", "bildung", 9) == "" and gv.budget_step(n, "bildung") == 4, "slider clamped to max")
+	check(gv.budget_slider_cost(n, "bildung", 0) < 0.0, "cutting research saves gold")
+	var exp_before: float = n.expenses
+	g.tick()
+	check(n.expenses > 0.0 and absf(gv.budget_cost(g, n)) > 0.0, "budget cost is part of expenses (%.2f vs %.2f)" % [n.expenses, exp_before])
+	var text := JSON.stringify(g.to_dict())
+	var g2 = new_game("FRA", 3)
+	g2.from_dict(JSON.parse_string(text))
+	check(g2.govt.budget_step(g2.nations.FRA, "hof") == 4 and g2.nations.FRA.bonus.budget.has("prestige"), "budget survives save/load")
+	var ai = g.nations.ENG
+	ai.gold = 0.0
+	gv._ai_budget(g, ai)
+	check(gv.budget_step(ai, "hof") == 1 and gv.budget_step(ai, "bildung") == 1 and gv.budget_step(ai, "heer") <= 2, "poor AI cuts court, research and never raises the army budget")
+	ai.gold = 5000.0
+	gv._ai_budget(g, ai)
+	check(gv.budget_step(ai, "hof") == 3 and gv.budget_step(ai, "bildung") == 3, "rich AI spends on court and research")
+
