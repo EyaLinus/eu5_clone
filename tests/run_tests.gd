@@ -17,7 +17,7 @@ func _init() -> void:
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_economy_goods_and_trade", "test_buildings", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures",
 	]:
 		var before := failures
@@ -865,3 +865,78 @@ func test_event_pictures() -> void:
 	for e in data.events:
 		var m: String = e.get("image", motifs.get(e.id, "court"))
 		check(ResourceLoader.exists("res://assets/art/events/%s.png" % m), "event %s: picture %s missing" % [e.id, m])
+
+
+func test_company_invest() -> void:
+	var g = new_game("HAB")
+	var n = g.nations.HAB
+	n.gold = 100000.0
+	g.month = (1495 - 1444) * 12
+	check(g.govt.found_company(g, "HAB", "hab_fugger") == "", "found Fugger")
+	check(g.govt.invest_level(n, "hab_fugger") == 1, "new company starts at level 1")
+	var inc: float = g.mod(n, "income")
+	var ae: float = g.mod(n, "ae_gen")
+	check(g.govt.invest(g, "HAB", "hab_fugger", 1) != "", "cannot invest to the same level")
+	var c: float = g.govt.invest_cost(g, n, "hab_fugger", 3)
+	var gold: float = n.gold
+	check(c > g.govt.company_cost(g, n, "hab_fugger") * 0.5, "two levels cost more than half a company")
+	check(g.govt.invest(g, "HAB", "hab_fugger", 3) == "", "invest two levels")
+	check(absf(gold - c - n.gold) < 0.01, "investment costs gold")
+	check(absf(g.mod(n, "income") - inc - 0.15 * 1.0) < 0.001, "benefit +100 % at level 3 (+15 % more income)")
+	check(absf(g.mod(n, "ae_gen") - ae) < 0.001, "drawback unchanged")
+	check(g.govt.invest(g, "HAB", "hab_fugger", 6) != "", "max level 5")
+	var d: Dictionary = JSON.parse_string(JSON.stringify(g.to_dict()))
+	var g2 = new_game("HAB")
+	g2.from_dict(d)
+	check(g2.govt.invest_level(g2.nations.HAB, "hab_fugger") == 3, "investment level survives save/load")
+	check(absf(g2.mod(g2.nations.HAB, "income") - g.mod(n, "income")) < 0.0001, "scaled bonus rebuilt after load")
+	g.govt.dissolve_company(g, "HAB", "hab_fugger")
+	check(not n.gov.invest.has("hab_fugger"), "dissolving drops the investment")
+
+
+func test_estates() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	check(n.gov.estates.size() == 3, "three estates")
+	for e in g.govt.estates:
+		check(g.event_by_id.has("estate_crisis_" + e.id), "crisis event for %s registered" % e.id)
+		check(not g.event_defs.has(g.event_by_id["estate_crisis_" + e.id]), "crisis events are not in the random pool")
+	n.adm = 500.0
+	check(g.govt.set_law(g, "FRA", "staat", "staendestaat") == "", "Ständestaat")
+	check(absf(g.govt.estate_target(g, n, "adel") - 65.0) < 0.01, "law shifts the nobility's target to 65")
+	for i in 60:
+		g.govt.estates_monthly(g, n)
+	check(n.gov.estates.adel > 60.0, "nobility drifts towards its target (%.1f)" % n.gov.estates.adel)
+	g.govt.change_estate(g, n, "adel", 5.0)
+	check(n.gov.estates.adel >= 65.0 and g.govt.estate_tier(n, "adel") == "loyal", "nobility is loyal from 65 (%.1f)" % n.gov.estates.adel)
+	check(n.bonus.estates.get("manpower", 0.0) > 0.0, "loyal nobility gives manpower")
+	g.govt.change_estate(g, n, "klerus", -40.0)
+	check(g.govt.estate_tier(n, "klerus") == "angry", "angry clergy")
+	var pid: int = g.provinces_of("FRA")[0]
+	check(absf(g.unrest_parts(pid).estates - 1.0) < 0.001, "angry clergy shows as its own unrest item")
+	n.gold = 1000.0
+	var before: float = n.gov.estates.klerus
+	check(g.govt.grant_concession(g, "FRA", "klerus") == "", "concession")
+	check(absf(n.gov.estates.klerus - before - 20.0) < 0.01, "concession +20")
+	check(g.govt.grant_concession(g, "FRA", "klerus") != "", "concession cooldown")
+	n.gov.estates.buerger = 50.0
+	g.apply_effects("FRA", {"estate": {"buerger": -30}})
+	check(absf(n.gov.estates.buerger - 20.0) < 0.01, "estate effect")
+	check(g.check_conditions("FRA", {"estate_max": {"buerger": 25}}) and not g.check_conditions("FRA", {"estate_min": {"buerger": 25}}), "estate conditions")
+	# crisis fires for the player at most once per estate_crisis_years
+	g.month = 120
+	var fired := 0
+	for y in 8:
+		g.month += 12
+		g.pending_events.clear()
+		n.gov.estates.buerger = 10.0
+		for i in 20:
+			g.govt._estate_crisis(g, n)
+		fired += g.pending_events.size()
+	check(fired >= 1 and fired <= 2, "estate crisis at most every 4 years (%d in 8 years)" % fired)
+	g.govt.change_estate(g, n, "adel", 80.0 - n.gov.estates.adel)
+	var text := JSON.stringify(g.to_dict())
+	var g2 = new_game("FRA", 3)
+	g2.from_dict(JSON.parse_string(text))
+	check(JSON.stringify(g2.to_dict()) == text, "estates survive save/load")
+	check(g2.govt.estate_tier(g2.nations.FRA, "adel") == "loyal" and g2.nations.FRA.bonus.estates.has("manpower"), "estate bonus rebuilt after load")

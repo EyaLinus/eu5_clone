@@ -35,7 +35,7 @@ fehlt ein Effekt oder eine Bedingung, bitte im Feature-Thread anfragen.
 
 ## Bedingungen (`trigger`, `require`)
 `year_min`, `year_max`, `owns` [keys], `owns_any` [keys], `not_owns` [keys], `at_war`, `at_peace`, `flag`, `not_flag`,
-`min_dev`, `alive` TAG, `not_alive` TAG, `ae_min`, `gold_min`, `allied` TAG, `allies` (Anzahl), `tech` {adm,dip,mil}, `has_tech` "tech_id" (data/techs.json), `law` {law_id: option_id} (data/government.json),
+`min_dev`, `alive` TAG, `not_alive` TAG, `ae_min`, `gold_min`, `allied` TAG, `allies` (Anzahl), `tech` {adm,dip,mil}, `has_tech` "tech_id" (data/techs.json), `law` {law_id: option_id} (data/government.json), `estate_min`/`estate_max` {adel|klerus|buerger: Wert},
 `regs`, `major` (true = nur die 7 Großmächte mit Flag `"major"` in nations.json, false = alle anderen, auch die spielbaren TUR/POL/BUR), `we_min` (Kriegsmüdigkeit ≥),
 `is_vassal` (bool), `has_vassal` (bool), `unrest_min` (höchste Provinz-Unruhe ≥), `hre` (bool, Reichsmitglied),
 `emperor` (bool, ist Kaiser).
@@ -44,7 +44,7 @@ fehlt ein Effekt oder eine Bedingung, bitte im Feature-Thread anfragen.
 `gold`, `adm`, `dip`, `mil`, `ae`, `we` (Kriegsmüdigkeit ±, 0–20), `prestige`, `manpower`, `regs`, `dev_capital`, `dev_random` (±n),
 `relations` {TAG: x}, `claim` [keys], `flag` "name", `mods` {income, combat, manpower, adm, dip, mil, ae_decay},
 `ruler` {adm, dip, mil}, `alliance` TAG, `inherit` TAG (schluckt TAG komplett, nie den Spieler), `vassal` TAG
-(macht einen freien Kleinstaat zum Vasallen), `province` key, `war` TAG.
+(macht einen freien Kleinstaat zum Vasallen), `province` key, `war` TAG, `estate` {adel|klerus|buerger: ±x} (Zufriedenheit eines Standes).
 
 ## Größenordnungen (Balance)
 | Effekt | typisch | stark |

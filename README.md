@@ -53,6 +53,10 @@ aus echten Küstenlinien (Natural Earth, Public Domain).
 - **Regierung (wie in Hearts of Iron):** 3 politische Berater (darunter 34 historische Persönlichkeiten wie
   Jacques Cœur, Thomas Cromwell oder Mimar Sinan), 2–3 Investitionskompanien (Fugger, Muscovy Company, …) und
   4 Gesetze (Wirtschaft, Heer, Staat, Kirche), deren Optionen immer Vor- und Nachteile haben.
+  Kompanien lassen sich per Schieberegler bis Stufe 5 ausbauen (stärkere Vorteile, gleiche Nachteile).
+- **Stände:** Adel, Klerus und Bürger haben eine Zufriedenheit (0–100), die zu einem Zielwert driftet.
+  Gesetze, Berater und Kompanien verschieben das Ziel; treue Stände geben Boni, verärgerte bringen Unruhe
+  und Krisen-Events. Zugeständnisse kosten Gold (alle 5 Jahre pro Stand).
 - **Vasallen:** Statt Land zu fordern, kannst du den besiegten Kriegsführer zum Vasallen machen. Vasallen zahlen
   Tribut, kämpfen mit dir und lassen sich nach 15 Jahren diplomatisch annektieren.
 - **Inhalte:** 281 Events mit je 3 Entscheidungen (jede Nation hat eigene) und 135 Missionen
