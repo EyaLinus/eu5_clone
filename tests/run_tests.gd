@@ -17,7 +17,7 @@ func _init() -> void:
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_economy_goods_and_trade", "test_buildings", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures",
 	]:
 		var before := failures
@@ -940,3 +940,34 @@ func test_estates() -> void:
 	g2.from_dict(JSON.parse_string(text))
 	check(JSON.stringify(g2.to_dict()) == text, "estates survive save/load")
 	check(g2.govt.estate_tier(g2.nations.FRA, "adel") == "loyal" and g2.nations.FRA.bonus.estates.has("manpower"), "estate bonus rebuilt after load")
+
+
+## Government events (tools/content/gov_events.py) reference real laws, techs and estates and fire once their law is set.
+func test_gov_events() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	var count := 0
+	for e in data.events:
+		if not e.id.begins_with("gov_"):
+			continue
+		count += 1
+		var tr: Dictionary = e.trigger
+		for l in tr.get("law", {}):
+			check(g.govt.law_by_id.has(l) and not g.govt.law_option(l, tr.law[l]).is_empty(), "%s: law %s exists" % [e.id, l])
+		if tr.has("has_tech"):
+			check(g.tree.by_id.has(tr.has_tech), "%s: tech %s exists" % [e.id, tr.has_tech])
+		for k in ["estate_min", "estate_max"]:
+			for es in tr.get(k, {}):
+				check(n.gov.estates.has(es), "%s: estate %s exists" % [e.id, es])
+		for o in e.options:
+			for es in o.effects.get("estate", {}):
+				check(n.gov.estates.has(es), "%s: effect estate %s exists" % [e.id, es])
+	check(count >= 15, "at least 15 government events (%d)" % count)
+	var ev: Dictionary = g.event_by_id["gov_heretics"]
+	g.month = (1510 - 1444) * 12
+	check(not g.check_conditions("FRA", ev.trigger), "heretics need Glaubenseifer")
+	n.gov.laws["kirche"] = "glaubenseifer"
+	check(g.check_conditions("FRA", ev.trigger), "heretics fire under Glaubenseifer")
+	var before: float = n.gov.estates.klerus
+	g.choose_event_option("FRA", "gov_heretics", 0)
+	check(n.gov.estates.klerus > before, "inquisition pleases the clergy")
