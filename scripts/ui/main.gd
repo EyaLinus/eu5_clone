@@ -1895,6 +1895,10 @@ func _panel_diplomacy() -> void:
 				txt += "  🔗"
 			if game.nations[me].marriages.has(tag):
 				txt += "  👑"
+			if game.nations[me].access.has(tag):
+				txt += "  🚶"
+			if game.nations[me].guarantees.has(tag) or o.guarantees.has(me):
+				txt += "  🛡️"
 			side_box.add_child(_nation_btn(tag, txt, _open_panel.bind("other", tag)))
 
 
@@ -1914,6 +1918,8 @@ func _panel_other(tag: String) -> void:
 		info += "\n📜 Du hast Ansprüche (Kriegsgrund)"
 	if o.overlord != "":
 		info += "\n⛓️ Vasall von %s" % game.nations[o.overlord].name
+	if o.guarantees.has(me):
+		info += "\n🛡️ Garantiert deine Unabhängigkeit"
 	var ovs := []
 	for v in game.vassals_of(tag):
 		ovs.append(game.nations[v].name)
@@ -1932,6 +1938,22 @@ func _panel_other(tag: String) -> void:
 		side_box.add_child(_btn("👑 Königliche Heirat (%d 🕊️)" % int(b.marriage_cost), func(): _act(game.marry(me, tag), "👑 Hochzeit gefeiert!"),
 				"+%d Beziehung, die nie unter %d fällt. Ist %s klein (höchstens %d Provinzen) und du viel stärker, kann es beim Thronwechsel per Personalunion dein Vasall werden. Ein Krieg gegen den Partner beendet die Ehe.%s" % [
 				int(b.marriage_rel), int(b.marriage_rel_floor), o.name, int(b.marriage_union_max_provinces), ("\n❌ " + mr) if mr != "" else ""], mr != ""))
+	if game.nations[me].access.has(tag):
+		side_box.add_child(_lbl("🚶 Durchmarschrecht: Deine Armeen dürfen durch %s ziehen." % o.name, 15, Color(0.7, 0.9, 0.7)))
+		side_box.add_child(_btn("🚶 Durchmarschrecht aufgeben", func(): game.revoke_access(me, tag); _act("", "🚶 Durchmarschrecht aufgegeben")))
+	elif not game.is_allied(me, tag) and o.overlord != me:
+		var ar: String = game.access_block_reason(me, tag)
+		side_box.add_child(_btn("🚶 Durchmarschrecht erbitten (%d 🕊️)" % int(b.access_cost), func(): _act(game.request_access(me, tag), "🚶 Durchmarschrecht erhalten"),
+				"Deine Armeen dürfen durch das Land von %s ziehen, etwa um einen Feind dahinter zu erreichen. Braucht Beziehung ab %d; wer mit deinem Kriegsgegner verbündet ist, lehnt ab. Fällt die Beziehung unter %d, wird das Recht entzogen und deine Truppen dort kehren heim.%s" % [
+				o.name, int(b.access_min_rel), int(b.access_lost_rel), ("\n❌ " + ar) if ar != "" else ""], ar != ""))
+	if game.nations[me].guarantees.has(tag):
+		side_box.add_child(_btn("🛡️ Garantie zurückziehen", func(): game.end_guarantee(me, tag); _act("", "🛡️ Garantie zurückgezogen"),
+				"Du musst %s dann nicht mehr verteidigen. Kostet %d Beziehung." % [o.name, int(b.guarantee_rel)]))
+	elif o.overlord == "":
+		var gr: String = game.guarantee_block_reason(me, tag)
+		side_box.add_child(_btn("🛡️ Unabhängigkeit garantieren (%d 🕊️)" % int(b.guarantee_cost), func(): _act(game.guarantee(me, tag), "🛡️ Garantie ausgesprochen"),
+				"+%d Beziehung. Wer %s den Krieg erklärt, hat dich automatisch als Gegner. So schützt du kleine Nachbarn vor deinen Rivalen. Höchstens %d Garantien.%s" % [
+				int(b.guarantee_rel), o.name, int(b.max_guarantees), ("\n❌ " + gr) if gr != "" else ""], gr != ""))
 	if o.overlord == me:
 		var left: int = game.annex_months_left(tag)
 		var t := "📜 Annektieren (%d 🕊️, %d 📜)" % [int(game.annex_cost(tag)), int(game.annex_adm_cost(tag))]
@@ -2019,10 +2041,25 @@ func _panel_wars() -> void:
 			them.append(nname(t))
 		side_box.add_child(_lbl("🔥 " + w.name, 20, Color(1, 0.8, 0.6)))
 		side_box.add_child(_lbl("Wir: %s\nGegner: %s\nKriegspunkte: %+d · Dauer: %d Monate" % [", ".join(us), ", ".join(them), int(ws), game.month - w.start], 16))
+		var pw := [0.0, 0.0]
+		for a in game.armies:
+			var side := 0 if game.side_tags(w, att).has(a.owner) else (1 if game.side_tags(w, not att).has(a.owner) else -1)
+			if side >= 0:
+				pw[side] += a.regs * game.combat_mult(a.owner) * game.power_factor(a)
+		var sl := _lbl("⚔️ Kampfkraft der Armeen: wir %d · Gegner %d" % [int(round(pw[0])), int(round(pw[1]))], 16,
+				Color(0.55, 0.95, 0.45) if pw[0] >= pw[1] else Color(1.0, 0.55, 0.45))
+		sl.tooltip_text = "Regimenter × Kampfwert × Moral aller Armeen beider Seiten (ohne Heimvorteil, Generäle und Zufall)."
+		sl.mouse_filter = Control.MOUSE_FILTER_STOP
+		side_box.add_child(sl)
 		if game.side_tags(w, att)[0] == me:
 			side_box.add_child(_btn("🕊️ Friedensverhandlung", _open_panel.bind("peace", w.id)))
 		else:
 			side_box.add_child(_lbl("Der Kriegsführer %s verhandelt den Frieden." % game.nations[game.side_tags(w, att)[0]].name, 15, Color(0.7, 0.7, 0.7)))
+			var why: String = game.leave_war_block_reason(me, w)
+			var wid: int = w.id
+			side_box.add_child(_btn("🏳️ Separatfrieden (Krieg verlassen)", func(): _act(game.leave_war(me, game.war_by_id(wid)), "🏳️ Du hast den Krieg verlassen"),
+					"Du steigst aus dem Krieg aus: Waffenstillstand mit allen Gegnern, besetzte Provinzen gehen an ihre Besitzer zurück. Der Kriegsführer %s ist verärgert (−%d Beziehung).%s" % [
+					game.nations[game.side_tags(w, att)[0]].name, int(game.bal.separate_peace_rel), ("\n❌ " + why) if why != "" else ""], why != ""))
 	var n = game.nations[me]
 	if not n.claims.is_empty():
 		side_box.add_child(_lbl("📜 Deine Ansprüche", 20, Color(0.7, 0.8, 0.9)))

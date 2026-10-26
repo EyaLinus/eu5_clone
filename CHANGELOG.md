@@ -3,6 +3,22 @@
 ## Unreleased
 - **Wissensverbreitung:** Eine Technologie wird billiger, je mehr andere Nationen sie schon kennen (bis −30 %).
   Pioniere zahlen den vollen Preis, Nachzügler holen auf. Das Detailfenster zeigt den Rabatt.
+
+## v0.8.7 – 2026-10-26
+- **Durchmarschrecht 🚶 (neu):** Im Fenster eines anderen Landes für 10 🕊️ erbitten. Deine Armeen dürfen dann durch
+  dessen Land ziehen, etwa um einen Feind dahinter zu erreichen. Freunde (Beziehung ab 0) sagen ja, Verbündete
+  deines Kriegsgegners nein. Fällt die Beziehung unter −25 oder kommt es zum Krieg, endet das Recht, Truppen dort
+  kehren heim.
+- **Unabhängigkeit garantieren 🛡️ (neu):** Für 25 🕊️ (höchstens 3): Wer dem Schützling den Krieg erklärt, hat dich
+  automatisch als Gegner, +15 Beziehung. Greifst du ihn selbst an, ist die Garantie gebrochen.
+- Diplomatie-Liste zeigt 🚶 und 🛡️, „Kein Weg dorthin" erklärt jetzt das Durchmarschrecht.
+
+## v0.8.6 – 2026-10-26
+- **Separatfrieden 🏳️:** Bist du in einem Krieg nur Verbündeter, kannst du im Kriegsfenster aussteigen:
+  Waffenstillstand mit allen Gegnern, besetzte Provinzen gehen zurück, der Kriegsführer ist verärgert.
+- **Kampfkraft im Kriegsfenster:** Jeder Krieg zeigt die Stärke der Armeen beider Seiten (Regimenter × Kampfwert ×
+  Moral), grün wenn du vorne liegst.
+- Kriegsmüde Verbündete schließen Separatfrieden, erschöpfte KI beendet Kriege früher (deutlich weniger Aufstände).
 - **Staatsreformen 🏛️ (neu):** Vier Reformstufen im Regierungs-Screen (Herrschaftsgrundlage ab 1444, Verwaltung ab
   1480, Heerwesen ab 1520, Staatsidee ab 1570) mit je drei Wahlmöglichkeiten, alle mit Vor- und Nachteilen. Kostet
   Verwaltungspunkte (100, 150, 200, 250), ein Wechsel ist nur alle 25 Jahre möglich. Die KI reformiert ebenfalls.
