@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+- **45 neue Ereignisse zu den neuen Systemen:** Knappheit und Überangebot auf den Märkten, Monopole, Messen und
+  Streit mit Handelspartnern, Silberadern, Weinjahrgänge, Heringszüge, Weberstreiks; Ereignisse zu Marktplätzen,
+  Manufakturen, Kasernen, Festungen und Gerichtshöfen; Häfen (Piraten, Schiffbauer, Hafenbrand, Kaufleute wollen
+  einen Hafen), Straßen (Wegelagerer, Postdienst, adlige Wegzölle, Schlammwege), Kredite (drängende Bankiers,
+  drohender Staatsbankrott, Bürger lösen Schulden ab), Söldner (Meuterei, Plünderung, Landsknechte), erschöpfte
+  Truppen und die Haushaltsregler (Feste, Steuerverweigerer, Akademien, verrostete Rüstungen).
+- **20 Wirtschaftsmissionen:** Je zwei für jede spielbare Nation, z. B. Englands Tuchmanufakturen und Häfen,
+  Böhmens Silber, Russlands Pelzhandel und Straßen, Brügges Messen.
+- Ereignisse können jetzt Gebäudestufen schenken, Kredite erlassen, die Moral heben oder Söldner sofort
+  bereitstellen.
+
 ## v0.8.0 – 2026-10-26
 - **Armee-Moral (neu):** Jede Armee hat Moral bis zu einem Maximum (100 %, Boni können es erhöhen). Sie steigt jeden
   Monat, im eigenen und verbündeten Land schneller, mit Straßen noch schneller, im Feindesland langsam. Eine
