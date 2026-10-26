@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased: UI-Overhaul
+- **Neue Pixel-Art-Oberfläche:** Alle blauen Menüs sind ersetzt durch eigene Panels im Stil der Icons: Eichenrahmen
+  mit Messing-Eckbeschlägen und Nieten, Holzknöpfe mit 4 Zuständen, Titelleiste, Karten für Berater, Stände und
+  Techs (grün = erforscht/treu, gold = verfügbar/national, rot = zornig), Tooltips, Balken, Scrollbalken und Slider.
+  Generator `tools/art/ui_kit.py` (Varianten `eisen`, `holz`, `krone`), Theme in `scripts/ui/ui_theme.gd`.
+- **Buffs und Nerfs auf einen Blick:** Vorteile grün mit Pfeil nach oben, Nachteile rot mit Pfeil nach unten, nach
+  Bedeutung statt Vorzeichen (−10 % Baukosten ist grün, +AE ist rot). Gilt für Techs, Regierung, Nationalgeist und
+  jetzt auch für Event-Optionen.
+- **Neu: "Alle Boni und Mali"** (Nation-Panel): jeder Modifikator mit Gesamtwert, gruppiert nach Wirtschaft, Militär,
+  Staat und Stände, und woher er kommt (Nationalgeist, Technologie, Regierung, Gebäude, Güter, Rang, Pakte).
+- Startmenü zeigt Nationalgeister als farbige Boni.
+
 ## v0.7.4 – 2026-10-26
 - **Neuer Name: Rise of EU.** Spiel, Fenster, App und Downloads heißen jetzt so (`RiseOfEU.apk`, `RiseOfEU.exe`),
   das Repo heißt `EyaLinus/rise-of-eu`. Die Android-Paket-ID bleibt gleich, damit das Update die alte App ersetzt

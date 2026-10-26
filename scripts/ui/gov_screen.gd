@@ -9,8 +9,6 @@ const TechScreen = preload("res://scripts/ui/tech_screen.gd")
 const Icons = preload("res://scripts/ui/icons.gd")
 
 const POWER_NAMES := {"adm": "Verwaltung", "dip": "Diplomatie", "mil": "Militär"}
-const CARD := Color("1f2735")
-const CARD_NATIONAL := Color("33291a")
 
 var m
 
@@ -91,14 +89,7 @@ func build() -> void:
 
 func _card(title: String, sub: String, eff: Dictionary, national: bool, action: String, cb: Callable) -> Control:
 	var pc := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = CARD_NATIONAL if national else CARD
-	sb.set_corner_radius_all(8)
-	sb.set_content_margin_all(8)
-	if national:
-		sb.border_color = Color(1.0, 0.8, 0.35)
-		sb.set_border_width_all(1)
-	pc.add_theme_stylebox_override("panel", sb)
+	pc.add_theme_stylebox_override("panel", UiTheme.card("gold" if national else ""))
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
 	pc.add_child(h)
@@ -270,11 +261,7 @@ func _estate_card(e: Dictionary, tip: String) -> Control:
 	var tier_name: String = {"loyal": "treu", "neutral": "ruhig", "angry": "zornig"}[tier]
 	var col: Color = {"loyal": Color(0.55, 0.85, 0.55), "neutral": Color(0.85, 0.8, 0.55), "angry": Color(0.95, 0.5, 0.45)}[tier]
 	var pc := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = CARD
-	sb.set_corner_radius_all(8)
-	sb.set_content_margin_all(8)
-	pc.add_theme_stylebox_override("panel", sb)
+	pc.add_theme_stylebox_override("panel", UiTheme.card({"loyal": "good", "angry": "bad"}.get(tier, "")))
 	pc.tooltip_text = "%s: %s\n%s" % [e.name, e.text, tip]
 	pc.mouse_filter = Control.MOUSE_FILTER_STOP
 	var vb := VBoxContainer.new()
@@ -289,10 +276,7 @@ func _estate_card(e: Dictionary, tip: String) -> Control:
 	bar.show_percentage = false
 	bar.custom_minimum_size = Vector2(0, 14)
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = col
-	fill.set_corner_radius_all(4)
-	bar.add_theme_stylebox_override("fill", fill)
+	bar.add_theme_stylebox_override("fill", UiTheme.bar_fill(col))
 	vb.add_child(bar)
 	vb.add_child(m._lbl("Zufriedenheit %d, %s %d" % [roundi(v), trend, roundi(target)], 14, Color(0.75, 0.78, 0.85)))
 	var cur: Dictionary = e.get(tier, {}) if tier != "neutral" else {}
