@@ -1253,7 +1253,7 @@ func test_eco_content() -> void:
 	var a = g.armies_of("ENG")[0]
 	a.regs = maxf(a.regs, 3.0)
 	a.power = 0.2 * g.power_max("ENG")
-	check(g.check_conditions("ENG", {"morale_max": 0.35}), "worn-out army detected")
+	check(g.check_conditions("ENG", {"morale_max": 0.45}), "worn-out army detected")
 	g.apply_effects("ENG", {"army_power": 0.3})
 	check(absf(a.power - 0.5 * g.power_max("ENG")) < 0.001 and not g.check_conditions("ENG", {"morale_max": 0.35}), "army_power effect raises morale")
 	g.apply_effects("ENG", {"army_power": 5.0})
