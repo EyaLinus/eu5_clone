@@ -246,6 +246,157 @@
   }
  ],
  "budget_default": 2,
+ "reforms": [
+  {
+   "id": "grundlage",
+   "name": "Herrschaftsgrundlage",
+   "year": 1444,
+   "options": [
+    {
+     "id": "lehnswesen",
+     "name": "Lehnswesen",
+     "effects": {
+      "manpower": 0.15,
+      "tax": -0.05,
+      "estate_adel": 5
+     },
+     "text": "Vasallen stellen Truppen statt Steuern."
+    },
+    {
+     "id": "domaenen",
+     "name": "Domänenwirtschaft",
+     "effects": {
+      "tax": 0.1,
+      "manpower": -0.1
+     },
+     "text": "Die Krone lebt von ihren eigenen Gütern."
+    },
+    {
+     "id": "staedtebund",
+     "name": "Städtische Freiheiten",
+     "effects": {
+      "trade": 0.1,
+      "estate_buerger": 10,
+      "force_limit": -2
+     },
+     "text": "Die Städte regieren sich selbst und zahlen dafür."
+    }
+   ]
+  },
+  {
+   "id": "verwaltung",
+   "name": "Verwaltung",
+   "year": 1480,
+   "options": [
+    {
+     "id": "hofrat",
+     "name": "Hofrat",
+     "effects": {
+      "adm": 1,
+      "estate_adel": -5
+     },
+     "text": "Gelehrte Räte statt Hochadel am Hof."
+    },
+    {
+     "id": "landtage",
+     "name": "Landtage",
+     "effects": {
+      "estate_adel": 10,
+      "estate_buerger": 10,
+      "adm": -0.5,
+      "tax": 0.05
+     },
+     "text": "Die Stände bewilligen Steuern und reden mit."
+    },
+    {
+     "id": "kreisordnung",
+     "name": "Kreisordnung",
+     "effects": {
+      "unrest": -0.5,
+      "build_cost": 0.1
+     },
+     "text": "Amtleute in jedem Kreis halten Ordnung."
+    }
+   ]
+  },
+  {
+   "id": "heerwesen",
+   "name": "Heerwesen",
+   "year": 1520,
+   "options": [
+    {
+     "id": "kriegsrat",
+     "name": "Hofkriegsrat",
+     "effects": {
+      "combat": 0.05,
+      "army_power": 0.05,
+      "maintenance": 0.05
+     },
+     "text": "Ein ständiger Rat plant die Feldzüge."
+    },
+    {
+     "id": "werbewesen",
+     "name": "Werbewesen",
+     "effects": {
+      "force_limit": 3,
+      "army_power": -0.05
+     },
+     "text": "Werber füllen die Reihen, doch nicht jeder will kämpfen."
+    },
+    {
+     "id": "miliz",
+     "name": "Landesdefension",
+     "effects": {
+      "manpower": 0.2,
+      "army_power_regen": 0.25,
+      "combat": -0.03
+     },
+     "text": "Jede Gemeinde stellt geübte Männer."
+    }
+   ]
+  },
+  {
+   "id": "staatsidee",
+   "name": "Staatsidee",
+   "year": 1570,
+   "options": [
+    {
+     "id": "gottesgnaden",
+     "name": "Gottesgnadentum",
+     "effects": {
+      "prestige": 1.0,
+      "unrest": -0.5,
+      "estate_klerus": 10,
+      "tech_cost": 0.05
+     },
+     "text": "Der Herrscher regiert von Gottes Gnaden."
+    },
+    {
+     "id": "staatsraison",
+     "name": "Staatsräson",
+     "effects": {
+      "ae_decay": 0.2,
+      "dip": 1,
+      "estate_klerus": -10
+     },
+     "text": "Was dem Staat nützt, ist recht."
+    },
+    {
+     "id": "gemeinwohl",
+     "name": "Gemeines Bestes",
+     "effects": {
+      "production": 0.1,
+      "estate_buerger": 10,
+      "estate_adel": -10
+     },
+     "text": "Der Fürst als erster Diener des Landes."
+    }
+   ]
+  }
+ ],
+ "reform_cost": 100,
+ "reform_cost_step": 50,
+ "reform_change_years": 25,
  "law_cost": 60,
  "law_cooldown_years": 10,
  "forms": {
@@ -403,7 +554,17 @@
    "name": "Generalquartiermeister",
    "type": "mil",
    "effects": {
-    "maintenance": -0.1
+    "maintenance": -0.1,
+    "army_power_regen": 0.2
+   }
+  },
+  {
+   "id": "drillmeister",
+   "name": "Drillmeister",
+   "type": "mil",
+   "effects": {
+    "army_power": 0.1,
+    "army_power_regen": 0.2
    }
   },
   {
@@ -1104,7 +1265,8 @@
      "effects": {
       "force_limit": 3,
       "maintenance": 0.1,
-      "manpower": -0.1
+      "manpower": -0.1,
+      "army_power": -0.05
      },
      "text": "Geld statt Blut, solange die Kasse reicht."
     },
@@ -1115,7 +1277,8 @@
       "manpower": 0.25,
       "combat": -0.04,
       "unrest": 0.5,
-      "estate_adel": -10
+      "estate_adel": -10,
+      "army_power_regen": 0.2
      },
      "text": "Jeder wehrfähige Mann wird gemustert."
     },
@@ -1125,7 +1288,8 @@
      "effects": {
       "combat": 0.08,
       "maintenance": 0.1,
-      "estate_adel": -10
+      "estate_adel": -10,
+      "army_power": 0.1
      },
      "text": "Gedrillte Berufssoldaten, auch im Frieden besoldet.",
      "req": "mil_kriegskanzlei"
