@@ -16,7 +16,7 @@ func _init() -> void:
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_generals", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
-		"test_separate_peace", "test_tired_ai_seeks_peace", "test_ai_marriage_and_generals",
+		"test_separate_peace", "test_tired_ai_seeks_peace", "test_ai_marriage_and_generals", "test_ai_access_and_guarantee",
 		"test_military_access",
 		"test_guarantee",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
@@ -1501,3 +1501,30 @@ func test_ai_marriage_and_generals() -> void:
 		if a.general > 0:
 			led += 1
 	check(led == 1, "the largest army gets a general from a power surplus")
+
+
+func test_ai_access_and_guarantee() -> void:
+	var g = new_game("ENG")
+	var fra = g.nations.FRA
+	for t in g.order:
+		g.nations[t].allies.clear()
+		g.nations[t].truces.clear()
+		g.add_rel("FRA", t, 50.0)
+	var mine: Array = g.neighbors_of("FRA")
+	var target := ""
+	for t in mine:
+		for e in g.neighbors_of(t):
+			if e != "FRA" and not mine.has(e) and e != "ENG" and target == "":
+				target = e
+	check(target != "", "some nation lies behind a French neighbour")
+	g.declare_war("FRA", target)
+	for e in g.enemies_of("FRA"):
+		for t in mine:
+			g.add_rel(t, e, -100.0)
+	fra.dip = 500.0
+	g.ai._war_access(g, fra)
+	check(not fra.access.is_empty(), "the AI asks a neutral neighbour for passage to its enemy")
+	g.wars.clear()
+	g.bal.ai_guarantee_chance = 1.0
+	g.ai._guarantee(g, fra)
+	check(fra.guarantees.size() == 1, "a great power guarantees a small friendly neighbour")
