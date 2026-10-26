@@ -5,6 +5,8 @@
   Kacheln im Raster (Details im Tooltip), Aktionen stehen in zwei Spalten. Diplomatie, Missionen, Meilensteine,
   Großprojekte, Verlauf, Rangliste (Top 10) und weitere Handelsmärkte lassen sich mit ▼/▶ ein- und ausklappen.
   Das Diplomatiefenster ist von gut sechs Bildschirmhöhen auf eine halbe geschrumpft.
+- **Späte Wirtschaft gedämpft:** Einkommensboni (Admin-Tech, Einkommen) addieren sich jetzt zu Steuer-, Produktions- und Handelsboni, statt sie zu vervielfachen. Armeen werden mit jeder Militär-Tech 8 % teurer (Anwerben und Unterhalt). England hatte um 1600 vorher ~330 Gold/Monat bei 30 Ausgaben.
+- Die KI nutzt Durchmarschrecht und garantiert kleine befreundete Nachbarn.
 
 ## v0.8.9 – 2026-10-26
 - **45 neue Ereignisse zu den neuen Systemen:** Knappheit und Überangebot auf den Märkten, Monopole, Messen und

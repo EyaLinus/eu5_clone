@@ -1539,7 +1539,7 @@ func _panel_province(pid: int) -> void:
 func _province_army(p) -> void:
 	var me: String = game.player
 	var pid: int = p.id
-	var c := int(game.bal.regiment_cost)
+	var c := int(game.regiment_cost(me))
 	var n = game.nations[me]
 	side_box.add_child(_lbl("👥 Mannschaften %.0f · 🛡️ %.0f / %.0f Regimenter" % [n.manpower, game.army_regs(me), game.force_limit(me)], 16, Color(0.75, 0.8, 0.85)))
 	side_box.add_child(_row([

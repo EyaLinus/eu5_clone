@@ -102,7 +102,7 @@ func _spend_gold(g, n) -> void:
 	var war: bool = g.is_at_war(tag)
 	var want: float = fl if war else fl * 0.75
 	# never plan an army the treasury cannot pay for (small states would go bankrupt and desert)
-	var upkeep: float = float(g.bal.regiment_maintenance) * (1.0 if war else float(g.bal.peace_maintenance_mult))
+	var upkeep: float = g.regiment_upkeep(tag) * (1.0 if war else float(g.bal.peace_maintenance_mult))
 	var affordable: float = maxf(1.0, n.income * (0.85 if war else 0.7) / maxf(upkeep, 0.001))
 	want = minf(want, affordable)
 	var Eco = g.Economy
@@ -117,7 +117,7 @@ func _spend_gold(g, n) -> void:
 			arms.sort_custom(func(x, y): return x.regs > y.regs)
 			g.disband(arms[0], 1.0)
 		return
-	var cost := float(g.bal.regiment_cost)
+	var cost: float = g.regiment_cost(tag)
 	var reserve: float = 10.0 + n.expenses * 4.0
 	var k: int = int(minf(minf((n.gold - reserve) / cost, want - regs), n.manpower))
 	# out of manpower in a war: hire mercenaries if the chest allows
