@@ -120,6 +120,25 @@ func _run(m) -> void:
 	m.map.map_mode = 0
 	m._open_panel("hre")
 	await _shot("14_hre")
+	# imperial reforms as emperor (temporarily)
+	var old_emp: String = g.emperor
+	g.hre.append("FRA")
+	g.emperor = "FRA"
+	for e in g.current_electors():
+		g.add_rel(e, "FRA", 200.0)
+	g.hre_authority = 140.0
+	var old_month: int = g.month
+	g.month = maxi(g.month, (1450 - 1444) * 12)
+	g.govt.pass_empire_reform(g, "FRA")
+	m._open_panel("hre")
+	await process_frame
+	m.side_scroll.scroll_vertical = 100000
+	await _shot("14b_hre_reforms")
+	g.hre.erase("FRA")
+	g.emperor = old_emp
+	g.month = old_month
+	g.hre_reforms.clear()
+	g.govt.refresh_empire(g)
 	# economy: a few buildings in Paris, the economy panel, goods / trade / war map modes
 	var paris: int = g.key_to_pid["paris"]
 	g.nations.FRA.gold = 2000.0

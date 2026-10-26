@@ -2259,6 +2259,43 @@ func _panel_hre() -> void:
 	else:
 		side_box.add_child(_lbl("Du bist kein Reichsmitglied und kannst nicht gewählt werden.", 16))
 	side_box.add_child(_lbl("Mitglieder: %d" % game.hre_members().size(), 15, Color(0.75, 0.75, 0.75)))
+	_hre_reforms_box(me)
+
+
+## Imperial authority and the reform ladder; the player as emperor passes the next reform here.
+func _hre_reforms_box(me: String) -> void:
+	var gv = game.govt
+	if gv.empire_reforms().is_empty():
+		return
+	side_box.add_child(_lbl("📜 Reichsreformen", 18, Color(0.7, 0.8, 0.9)))
+	var gain: float = gv.authority_gain(game)
+	side_box.add_child(_lbl("Kaiserliche Autorität: %d  (%s%.1f pro Jahr)" % [int(game.hre_authority), "+" if gain >= 0.0 else "", gain], 16, Color(1, 0.9, 0.6)))
+	side_box.add_child(_lbl("Wächst mit der Zahl der Mitglieder, sinkt durch Kriege zwischen ihnen und beim Wechsel des Kaiserhauses.", 14, Color(0.75, 0.75, 0.75)))
+	var nxt: Dictionary = gv.next_empire_reform(game)
+	for r in gv.empire_reforms():
+		var done: bool = game.hre_reforms.has(r.id)
+		var head := "%s %s" % ["✅" if done else ("👉" if r.id == nxt.get("id", "") else "🔒"), r.name]
+		if not done:
+			head += "  (ab %d, %d Autorität)" % [int(r.year), int(r.cost)]
+		side_box.add_child(_lbl(head, 16, Color(0.6, 1, 0.6) if done else Color(0.9, 0.9, 0.9)))
+		side_box.add_child(_lbl(r.text, 14, Color(0.75, 0.75, 0.75)))
+		side_box.add_child(_lbl("Alle Mitglieder:", 14, Color(0.75, 0.75, 0.75)))
+		side_box.add_child(TechScreen.effects_rich(r.members, 14))
+		side_box.add_child(_lbl("Kaiser zusätzlich:", 14, Color(0.75, 0.75, 0.75)))
+		side_box.add_child(TechScreen.effects_rich(r.emperor, 14))
+	if nxt.is_empty():
+		return
+	var s: Array = gv.reform_support(game)
+	side_box.add_child(_lbl("Kurfürsten hinter dem Kaiser: %d von %d (mehr als die Hälfte nötig)" % [s[0], s[1]], 15))
+	if me == game.emperor:
+		var err: String = gv.empire_reform_block(game, me)
+		side_box.add_child(_btn("👑 %s verabschieden" % nxt.name, func():
+			var e2: String = gv.pass_empire_reform(game, me)
+			if e2 != "":
+				_toast(e2)
+			_open_panel("hre", null, false), err, err != ""))
+		if err != "":
+			side_box.add_child(_lbl(err, 14, Color(1, 0.6, 0.5)))
 
 
 func _panel_ranking() -> void:

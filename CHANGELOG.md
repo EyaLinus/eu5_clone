@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- **Reichsreformen 👑:** Das Heilige Römische Reich sammelt kaiserliche Autorität (mehr Mitglieder = schneller,
+  Kriege zwischen Mitgliedern bremsen). Der Kaiser verabschiedet damit fünf Reformen nacheinander, vom Reichstag
+  bis zum Ewigen Landfrieden, wenn mehr als die Hälfte der Kurfürsten hinter ihm steht. Alle Mitglieder bekommen
+  Boni, der Kaiser zusätzlich eigene. Nach dem Ewigen Landfrieden dürfen Mitglieder einander nicht mehr angreifen.
+  Alles im Reichsfenster (👑 Reich).
 - **Wissensverbreitung:** Eine Technologie wird billiger, je mehr andere Nationen sie schon kennen (bis −30 %).
   Pioniere zahlen den vollen Preis, Nachzügler holen auf. Das Detailfenster zeigt den Rabatt.
 - Die KI nutzt jetzt königliche Heiraten (mit befreundeten Nachbarn, höchstens 2) und stellt Generäle für ihre größte Armee ein.

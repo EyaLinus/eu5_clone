@@ -397,6 +397,87 @@
  "reform_cost": 100,
  "reform_cost_step": 50,
  "reform_change_years": 25,
+ "empire": {
+  "authority_start": 10,
+  "authority_max": 150,
+  "authority_base": 2.0,
+  "authority_per_member": 0.15,
+  "authority_member_war": 3.0,
+  "authority_new_emperor": 0.75,
+  "reforms": [
+   {
+    "id": "reichstag",
+    "name": "Reichstag",
+    "year": 1450,
+    "cost": 40,
+    "emperor": {
+     "prestige": 1.0,
+     "dip": 0.5
+    },
+    "members": {
+     "unrest": -0.2
+    },
+    "text": "Fürsten und Städte beraten regelmäßig mit dem Kaiser."
+   },
+   {
+    "id": "kammergericht",
+    "name": "Reichskammergericht",
+    "year": 1470,
+    "cost": 60,
+    "emperor": {
+     "adm": 0.5
+    },
+    "members": {
+     "ae_decay": 0.1,
+     "estate_buerger": 3
+    },
+    "text": "Streit zwischen Reichsständen wird vor Gericht statt im Feld entschieden."
+   },
+   {
+    "id": "pfennig",
+    "name": "Gemeiner Pfennig",
+    "year": 1490,
+    "cost": 80,
+    "emperor": {
+     "tax": 0.1,
+     "income": 0.03
+    },
+    "members": {
+     "tax": -0.02
+    },
+    "text": "Eine Reichssteuer füllt die kaiserliche Kasse, die Fürsten zahlen mit."
+   },
+   {
+    "id": "reichskreise",
+    "name": "Reichskreise",
+    "year": 1510,
+    "cost": 100,
+    "emperor": {
+     "manpower": 0.1,
+     "force_limit": 2
+    },
+    "members": {
+     "manpower": 0.1,
+     "army_power_regen": 0.1
+    },
+    "text": "Zehn Kreise stellen gemeinsam Truppen für die Verteidigung des Reiches."
+   },
+   {
+    "id": "landfriede",
+    "name": "Ewiger Landfriede",
+    "year": 1530,
+    "cost": 120,
+    "emperor": {
+     "prestige": 1.0,
+     "army_power": 0.05
+    },
+    "members": {
+     "unrest": -0.25
+    },
+    "text": "Fehde ist verboten: Reichsmitglieder dürfen einander nicht mehr den Krieg erklären."
+   }
+  ]
+ },
  "law_cost": 60,
  "law_cooldown_years": 10,
  "forms": {
