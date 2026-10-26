@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.8.0 – 2026-10-26
+- **Armee-Moral (neu):** Jede Armee hat Moral bis zu einem Maximum (100 %, Boni können es erhöhen). Sie steigt jeden
+  Monat, im eigenen und verbündeten Land schneller, mit Straßen noch schneller, im Feindesland langsam. Eine
+  gewonnene Schlacht kostet 15 %, eine verlorene 50 %. Bei 0 % kämpft eine Armee nur noch mit 40 % Kraft. Neue
+  Truppen starten bei 60 %. Ein farbiger Balken unter jeder Armee auf der Karte zeigt die Moral (grün, gelb, rot),
+  das Armeefenster nennt Wert und Erholung. Die KI zieht erschöpfte Armeen zur Erholung zurück.
+- **Straßen 🛤 (neu, Infrastruktur):** Bis Stufe 3, je Stufe 25 % schnellere Moral-Erholung in der Provinz, +10 %
+  Handelsmacht, +5 % Produktion.
+- **Wachstum sichtbar:** Wächst eine deiner Provinzen (Entwickeln, fertiges Gebäude), schwebt "+1 🏘️" über ihr auf
+  und ihr Rand leuchtet kurz. Verluste erscheinen rot.
+- **Weniger Friedensangebote:** Lehnst du ein Angebot ab, fragt der Gegner frühestens nach 2 Jahren wieder, außer
+  der Krieg hat sich deutlich zu seinen Gunsten gedreht (+15 Kriegspunkte).
+
 ## v0.7.4 – 2026-10-26
 - **Neuer Name: Rise of EU.** Spiel, Fenster, App und Downloads heißen jetzt so (`RiseOfEU.apk`, `RiseOfEU.exe`),
   das Repo heißt `EyaLinus/rise-of-eu`. Die Android-Paket-ID bleibt gleich, damit das Update die alte App ersetzt

@@ -97,5 +97,18 @@
    "trade": 0.02
   },
   "text": "nur an der Küste. je Stufe: +3 Handelsmacht, +25 % Handelsmacht und +10 % Produktion der Provinz, +2 % Handelseinnahmen im Reich"
+ },
+ "road": {
+  "name": "Straßen",
+  "emoji": "🛤",
+  "cost": 35,
+  "months": 6,
+  "max_level": 3,
+  "local": {
+   "supply": 1.0,
+   "trade_power": 0.1,
+   "production": 0.05
+  },
+  "text": "je Stufe: Armeen erholen ihre Kampfkraft hier 25 % schneller, +10 % Handelsmacht, +5 % Produktion der Provinz"
  }
 }

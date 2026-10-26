@@ -440,6 +440,7 @@ func _act(err: String, ok_text: String = "") -> void:
 	elif ok_text != "":
 		_toast(ok_text)
 		_sfx("success")
+	map.check_dev_changes()
 	_refresh()
 
 
@@ -511,6 +512,8 @@ func _save_game() -> void:
 
 func _after_game_loaded() -> void:
 	map.setup(game, data.map)
+	map.reset_dev_seen()
+	map.check_dev_changes()
 	hud.visible = true
 	speed = 0
 	selected_army = -1
@@ -697,6 +700,7 @@ func _process(delta: float) -> void:
 
 func _after_tick() -> void:
 	_update_top()
+	map.check_dev_changes()
 	var battles: int = game.stats.get("player_battles_won", 0) + game.stats.get("player_battles_lost", 0)
 	if battles > last_battles:
 		_sfx("battle", -10.0)
@@ -1656,6 +1660,13 @@ func _panel_army(id: int) -> void:
 	if a.target >= 0:
 		info += "\nZiel: %s (%d Monate)" % [game.provinces[a.target].name, maxi(1, a.path.size() - 1)]
 	side_box.add_child(_lbl(info))
+	var pm: float = game.power_max(a.owner)
+	var ml := _lbl("🔥 Moral %d %% (max. %d %%, +%.1f %%/Monat)" % [int(round(a.power * 100)), int(round(pm * 100)), game.power_regen(a) * 100],
+			17, Color(0.55, 0.95, 0.45) if a.power >= pm * 0.7 else (Color(0.95, 0.8, 0.3) if a.power >= pm * 0.35 else Color(1.0, 0.45, 0.35)))
+	ml.tooltip_text = "Moral bestimmt, wie gut die Armee kämpft (bei 0 %% nur noch mit %d %% Kraft). Sie steigt jeden Monat, im eigenen und verbündeten Land schneller, mit Straßen noch schneller. Eine gewonnene Schlacht kostet %d %%, eine verlorene %d %%. Der Balken unter der Armee auf der Karte zeigt sie." % [
+			int(float(game.bal.army_power_floor) * 100), int(float(game.bal.army_power_loss_win) * 100), int(float(game.bal.army_power_loss_lose) * 100)]
+	ml.mouse_filter = Control.MOUSE_FILTER_STOP
+	side_box.add_child(ml)
 	if a.owner != game.player:
 		return
 	if selected_army == a.id:
@@ -2125,7 +2136,7 @@ func effects_text(e: Dictionary) -> String:
 				names.append(game.provinces[game.key_to_pid[key]].name)
 			parts.append("📜 Anspruch: " + ", ".join(names))
 		elif k == "mods":
-			var mn := {"income": "Einkommen", "combat": "Kampfkraft", "manpower": "Mannschaften", "adm": "Admin/Monat", "dip": "Diplomatie/Monat", "mil": "Militär/Monat", "ae_decay": "AE-Abbau",
+			var mn := {"income": "Einkommen", "combat": "Kampfkraft", "army_power": "Max. Moral", "army_power_regen": "Moral-Erholung", "manpower": "Mannschaften", "adm": "Admin/Monat", "dip": "Diplomatie/Monat", "mil": "Militär/Monat", "ae_decay": "AE-Abbau",
 					"production": "Produktion", "trade": "Handel", "tax": "Steuern"}
 			for m in v:
 				if m in ["adm", "dip", "mil"]:
