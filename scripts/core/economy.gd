@@ -562,7 +562,8 @@ static func _building_value(g, n, p, bid: String, war: bool) -> float:
 	elif g.unrest(p.id) > 1.0:
 		v += absf(float(loc.get("unrest", 0.0))) * 0.03
 	v += float(d.get("nation", {}).get("force_limit", 0.0)) * (0.08 if war else 0.03)
-	v += float(loc.get("supply", 0.0)) * (0.04 if war else 0.01)
+	if p.core_months == 0:  # roads in fresh conquests would crowd out courthouses
+		v += float(loc.get("supply", 0.0)) * (0.012 if war else 0.004)
 	if loc.has("fort"):
 		# forts only where it matters: the capital or a border province next to a strong neighbor
 		var exposed: bool = p.id == n.capital
