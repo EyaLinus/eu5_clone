@@ -1418,6 +1418,46 @@ func make_peace(w: War, winner_att: bool, pids: Array, vassalize: bool = false) 
 			stats[key] = stats.get(key, 0) + 1
 
 
+## Separate peace: a war participant that does not lead its side (and is not a subject on it) leaves
+## the war without territorial changes. Occupations between it and the other side end, a truce follows,
+## and the side's leader resents being abandoned.
+func leave_war_block_reason(tag: String, w: War) -> String:
+	var att := is_attacker(w, tag)
+	var side: Array = side_tags(w, att)
+	if not side.has(tag):
+		return "Nicht an diesem Krieg beteiligt."
+	if side[0] == tag:
+		return "Der Kriegsführer muss Frieden schließen."
+	if side.has(nations[tag].overlord):
+		return "Der Oberherr führt den Krieg."
+	return ""
+
+
+func leave_war(tag: String, w: War) -> String:
+	var why := leave_war_block_reason(tag, w)
+	if why != "":
+		return why
+	var att := is_attacker(w, tag)
+	var leader: String = side_tags(w, att)[0]
+	var others: Array = side_tags(w, not att)
+	side_tags(w, att).erase(tag)
+	add_rel(leader, tag, -float(bal.separate_peace_rel))
+	for t in others:
+		nations[tag].truces[t] = month + int(bal.truce_months)
+		nations[t].truces[tag] = month + int(bal.truce_months)
+	for p in provinces:
+		if (p.owner == tag and others.has(p.controller)) or (others.has(p.owner) and p.controller == tag):
+			p.controller = p.owner
+			p.siege = 0.0
+	for a in armies:
+		if (a.owner == tag or others.has(a.owner)) and not can_enter(a.owner, a.pid):
+			a.pid = nations[a.owner].capital
+			a.target = -1
+	stats.separate_peace = stats.get("separate_peace", 0) + 1
+	log_msg("🕊️ %s schließt einen Separatfrieden und verlässt %s." % [nations[tag].name, w.name], [tag, leader] + others)
+	return ""
+
+
 func _vassalize(lord: String, tag: String, reduced_ae: bool) -> void:
 	var v: Nation = nations[tag]
 	var l: Nation = nations[lord]

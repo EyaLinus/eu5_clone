@@ -14,7 +14,7 @@ func _init() -> void:
 	data = Data.load_all()
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
-		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
+		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_separate_peace", "test_tired_ai_seeks_peace", "test_protector_defends_small_state",
 		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget",
@@ -327,6 +327,44 @@ func test_alliance_joins_war() -> void:
 	g.declare_war("FRA", "BRI")
 	var w = g.war_between("FRA", "BRI")
 	check(w.defenders.has("ENG"), "defensive ally joins")
+
+
+func test_separate_peace() -> void:
+	var g = new_game("FRA")
+	for t in g.order:
+		g.nations[t].allies.clear()
+		g.nations[t].truces.clear()
+	g._ally("BRI", "ENG")
+	g.declare_war("FRA", "BRI")
+	var w = g.war_between("FRA", "BRI")
+	check(g.leave_war("BRI", w) != "", "the war leader cannot leave its own war")
+	check(g.leave_war("FRA", w) != "", "nor can the attacking leader")
+	var york: int = g.key_to_pid["york"]
+	g.provinces[york].controller = "FRA"
+	var rel_before: float = g.get_rel("BRI", "ENG")
+	check(g.leave_war("ENG", w) == "", "an ally may make a separate peace")
+	check(not w.defenders.has("ENG") and g.wars.has(w), "the war goes on without the ally")
+	check(g.provinces[york].controller == "ENG", "occupations between the two end")
+	check(g.has_truce("ENG", "FRA"), "a truce follows")
+	check(g.get_rel("BRI", "ENG") < rel_before, "the abandoned leader resents it")
+
+
+func test_tired_ai_seeks_peace() -> void:
+	var g = new_game("ENG")
+	for t in g.order:
+		g.nations[t].allies.clear()
+		g.nations[t].truces.clear()
+	g._ally("BRI", "SPA")
+	g.declare_war("FRA", "BRI")
+	var w = g.war_between("FRA", "BRI")
+	w.start = g.month - 24
+	g.nations.SPA.we = float(g.bal.we_max)
+	g.ai._consider_peace(g, g.nations.SPA)
+	check(not w.defenders.has("SPA"), "an exhausted ally leaves a war it is not winning")
+	g.nations.FRA.we = float(g.bal.we_max)
+	g.nations.BRI.we = float(g.bal.we_max)
+	g.ai._consider_peace(g, g.nations.FRA)
+	check(not g.wars.has(w), "an exhausted leader settles an even war")
 
 
 func test_protector_defends_small_state() -> void:

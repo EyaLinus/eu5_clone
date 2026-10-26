@@ -129,5 +129,7 @@
   "army_power_loss_win": 0.15,
   "army_power_loss_lose": 0.5,
   "army_power_floor": 0.4,
-  "road_move_chance": 0.25
+  "road_move_chance": 0.25,
+  "separate_peace_rel": 30.0,
+  "ai_tired_we": 0.5
 }
