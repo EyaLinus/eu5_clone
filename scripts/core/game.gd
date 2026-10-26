@@ -2325,6 +2325,16 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 						n.loans.pop_back()
 			"merc_ready":
 				n.flags.erase("merc_month")
+			"convert_random":
+				# provinces of another faith take up the state religion (largest first)
+				var other := []
+				for pid in provinces_of(tag):
+					if provinces[pid].religion != n.religion:
+						other.append(pid)
+				other.sort_custom(func(x, y): return provinces[x].dev > provinces[y].dev)
+				for i in mini(int(v), other.size()):
+					provinces[other[i]].religion = n.religion
+					provinces[other[i]].convert_months = 0
 			"vassal":
 				# event-driven vassalization (dynastic deals), only for free, independent minors
 				if nations.has(v) and v != tag and v != player and nations[v].alive and nations[v].overlord == "" \
@@ -2517,6 +2527,18 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 						return false
 			"gold_max":
 				if n.gold > float(v):
+					return false
+			"faith_share_max":
+				# at most this share of the realm's development follows the state religion
+				if Religion.share(self, tag, n.religion) > float(v):
+					return false
+			"province_faith":
+				var found := false
+				for pid in provinces_of(tag):
+					if provinces[pid].religion == v:
+						found = true
+						break
+				if not found:
 					return false
 			"religion":
 				if n.religion != str(v):

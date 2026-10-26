@@ -9,6 +9,10 @@
   bis zum Ewigen Landfrieden, wenn mehr als die Hälfte der Kurfürsten hinter ihm steht. Alle Mitglieder bekommen
   Boni, der Kaiser zusätzlich eigene. Nach dem Ewigen Landfrieden dürfen Mitglieder einander nicht mehr angreifen.
   Alles im Reichsfenster (👑 Reich).
+- **18 Ereignisse zu Reformation und Gegenreformation (1517–1620):** Nachricht aus Wittenberg, lutherische Prediger,
+  Bauernkrieg, Bibelübersetzung, Klosterauflösung, Bildersturm, Jesuiten, Konzil von Trient, Augsburger
+  Religionsfriede, Religionsgespräche, Union und Liga, dazu ein eigener Patriarch für orthodoxe und eine Medrese für
+  sunnitische Länder. Viele Optionen holen abgefallene Provinzen zum Staatsglauben zurück.
 - **Schwierigkeitsgrade:** Im Startmenü wählbar (Leicht, Normal, Schwer, Sehr schwer). Normal ist etwas leichter als bisher: +10 % Einkommen, +5 % Kampfkraft, −0,5 Unruhe für dich, und die KI greift dich seltener an. Leicht gibt mehr Boni und eine friedlichere KI, Schwer entspricht der alten Balance, Sehr schwer gibt der KI Einkommens-, Kampf- und Mannstärke-Boni und macht sie aggressiver. Alte Spielstände laden als Schwer.
 - **Späte Wirtschaft gedämpft:** Einkommensboni (Admin-Tech, Einkommen) addieren sich jetzt zu Steuer-, Produktions- und Handelsboni, statt sie zu vervielfachen. Armeen werden mit jeder Militär-Tech 8 % teurer (Anwerben und Unterhalt). England hatte um 1600 vorher ~330 Gold/Monat bei 30 Ausgaben.
 - Die KI nutzt Durchmarschrecht und garantiert kleine befreundete Nachbarn.
