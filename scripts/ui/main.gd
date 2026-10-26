@@ -1487,7 +1487,7 @@ func _panel_province(pid: int) -> void:
 func _province_army(p) -> void:
 	var me: String = game.player
 	var pid: int = p.id
-	var c := int(game.bal.regiment_cost)
+	var c := int(game.regiment_cost(me))
 	var n = game.nations[me]
 	side_box.add_child(_lbl("👥 Mannschaften %.0f · 🛡️ %.0f / %.0f Regimenter" % [n.manpower, game.army_regs(me), game.force_limit(me)], 16, Color(0.75, 0.8, 0.85)))
 	side_box.add_child(_row([
@@ -2451,6 +2451,17 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["🏘️ Erhalte " + game.provinces[game.key_to_pid[v]].name, 1])
 		elif k == "war":
 			parts.append(["🔥 Krieg gegen " + game.nations[v].name, 0])
+		elif k == "build":
+			var bd: Dictionary = game.buildings_def[v]
+			parts.append(["%s %s +1 Stufe (gratis)" % [bd.emoji, bd.name], 1])
+		elif k == "army_power":
+			parts.append(["🔥 Moral der Armeen %+d%%" % int(round(float(v) * 100)), sgn.call(float(v))])
+		elif k == "loan":
+			parts.append(["🏦 Neuer Kredit (%d)" % int(v), 0])
+		elif k == "loan_forgiven":
+			parts.append(["🏦 Kredit erlassen", 1])
+		elif k == "merc_ready":
+			parts.append(["⚔️ Söldner sofort verfügbar", 1])
 	return parts
 
 
@@ -2515,6 +2526,30 @@ func conditions_text(c: Dictionary) -> String:
 				lines.append(mark + ("Hat Vasallen" if v else "Hat keine Vasallen"))
 			"unrest_min":
 				lines.append(mark + "Unruhe in einer Provinz ≥ %d" % int(v))
+			"building":
+				for bid in v:
+					var bd: Dictionary = game.buildings_def[bid]
+					lines.append(mark + "%s %s: %d Stufen (jetzt %d)" % [bd.emoji, bd.name, int(v[bid]), game.Economy.building_total(game, me, bid)])
+			"no_building":
+				lines.append(mark + "Noch kein %s" % game.buildings_def[v].name)
+			"coastal":
+				lines.append(mark + ("Besitzt eine Küstenprovinz" if v else "Keine Küste"))
+			"produces":
+				lines.append(mark + "Stellt %s %s her" % [game.goods_def[v].emoji, game.goods_def[v].name])
+			"goods_leader":
+				lines.append(mark + ("Marktführer bei einer Ware" if v is bool else "Marktführer bei %s" % game.goods_def[v].name))
+			"loans_min":
+				lines.append(mark + "Mindestens %d offene Kredite" % int(v))
+			"loans_max":
+				lines.append(mark + "Höchstens %d offene Kredite" % int(v))
+			"trade_pacts_min":
+				lines.append(mark + "Mindestens %d Handelsabkommen" % int(v))
+			"budget_min":
+				for id in v:
+					lines.append(mark + "%s mindestens „%s“" % [game.govt.budget_by_id[id].name, game.govt.budget_by_id[id].steps[int(v[id])]])
+			"budget_max":
+				for id in v:
+					lines.append(mark + "%s höchstens „%s“" % [game.govt.budget_by_id[id].name, game.govt.budget_by_id[id].steps[int(v[id])]])
 			_:
 				lines.append(mark + k)
 	return "\n".join(lines)

@@ -85,8 +85,7 @@ static func building_gain(g, p, bid: String) -> float:
 		p.buildings[bid] = old_lv
 	p.dev = old_dev
 	refresh_local(g, p)
-	var n = g.nations[p.owner]
-	return (after - before) * (1.0 + n.tech.adm * float(g.bal.adm_tech_income) + g.mod(n, "income"))
+	return after - before
 
 
 static func slots(g, p) -> int:
@@ -166,6 +165,43 @@ static func construction_tick(g, n) -> void:
 				g.log_msg("%s %s (Stufe %d) in %s fertig." % [g.buildings_def[bid].emoji, g.buildings_def[bid].name, p.buildings[bid], p.name])
 
 
+## Sum of all levels of `bid` in `tag`'s provinces (event and mission conditions).
+static func building_total(g, tag: String, bid: String) -> int:
+	var v := 0
+	for pid in g.provinces_of(tag):
+		v += level(g.provinces[pid], bid)
+	return v
+
+
+## Event/mission reward: one free level of `bid` in the most developed province that could build it
+## (gold ignored, no construction time). Returns false if no province qualifies.
+static func free_level(g, tag: String, bid: String) -> bool:
+	if not g.buildings_def.has(bid):
+		return false
+	var best = null
+	for pid in g.provinces_of(tag):
+		var p = g.provinces[pid]
+		var d: Dictionary = g.buildings_def[bid]
+		if p.controller != tag or level(p, bid) >= max_level(g, bid) or not p.constructing.is_empty():
+			continue
+		if not p.buildings.has(bid) and p.buildings.size() >= slots(g, p):
+			continue
+		if (d.get("coastal", false) and not p.coastal) or (d.has("requires") and not p.buildings.has(d.requires)):
+			continue
+		if p.dev < level_dev(g, p, bid):
+			continue
+		if best == null or p.dev > best.dev:
+			best = p
+	if best == null:
+		return false
+	best.buildings[bid] = level(best, bid) + 1
+	if not g.buildings_def[bid].get("no_dev", false):
+		best.dev = mini(int(g.bal.max_dev), best.dev + int(g.bal.building_dev))
+	refresh_local(g, best)
+	refresh_building_bonus(g, g.nations[tag])
+	return true
+
+
 static func fort_level(g, p) -> int:
 	return p.fort + int(local(g, p, "fort"))
 
@@ -200,12 +236,21 @@ static func units(g, p) -> float:
 
 
 static func production_value(g, p) -> float:
-	return units(g, p) * float(g.prices[p.good])
+	var n = g.nations[p.owner]
+	var m: float = 1.0 + local(g, p, "production") + g.mod(n, "production") + g.mod(n, "goods_" + p.good) + income_bonus(g, n)
+	return p.dev * float(g.bal.production_per_dev) * maxf(0.1, m) * float(g.prices[p.good])
 
 
 static func tax(g, p) -> float:
 	var n = g.nations[p.owner]
-	return p.dev * float(g.bal.tax_per_dev) * maxf(0.1, 1.0 + local(g, p, "tax") + g.mod(n, "tax"))
+	return p.dev * float(g.bal.tax_per_dev) * maxf(0.1, 1.0 + local(g, p, "tax") + g.mod(n, "tax") + income_bonus(g, n))
+
+
+## Nation-wide income bonus (admin tech + income modifiers). It adds to the bonus of each income
+## category (tax, production, trade) instead of multiplying it, so late-game modifiers do not stack
+## into a twentyfold economy.
+static func income_bonus(g, n) -> float:
+	return n.tech.adm * float(g.bal.adm_tech_income) + g.mod(n, "income")
 
 
 static func uncored_mult(g, p) -> float:
@@ -367,7 +412,7 @@ static func trade_income(g, n) -> float:
 		var e: Dictionary = g.market_cache[m]
 		if e.total > 0.0 and e.power.has(n.tag):
 			v += e.value * e.power[n.tag] / e.total
-	return v * maxf(0.0, 1.0 + g.mod(n, "trade"))
+	return v * maxf(0.0, 1.0 + g.mod(n, "trade") + income_bonus(g, n))
 
 
 ## Gain in monthly trade income if `tag` sent one (more) merchant to market `m`.

@@ -610,13 +610,12 @@ func _economy(n: Nation) -> void:
 			p.core_months -= 1
 			if p.core_months == 0 and n.tag == player:
 				log_msg("🤝 %s ist jetzt Kernland: volles Einkommen, weniger Unruhe." % p.name, [n.tag])
-	var inc_mult: float = 1.0 + n.tech.adm * float(bal.adm_tech_income) + mod(n, "income")
-	n.tax_income = tax * inc_mult
-	n.prod_income = prod * inc_mult
-	n.trade_income = Economy.trade_income(self, n) * inc_mult
+	n.tax_income = tax
+	n.prod_income = prod
+	n.trade_income = Economy.trade_income(self, n)
 	n.income = n.tax_income + n.prod_income + n.trade_income
 	Economy.construction_tick(self, n)
-	var maint: float = army_regs(n.tag) * float(bal.regiment_maintenance) * maxf(0.2, 1.0 + mod(n, "maintenance"))
+	var maint: float = army_regs(n.tag) * regiment_upkeep(n.tag) * maxf(0.2, 1.0 + mod(n, "maintenance"))
 	var war := is_at_war(n.tag)
 	if not war:
 		maint *= float(bal.peace_maintenance_mult)
@@ -1169,7 +1168,7 @@ func _reinforce(a: Army) -> void:
 		return
 	a.regs += amt
 	n.manpower -= amt
-	n.gold -= amt * float(bal.regiment_cost) * 0.5
+	n.gold -= amt * regiment_cost(a.owner) * 0.5
 
 
 # ---------------------------------------------------------------- wars
@@ -1782,11 +1781,24 @@ func research(tag: String, id: String) -> String:
 	return tree.research(self, tag, id)
 
 
+## Armies get dearer as they modernise: recruiting and upkeep rise with military tech.
+func army_cost_mult(tag: String) -> float:
+	return 1.0 + nations[tag].tech.mil * float(bal.army_cost_per_mil_tech)
+
+
+func regiment_cost(tag: String) -> float:
+	return float(bal.regiment_cost) * army_cost_mult(tag)
+
+
+func regiment_upkeep(tag: String) -> float:
+	return float(bal.regiment_maintenance) * army_cost_mult(tag)
+
+
 func recruit(tag: String, pid: int, count: int) -> String:
 	var n: Nation = nations[tag]
 	if provinces[pid].owner != tag or provinces[pid].controller != tag:
 		return "Rekrutierung nur in eigenen, unbesetzten Provinzen."
-	var cost: float = count * float(bal.regiment_cost)
+	var cost: float = count * regiment_cost(tag)
 	if n.gold < cost:
 		return "Zu wenig Gold (%d benötigt)." % cost
 	if n.manpower < count:
@@ -1808,7 +1820,7 @@ func recruit(tag: String, pid: int, count: int) -> String:
 
 ## Mercenaries: up to merc_regs regiments without manpower, for merc_cost_mult × the gold, once per merc_cooldown months.
 func merc_cost(tag: String) -> float:
-	return float(bal.merc_regs) * float(bal.regiment_cost) * float(bal.merc_cost_mult)
+	return float(bal.merc_regs) * regiment_cost(tag) * float(bal.merc_cost_mult)
 
 
 func merc_ready_in(tag: String) -> int:
@@ -2275,6 +2287,20 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 			"estate":
 				for es in v:
 					govt.change_estate(self, n, es, float(v[es]))
+			"build":
+				Economy.free_level(self, tag, v)
+			"army_power":
+				for a in armies_of(tag):
+					a.power = clampf(a.power + float(v) * power_max(tag), 0.0, power_max(tag))
+			"loan":
+				for i in int(v):
+					Economy.take_loan(self, tag)
+			"loan_forgiven":
+				for i in int(v):
+					if not n.loans.is_empty():
+						n.loans.pop_back()
+			"merc_ready":
+				n.flags.erase("merc_month")
 			"vassal":
 				# event-driven vassalization (dynastic deals), only for free, independent minors
 				if nations.has(v) and v != tag and v != player and nations[v].alive and nations[v].overlord == "" \
@@ -2402,6 +2428,71 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 					return false
 			"has_vassal":
 				if vassals_of(tag).is_empty() == bool(v):
+					return false
+			"building":
+				for bid in v:
+					if Economy.building_total(self, tag, bid) < int(v[bid]):
+						return false
+			"no_building":
+				if Economy.building_total(self, tag, v) > 0:
+					return false
+			"coastal":
+				var any_coast := false
+				for pid in provinces_of(tag):
+					if provinces[pid].coastal:
+						any_coast = true
+						break
+				if any_coast != bool(v):
+					return false
+			"produces":
+				if not Economy.goods_output(self, tag).has(v):
+					return false
+			"goods_leader":
+				var leads := false
+				for k2 in goods_leader:
+					if goods_leader[k2] == tag and (v is bool or k2 == v):
+						leads = true
+				if leads != (bool(v) if v is bool else true):
+					return false
+			"shock":
+				# a market shock ("up" = scarce, "down" = glut) on a good this nation produces
+				var hit := false
+				var out := Economy.goods_output(self, tag)
+				for k2 in shocks:
+					if out.has(k2) and (float(shocks[k2].mult) > 1.0) == (v == "up"):
+						hit = true
+				if not hit:
+					return false
+			"loans_min":
+				if n.loans.size() < int(v):
+					return false
+			"loans_max":
+				if n.loans.size() > int(v):
+					return false
+			"trade_pacts_min":
+				if n.trade_pacts.size() < int(v):
+					return false
+			"mercs_recent":
+				if month - int(n.flags.get("merc_month", -9999)) > int(v):
+					return false
+			"morale_max":
+				# some army of at least 3 regiments is worn down below this share of its maximum
+				var low := false
+				for a in armies_of(tag):
+					if a.regs >= 3.0 and a.power < float(v) * power_max(tag):
+						low = true
+				if not low:
+					return false
+			"budget_min":
+				for id in v:
+					if govt.budget_step(n, id) < int(v[id]):
+						return false
+			"budget_max":
+				for id in v:
+					if govt.budget_step(n, id) > int(v[id]):
+						return false
+			"gold_max":
+				if n.gold > float(v):
 					return false
 			"religion":
 				if n.religion != str(v):
