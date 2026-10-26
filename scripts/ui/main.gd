@@ -8,6 +8,8 @@ const MapView = preload("res://scripts/ui/map_view.gd")
 const Icons = preload("res://scripts/ui/icons.gd")
 const TechScreen = preload("res://scripts/ui/tech_screen.gd")
 const Tech = preload("res://scripts/core/tech.gd")
+const Faith = preload("res://scripts/core/religion.gd")
+const Monuments = preload("res://scripts/core/monuments.gd")
 const GovScreen = preload("res://scripts/ui/gov_screen.gd")
 const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
 const SAVE_PATH := "user://save.json"
@@ -768,12 +770,15 @@ const MODE_LEGENDS := [
 	"Welches Gut jede Provinz herstellt (eigene Provinzen hell).",
 	"Einzugsgebiete der Märkte, das Zentrum leuchtet hell (eigene Provinzen hell).",
 	"Gebäudestufen je Provinz: dunkel = nichts gebaut, gold = gut ausgebaut, bläulich = Baustelle. Fremde Provinzen dunkler.",
+	"Glaube der Bevölkerung. Gestreift: anderer Glaube als der Herrscher (+Unruhe).",
 ]
 ## Color keys per map mode: [color, text]
 const MODE_KEYS := {
 	1: [["3a9d4a", "du"], ["7fc98a", "deine Vasallen"], ["4a7fd0", "Verbündete"], ["c0392b", "Feinde"],
-		["e0a030", "Ansprüche"], ["8e3a8e", "Koalition gegen dich"], ["9aa7b0", "Waffenstillstand"]],
+		["e0a030", "Ansprüche"], ["8e3a8e", "Koalition gegen dich"], ["3fae9e", "Garantie"],
+		["c08ab8", "verheiratet"], ["b09a62", "Durchmarschrecht"], ["9aa7b0", "Waffenstillstand"]],
 	4: [["3a9d4a", "du"], ["4a7fd0", "Mitkämpfer"], ["c0392b", "Feinde"], ["5a5a52", "unbeteiligt"]],
+	8: [["e8d27a", "katholisch"], ["9a5ac8", "protestantisch"], ["6a9ae0", "orthodox"], ["3fa860", "sunnitisch"]],
 }
 
 
@@ -1392,6 +1397,13 @@ func _panel_province(pid: int) -> void:
 	rows.append(["💰 Steuer: %.2f/Monat" % Eco.tax(game, p), "Steuern steigen mit Entwicklung und Marktplatz, Gesetze und Techs geben weitere Prozente."])
 	rows.append(["🏬 Markt %s · Handelsmacht %.0f" % [game.provinces[p.market].name, Eco.province_trade_power(game, p)],
 			"Die Handelsmacht zählt im Markt %s. Dein Anteil an allen Handelsmächten dort ergibt deinen Anteil am Marktwert. Marktplatz und Hafen steigern sie, Händler im Markt noch mehr." % game.provinces[p.market].name])
+	var faith_txt := "⛪ Glaube: " + Faith.faith_name(p.religion)
+	if p.religion != game.nations[p.owner].religion:
+		faith_txt += " (fremd für %s)" % game.nations[p.owner].name
+	if p.convert_months > 0:
+		faith_txt += " · Missionar: noch %d Monate" % p.convert_months
+	rows.append([faith_txt, "Provinzen mit anderem Glauben als ihr Herrscher haben +%.0f Unruhe. Sie nehmen den Glauben des Herrschers langsam von selbst an (etwa %d %% pro Jahr), ein Missionar schafft es in %d Monaten." % [
+			float(game.bal.religion_unrest), int(float(game.bal.religion_drift) * 100), int(game.bal.convert_months)]])
 	if p.coastal:
 		rows.append(["⚓ Küstenprovinz", "Hier kann ein Hafen gebaut werden."])
 	if Eco.fort_level(game, p) > 0:
@@ -1422,6 +1434,8 @@ func _panel_province(pid: int) -> void:
 			why.append("Regierung & Technik %+.1f" % u.policy)
 		if absf(u.estates) >= 0.05:
 			why.append("Stände %+.1f" % u.estates)
+		if u.religion > 0:
+			why.append("fremder Glaube +%.0f" % u.religion)
 		rows.append(["✊ Unruhe %.1f / %d%s" % [u.total, int(game.bal.revolt_threshold), (" (" + ", ".join(why) + ")") if not why.is_empty() else ""],
 				"Ab %d Unruhe drohen Aufstände. Senken: Truppen in der Provinz, Unterdrücken, Gerichtshof, Festung, Gesetze, zufriedene Stände." % int(game.bal.revolt_threshold)])
 		if p.prev_owner != "" and p.core_months > 0 and game.nations[p.prev_owner].alive:
@@ -1435,6 +1449,11 @@ func _panel_province(pid: int) -> void:
 	if p.owner == me:
 		if game.unrest(pid) > 0.0 and p.suppress_months == 0:
 			side_box.add_child(_btn("✊ Unruhe unterdrücken (%d ⚔️)" % int(game.suppress_cost(pid)), func(): _act(game.suppress_unrest(me, pid), "✊ Ruhe wiederhergestellt")))
+		if p.religion != game.nations[me].religion and p.convert_months == 0:
+			var cv: String = Faith.convert_block_reason(game, me, pid)
+			side_box.add_child(_btn("⛪ Missionar entsenden (%d 💰)" % int(Faith.convert_cost(game, p)), func(): _act(Faith.send_missionary(game, me, pid), "⛪ Der Missionar ist unterwegs"),
+					"In %d Monaten nimmt die Provinz deinen Glauben (%s) an: −%.0f Unruhe. Höchstens %d Missionare gleichzeitig.%s" % [
+					int(game.bal.convert_months), Faith.faith_name(game.nations[me].religion), float(game.bal.religion_unrest), int(game.bal.max_missionaries), ("\n❌ " + cv) if cv != "" else ""], cv != ""))
 		if p.core_months > 0:
 			side_box.add_child(_btn("🤝 Integrieren: −%d Monate (%d 🕊️)" % [int(game.bal.integrate_months), int(game.bal.integrate_cost)],
 					func(): _act(game.integrate(me, pid), "🤝 Die Provinz rückt näher"),
@@ -1755,6 +1774,13 @@ func _panel_nation() -> void:
 	side_box.add_child(_lbl("💰 Einnahmen %.1f · Ausgaben %.1f\n🏘️ Entwicklung %d · %d Provinzen\n🛡️ Truppenlimit %.0f · 👥 %.0f/%.0f\n⭐ Prestige %d · 🏆 Punkte %d" % [
 			n.income, n.expenses, n.dev_total, game.provinces_of(me).size(), game.force_limit(me), n.manpower, n.max_manpower, n.prestige, game.score(me)]))
 	side_box.add_child(_lbl("😩 Kriegsmüdigkeit %.1f / %d (erhöht Unruhe, Gegner nehmen Frieden leichter an)" % [n.we, int(game.bal.we_max)], 16))
+	side_box.add_child(_lbl("⛪ Staatsglaube: %s (%d %% deines Landes)" % [Faith.faith_name(n.religion), int(Faith.share(game, me, n.religion) * 100)], 16))
+	for r in Faith.FAITHS:
+		if r != n.religion and Faith.share(game, me, r) > 0.0:
+			var fr: String = Faith.change_block_reason(game, me, r)
+			side_box.add_child(_btn("⛪ Glauben wechseln: %s (%d ⭐)" % [Faith.faith_name(r), int(game.bal.religion_change_prestige)], func(): _act(Faith.change_religion(game, me, r), "⛪ Neuer Staatsglaube: " + Faith.faith_name(r)),
+					"Ab %d %% Anteil möglich. Provinzen dieses Glaubens werden ruhig, die übrigen unruhig. +%d Beziehung zu Ländern dieses Glaubens, −%d zu denen deines alten.%s" % [
+					int(float(game.bal.religion_change_share) * 100), int(game.bal.religion_change_rel), int(game.bal.religion_change_rel), ("\n❌ " + fr) if fr != "" else ""], fr != ""))
 	side_box.add_child(_lbl("👑 Macht einsetzen", 22))
 	side_box.add_child(_btn("🕊️ Volk beruhigen: −2 Müdigkeit (%d 🕊️)" % int(game.bal.we_reduce_cost), func(): _act(game.reduce_we(me), "🕊️ Das Volk ist beruhigt"),
 			"Senkt die Kriegsmüdigkeit, die Unruhe in allen Provinzen erzeugt."))
@@ -1765,6 +1791,7 @@ func _panel_nation() -> void:
 			func(): _act(game.conscript(me), "👥 Neue Rekruten ausgehoben"),
 			"Füllt sofort bis zu %d %% deiner maximalen Mannschaften auf. Danach %d Monate Pause." % [int(float(game.bal.conscript_share) * 100), int(game.bal.conscript_cooldown)]))
 	side_box.add_child(_lbl("Außerdem: 📜 Entwickeln, ✊ Unruhe unterdrücken (⚔️) und 🤝 Integrieren (🕊️) im Provinzfenster, 🔥 Drill (⚔️) im Armeefenster, ❤️ Beziehungen, Bündnisse, Ansprüche und Handelsabkommen (🕊️) bei anderen Nationen, Technologie mit allen drei.", 14, Color(0.7, 0.75, 0.8)))
+	_nation_monuments(me)
 	if game.history.size() >= 2:
 		side_box.add_child(_lbl("📈 Verlauf (Platz %d)" % game.rank_of(me), 22))
 		side_box.add_child(_history_chart(180))
@@ -1785,13 +1812,45 @@ func _panel_nation() -> void:
 
 
 const MOD_SOURCES := {"": "Nationalgeist & Ereignisse", "goods": "Handelsgüter", "buildings": "Gebäude", "rank": "Rang",
-		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte"}
+		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte"}
 const MOD_GROUPS := [
 	["💰 Wirtschaft", ["income", "tax", "production", "trade", "merchants", "build_cost", "develop_cost"]],
 	["⚔️ Militär", ["combat", "army_power", "army_power_regen", "manpower", "force_limit", "maintenance", "siege"]],
 	["📜 Staat", ["adm", "dip", "mil", "tech_cost", "coring", "unrest", "ae_gen", "ae_decay", "prestige", "advisor_slots", "company_slots"]],
 	["⚖️ Stände", ["estate_adel", "estate_klerus", "estate_buerger"]],
 ]
+
+
+## Gold sinks for rich realms: a court feast and one great work at a time in the capital.
+func _nation_monuments(me: String) -> void:
+	var n = game.nations[me]
+	side_box.add_child(_lbl("🏛️ Prunk und Großprojekte", 22))
+	var fr: int = game.feast_ready_in(me)
+	side_box.add_child(_btn(("👑 Hoffest ausrichten (%d 💰)" % int(game.feast_cost(me))) if fr == 0 else ("👑 Hoffest (wieder in %d Monaten)" % fr),
+			func(): _act(game.hold_feast(me), "👑 Ein prächtiges Fest!"),
+			"+%d ⭐ Prestige, −%d Kriegsmüdigkeit. Kostet %d Monatseinnahmen, höchstens alle %d Jahre." % [
+			int(game.bal.feast_prestige), int(game.bal.feast_we), int(game.bal.feast_income_months), int(game.bal.feast_cooldown) / 12]))
+	if not n.monument_build.is_empty():
+		var bm: Dictionary = game.monument_defs[n.monument_build.id]
+		side_box.add_child(_lbl("🔨 %s %s: noch %d Monate" % [bm.emoji, bm.name, int(n.monument_build.months)], 16, Color(0.6, 0.8, 1.0)))
+	for id in game.monument_defs:
+		var m: Dictionary = game.monument_defs[id]
+		var parts := []
+		for r in UiTheme.mod_rows(m.bonus):
+			parts.append("%s %s" % [r[0], r[1]])
+		var tip: String = "%s\n%s" % [m.text, ", ".join(parts)]
+		if n.monuments.has(id):
+			var l := _lbl("✓ %s %s" % [m.emoji, m.name], 16, Color(0.6, 0.9, 0.6))
+			l.tooltip_text = tip
+			l.mouse_filter = Control.MOUSE_FILTER_STOP
+			side_box.add_child(l)
+			continue
+		if n.monument_build.get("id", "") == id:
+			continue
+		var br: String = Monuments.block_reason(game, me, id)
+		side_box.add_child(_btn("%s %s bauen (%d 💰, %d Mon.)" % [m.emoji, m.name, int(Monuments.cost(game, me, id)), int(m.months)],
+				func(): _act(Monuments.start(game, me, id), "🔨 Bau begonnen: " + m.name),
+				tip + ("\n❌ " + br if br != "" else ""), br != ""))
 
 
 ## Every modifier of the player: total (green buff / red nerf) and the sources it is summed from (Game.mod).
