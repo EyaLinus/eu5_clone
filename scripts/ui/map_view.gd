@@ -18,6 +18,7 @@ const PROV_BORDER := Color(0.12, 0.09, 0.06, 0.28)
 const NATION_BORDER := Color(0.07, 0.05, 0.09, 0.9)
 const COAST := Color(0.03, 0.09, 0.16, 0.8)
 const COUNTER_SIZE := Vector2(48, 28)
+const ROAD := Color("d9b36c")
 const SELECT := Color("f4d35e")  # selection and the player's realm border (gold from the art palette)
 ## war map mode: our side, our co-belligerents, enemies, everyone else
 const WAR_US := Color("3a9d4a")
@@ -270,6 +271,7 @@ func _draw() -> void:
 			for poly in polys[p.id]:
 				_draw_hatch(poly, bboxes[p.id], cc)
 	_draw_borders(view)
+	_draw_roads(view)
 	if hover_pid >= 0 and hover_pid != selected_pid:
 		# with an army selected the pointer shows the march target
 		_outline(hover_pid, SELECT if selected_army >= 0 else Color(1, 1, 1, 0.7), 2.0)
@@ -286,6 +288,27 @@ func _draw() -> void:
 	_draw_labels()
 	_draw_armies()
 	_draw_hover_tip()
+
+
+## Road network: a dashed track between neighbouring provinces that both have roads (thicker with level).
+func _draw_roads(view: Rect2) -> void:
+	if zoom < 0.55 or map_mode == MODE_WAR:
+		return
+	var v := view.grow(200.0)
+	for p in game.provinces:
+		var lv: int = int(p.buildings.get("road", 0))
+		if lv <= 0 or not v.has_point(p.center):
+			continue
+		for q in p.adj:
+			if q < p.id:
+				continue
+			var o = game.provinces[q]
+			var lo: int = int(o.buildings.get("road", 0))
+			if lo <= 0 or p.center.distance_to(o.center) > 260.0:
+				continue
+			var w := (1.2 + 0.8 * mini(lv, lo)) / zoom
+			draw_line(p.center, o.center, Color(0.1, 0.07, 0.04, 0.7), w + 2.0 / zoom)
+			draw_dashed_line(p.center, o.center, ROAD, w, 7.0 / zoom)
 
 
 ## Province outline with a constant on-screen width (world-space transform must be active).
@@ -466,6 +489,13 @@ func _draw_labels() -> void:
 			var txt: String = p.name
 			if p.siege > 0.0:
 				txt += " 🔥%d%%" % int(p.siege)
+			var marks := ""
+			if p.buildings.get("fortress", 0) > 0:
+				marks += "🏰"
+			if p.buildings.get("harbor", 0) > 0:
+				marks += "⚓"
+			if marks != "":
+				txt += " " + marks
 			var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 			var pos := s + Vector2(-w / 2, -ARMY_R - 4)
 			draw_string_outline(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0, 0, 0, 0.85))
