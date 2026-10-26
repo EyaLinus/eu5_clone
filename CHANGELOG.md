@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.8.9 – 2026-10-26
 - **45 neue Ereignisse zu den neuen Systemen:** Knappheit und Überangebot auf den Märkten, Monopole, Messen und
   Streit mit Handelspartnern, Silberadern, Weinjahrgänge, Heringszüge, Weberstreiks; Ereignisse zu Marktplätzen,
   Manufakturen, Kasernen, Festungen und Gerichtshöfen; Häfen (Piraten, Schiffbauer, Hafenbrand, Kaufleute wollen
@@ -11,7 +11,6 @@
   Böhmens Silber, Russlands Pelzhandel und Straßen, Brügges Messen.
 - Ereignisse können jetzt Gebäudestufen schenken, Kredite erlassen, die Moral heben oder Söldner sofort
   bereitstellen.
-
 - **Großprojekte 🏛️ (neu):** Sieben Bauwerke für die Hauptstadt im Nationsfenster: Kathedrale, Gesandtenhof, Arsenal,
   Universität, Börse, Kriegsakademie, Prunkpalast. Jedes braucht eine Technologiestufe, kostet viel Gold (mehr, je
   entwickelter dein Reich) und baut 3 bis 6 Jahre. Fertig gibt es dauerhafte Boni (z. B. Technologie −8 %,
