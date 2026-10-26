@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.8.9 – 2026-10-26
 - **Großprojekte 🏛️ (neu):** Sieben Bauwerke für die Hauptstadt im Nationsfenster: Kathedrale, Gesandtenhof, Arsenal,
   Universität, Börse, Kriegsakademie, Prunkpalast. Jedes braucht eine Technologiestufe, kostet viel Gold (mehr, je
   entwickelter dein Reich) und baut 3 bis 6 Jahre. Fertig gibt es dauerhafte Boni (z. B. Technologie −8 %,
