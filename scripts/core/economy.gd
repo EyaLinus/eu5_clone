@@ -138,8 +138,9 @@ static func construction_tick(g, n) -> void:
 			var bid: String = p.constructing.id
 			p.constructing = {}
 			p.buildings[bid] = mini(level(p, bid) + 1, max_level(g, bid))
-			# every finished level also grows the province (more tax, goods, manpower and slots)
-			p.dev = mini(int(g.bal.max_dev), p.dev + int(g.bal.building_dev))
+			# every finished level also grows the province (more tax, goods, manpower and slots); roads don't
+			if not g.buildings_def[bid].get("no_dev", false):
+				p.dev = mini(int(g.bal.max_dev), p.dev + int(g.bal.building_dev))
 			refresh_local(g, p)
 			if n.tag == g.player:
 				g.log_msg("%s %s (Stufe %d) in %s fertig." % [g.buildings_def[bid].emoji, g.buildings_def[bid].name, p.buildings[bid], p.name])
@@ -562,7 +563,8 @@ static func _building_value(g, n, p, bid: String, war: bool) -> float:
 	elif g.unrest(p.id) > 1.0:
 		v += absf(float(loc.get("unrest", 0.0))) * 0.03
 	v += float(d.get("nation", {}).get("force_limit", 0.0)) * (0.08 if war else 0.03)
-	v += float(loc.get("supply", 0.0)) * (0.04 if war else 0.01)
+	if p.core_months == 0:  # roads in fresh conquests would crowd out courthouses
+		v += float(loc.get("supply", 0.0)) * (0.012 if war else 0.004)
 	if loc.has("fort"):
 		# forts only where it matters: the capital or a border province next to a strong neighbor
 		var exposed: bool = p.id == n.capital

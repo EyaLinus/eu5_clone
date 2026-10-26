@@ -900,6 +900,16 @@ func spawn_army(tag: String, pid: int, regs: float) -> Army:
 	return a
 
 
+## Chance for an extra march step between two own, roaded provinces (per road level of the worse one).
+func road_step_chance(tag: String, from_pid: int, to_pid: int) -> float:
+	var a: Province = provinces[from_pid]
+	var b: Province = provinces[to_pid]
+	if a.owner != tag or b.owner != tag or a.controller != tag or b.controller != tag:
+		return 0.0
+	var lv := mini(Economy.level(a, "road"), Economy.level(b, "road"))
+	return float(bal.get("road_move_chance", 0.25)) * lv
+
+
 func army_by_id(id: int) -> Army:
 	for a in armies:
 		if a.id == id:
@@ -923,6 +933,9 @@ func _armies_tick() -> void:
 			if a.path.size() >= 2:
 				a.path.pop_front()
 				a.pid = a.path[0]
+				if a.path.size() >= 2 and a.path[0] != a.target and rng.randf() < road_step_chance(a.owner, a.pid, a.path[1]):
+					a.path.pop_front()  # roads on own land: a second march step this month
+					a.pid = a.path[0]
 			else:
 				a.target = -1
 		if a.target == a.pid:
@@ -1718,6 +1731,82 @@ func hire_mercs(tag: String, pid: int) -> String:
 			a.full += count
 			return ""
 	spawn_army(tag, pid, count)
+	return ""
+
+
+# ---- military and diplomatic power actions (besides tech)
+
+## Military power: drill an army back to full morale (only on own or allied land).
+func drill_cost(a: Army) -> float:
+	return float(bal.drill_cost_base) + float(bal.drill_cost_per_reg) * a.regs
+
+
+func drill_army(tag: String, id: int) -> String:
+	var a := army_by_id(id)
+	if a == null or a.owner != tag:
+		return "Keine eigene Armee."
+	var c: String = provinces[a.pid].controller
+	if not (c == tag or is_allied(tag, c) or nations[c].overlord == tag or nations[tag].overlord == c):
+		return "Drill nur auf eigenem oder verbündetem Gebiet."
+	if a.power >= power_max(tag) - 0.001:
+		return "Moral ist schon voll."
+	var cost := drill_cost(a)
+	if nations[tag].mil < cost:
+		return "Zu wenig Militär (%d)." % int(cost)
+	nations[tag].mil -= cost
+	a.power = power_max(tag)
+	return ""
+
+
+## Military power: conscription fills up manpower at once (once per cooldown).
+func conscript_ready_in(tag: String) -> int:
+	return maxi(0, int(nations[tag].flags.get("conscript_month", -9999)) + int(bal.conscript_cooldown) - month)
+
+
+func conscript_gain(tag: String) -> float:
+	var n: Nation = nations[tag]
+	return minf(n.max_manpower - n.manpower, n.max_manpower * float(bal.conscript_share))
+
+
+func conscript(tag: String) -> String:
+	var n: Nation = nations[tag]
+	if conscript_ready_in(tag) > 0:
+		return "Erst in %d Monaten wieder." % conscript_ready_in(tag)
+	if conscript_gain(tag) < 0.5:
+		return "Mannschaften sind schon voll."
+	if n.mil < float(bal.conscript_cost):
+		return "Zu wenig Militär (%d)." % int(bal.conscript_cost)
+	n.mil -= float(bal.conscript_cost)
+	n.manpower += conscript_gain(tag)
+	n.flags["conscript_month"] = month
+	return ""
+
+
+## Diplomatic power: win over a conquered province, two years less until it becomes a core.
+func integrate(tag: String, pid: int) -> String:
+	var p: Province = provinces[pid]
+	if p.owner != tag:
+		return "Nicht deine Provinz."
+	if p.core_months <= 0:
+		return "Provinz ist schon eingegliedert."
+	if nations[tag].dip < float(bal.integrate_cost):
+		return "Zu wenig Diplomatie (%d)." % int(bal.integrate_cost)
+	nations[tag].dip -= float(bal.integrate_cost)
+	p.core_months = maxi(0, p.core_months - int(bal.integrate_months))
+	return ""
+
+
+## Diplomatic power: envoys repair the realm's reputation (less aggressive expansion).
+func restore_reputation(tag: String) -> String:
+	var n: Nation = nations[tag]
+	if n.ae < 0.5:
+		return "Kein schlechter Ruf."
+	if n.dip < float(bal.reputation_cost):
+		return "Zu wenig Diplomatie (%d)." % int(bal.reputation_cost)
+	n.dip -= float(bal.reputation_cost)
+	n.ae = maxf(0.0, n.ae - float(bal.reputation_ae))
+	if n.ae < 0.001:
+		n.ae = 0.0
 	return ""
 
 

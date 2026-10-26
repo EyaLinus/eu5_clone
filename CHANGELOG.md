@@ -8,6 +8,27 @@
   (je +10 %), Magazinsystem und Landesaufgebot beschleunigen die Moral-Erholung, Söldnerheere senken die max. Moral
   um 5 %. Neuer Berater Drillmeister, der Generalquartiermeister hilft jetzt auch bei der Erholung.
 
+## v0.8.2 – 2026-10-26
+- **Diplo- und Militär-Macht haben neue Verwendungen** (bisher fast nur Technologie):
+  - 🔥 **Drill** (Armeefenster, ⚔️): Moral der Armee sofort auf das Maximum, auf eigenem oder verbündetem Gebiet.
+  - 👥 **Rekrutierung** (Nation-Fenster, 30 ⚔️): sofort bis zu 30 % der maximalen Mannschaften, danach 2 Jahre Pause.
+  - 🤝 **Integrieren** (Provinzfenster, 25 🕊️): eine eroberte Provinz wird 2 Jahre schneller zu Kernland.
+  - 😠 **Ruf verbessern** (Nation-Fenster, 30 🕊️): −5 aggressive Expansion.
+- **Neue Übersicht "Macht einsetzen"** im Nation-Fenster: Kriegsmüdigkeit senken, Ruf, Rekrutierung und ein
+  Hinweis, wo es die anderen Aktionen gibt (Entwickeln, Unterdrücken, Integrieren, Drill, Diplomatie).
+- Die KI nutzt überschüssige Macht ebenfalls dafür (Tech hat Vorrang).
+
+## v0.8.1 – 2026-10-26
+- **Straßennetz auf der Karte:** Nachbarprovinzen mit Straßen sind durch einen Weg verbunden, je höher die Stufe,
+  desto breiter. Festungen 🏰 und Häfen ⚓ stehen beim Hineinzoomen neben dem Provinznamen.
+- **Karten-Tooltip:** Zeigt jetzt auch Entwicklung und alle Gebäude mit Stufe.
+- **Straßen beschleunigen Märsche:** Zwischen zwei eigenen Provinzen mit Straßen schafft eine Armee pro Stufe mit
+  25 % Chance einen zweiten Schritt im selben Monat.
+- **Straßen-Balance:** Straßen kosten 55 statt 35 Gold und geben keine Entwicklung mehr. Die KI hatte über billige
+  Straßen massenhaft Entwicklung gekauft, das führte zu größeren Armeen, längeren Kriegen und fast doppelt so vielen
+  Aufständen. Die KI baut Straßen außerdem nicht mehr in frisch eroberten Provinzen, dort braucht sie Gerichtshöfe.
+- Neues, klareres Straßen-Symbol 🛤.
+
 ## v0.8.0 – 2026-10-26
 - **Armee-Moral (neu):** Jede Armee hat Moral bis zu einem Maximum (100 %, Boni können es erhöhen). Sie steigt jeden
   Monat, im eigenen und verbündeten Land schneller, mit Straßen noch schneller, im Feindesland langsam. Eine
