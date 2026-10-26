@@ -1684,5 +1684,125 @@
    "options": [
      {"text": "Toleranz für die Calvinisten.", "effects": {"dev_random": 1, "relations": {"PAP": -30}}, "ai": 40},
      {"text": "Ein Blutrat wie in Spanien.", "effects": {"mil": 30, "dev_random": -2, "prestige": -5}, "ai": 30},
-     {"text": "Die Generalstaaten entscheiden.", "effects": {"dip": 30}, "ai": 30}]}
+     {"text": "Die Generalstaaten entscheiden.", "effects": {"dip": 30}, "ai": 30}]},
+  {"id": "gov_guild_charter", "tag": "*", "title": "Die Zünfte wollen Privilegien", "text": "Die Städte blühen unter deinem Schutz. Nun verlangen die Zünfte ein Monopol auf ihr Handwerk.", "image": "city",
+   "trigger": {"law": {"wirtschaft": "staedtefoerderung"}, "year_min": 1450},
+   "options": [
+     {"text": "Ein Freibrief für die Zünfte.", "effects": {"estate": {"buerger": 10}, "mods": {"production": 0.02}, "dip": -30}},
+     {"text": "Freie Gewerbe für alle.", "effects": {"estate": {"buerger": -10}, "gold": 60}},
+     {"text": "Vertrösten und verhandeln.", "effects": {"adm": 20, "estate": {"buerger": -3}}}]},
+  {"id": "gov_smugglers", "tag": "*", "title": "Schmuggler an der Grenze", "text": "Hohe Zölle machen das Schmuggeln lohnend. Ganze Dörfer leben vom Schleichhandel.", "image": "border",
+   "trigger": {"law": {"wirtschaft": "merkantilismus"}, "year_min": 1480},
+   "options": [
+     {"text": "Zollreiter aufstellen.", "effects": {"mil": -25, "mods": {"trade": 0.02}}},
+     {"text": "Die Zölle senken.", "effects": {"estate": {"buerger": 8}, "gold": -40}, "ai": 30},
+     {"text": "Wegsehen und mitverdienen.", "effects": {"gold": 50, "prestige": -5}, "ai": 20}]},
+  {"id": "gov_cheap_imports", "tag": "*", "title": "Billige Waren aus der Fremde", "text": "Fremde Tuche überschwemmen die Märkte. Die heimischen Weber stehen vor dem Ruin.", "image": "market",
+   "trigger": {"law": {"wirtschaft": "freihandel"}, "year_min": 1470},
+   "options": [
+     {"text": "Der Markt regelt das.", "effects": {"gold": 40, "estate": {"buerger": -8}}},
+     {"text": "Schutzzölle auf Tuch.", "effects": {"estate": {"buerger": 6}, "mods": {"trade": -0.02}}},
+     {"text": "Weber umsiedeln und fördern.", "effects": {"adm": -40, "dev_capital": 1}, "ai": 25}]},
+  {"id": "gov_war_profiteers", "tag": "*", "title": "Kriegsgewinnler", "text": "Lieferanten der Armee werden reich, während die Bauern hungern. Die Stimmung kippt.", "image": "camp",
+   "trigger": {"law": {"wirtschaft": "kriegswirtschaft"}, "at_war": true},
+   "options": [
+     {"text": "Die Wucherer hängen.", "effects": {"estate": {"buerger": -10}, "prestige": 5, "mil": 20}},
+     {"text": "Sie sollen eine Kriegsanleihe zeichnen.", "effects": {"gold": 70, "estate": {"buerger": -5}}},
+     {"text": "Preise festsetzen.", "effects": {"adm": -30, "estate": {"buerger": 5}}, "ai": 25}]},
+  {"id": "gov_mercenary_captain", "tag": "*", "title": "Ein Condottiere bietet seine Dienste an", "text": "Ein berühmter Söldnerführer steht mit seiner Kompanie an der Grenze und wartet auf ein Angebot.", "image": "camp",
+   "trigger": {"law": {"heer": "soeldner"}, "year_min": 1450},
+   "options": [
+     {"text": "Wir brauchen keine weiteren Söldner.", "effects": {"prestige": -2, "mil": 20}},
+     {"text": "Anwerben!", "effects": {"regs": 3, "gold": -90}, "ai": 30},
+     {"text": "Ihn als Ausbilder gewinnen.", "effects": {"gold": -50, "mods": {"combat": 0.02}}, "ai": 20}]},
+  {"id": "gov_militia_harvest", "tag": "*", "title": "Das Aufgebot fehlt bei der Ernte", "text": "Die Bauern exerzieren, statt die Felder zu bestellen. Das Korn verdirbt auf dem Halm.", "image": "harvest",
+   "trigger": {"law": {"heer": "landesaufgebot"}, "year_min": 1460},
+   "options": [
+     {"text": "Übungen nach der Ernte.", "effects": {"mil": -30, "gold": 30}},
+     {"text": "Die Ordnung hat Vorrang.", "effects": {"manpower": 1500, "dev_random": -1}},
+     {"text": "Den Adel als Ausbilder einsetzen.", "effects": {"estate": {"adel": 8}, "dip": -25}}]},
+  {"id": "gov_barracks_riot", "tag": "*", "title": "Unruhe in den Kasernen", "text": "Der Sold ist drei Monate im Rückstand. Die Soldaten des stehenden Heeres murren offen.", "image": "revolt",
+   "trigger": {"law": {"heer": "stehendes_heer"}, "year_min": 1500},
+   "options": [
+     {"text": "Die Rädelsführer bestrafen.", "effects": {"mil": -20, "estate": {"adel": 5}, "prestige": -3}},
+     {"text": "Den Sold nachzahlen.", "effects": {"gold": -60, "mil": 30}, "ai": 35},
+     {"text": "Beute versprechen.", "effects": {"we": 2, "mods": {"combat": 0.01}}, "ai": 15}]},
+  {"id": "gov_diet_demands", "tag": "*", "title": "Der Landtag tritt zusammen", "text": "Die Stände bewilligen neue Steuern nur, wenn der Fürst ihre Beschwerden anhört.", "image": "diet",
+   "trigger": {"law": {"staat": "staendestaat"}, "year_min": 1460},
+   "options": [
+     {"text": "Die Beschwerden anhören.", "effects": {"gold": 60, "estate": {"adel": 5, "buerger": 5}, "adm": -30}},
+     {"text": "Den Landtag vertagen.", "effects": {"estate": {"adel": -10, "buerger": -10}, "prestige": 3}},
+     {"text": "Nur dem Adel entgegenkommen.", "effects": {"estate": {"adel": 10, "buerger": -5}, "gold": 30}}]},
+  {"id": "gov_intendants", "tag": "*", "title": "Die Intendanten melden sich", "text": "Deine Beamten in den Provinzen arbeiten gründlich. Zu gründlich, finden die alten Familien.", "image": "court",
+   "trigger": {"law": {"staat": "zentralisierung"}, "has_tech": "adm_intendanten"},
+   "options": [
+     {"text": "Weiter so.", "effects": {"adm": 40, "estate": {"adel": -8}}},
+     {"text": "Die Befugnisse beschneiden.", "effects": {"estate": {"adel": 8}, "adm": -20}},
+     {"text": "Adlige zu Intendanten machen.", "effects": {"estate": {"adel": 12}, "mods": {"income": -0.01}}}]},
+  {"id": "gov_lettre_de_cachet", "tag": "*", "title": "Ein Haftbefehl ohne Prozess", "text": "Ein Höfling hat dich beleidigt. Ein Wort von dir und er verschwindet in der Festung.", "image": "conspiracy",
+   "trigger": {"law": {"staat": "absolutismus"}},
+   "options": [
+     {"text": "L'État, c'est moi.", "effects": {"prestige": 5, "estate": {"adel": -8}}},
+     {"text": "Ein ordentliches Gericht.", "effects": {"adm": -20, "estate": {"adel": 5, "buerger": 3}}},
+     {"text": "Großzügig vergeben.", "effects": {"prestige": -3, "dip": 30}}]},
+  {"id": "gov_heretics", "tag": "*", "title": "Ketzer im Land", "text": "Wanderprediger verbreiten verbotene Lehren. Die Bischöfe fordern Scheiterhaufen.", "image": "inquisition",
+   "trigger": {"law": {"kirche": "glaubenseifer"}, "year_min": 1500},
+   "options": [
+     {"text": "Die Inquisition walten lassen.", "effects": {"estate": {"klerus": 8, "buerger": -8}, "prestige": 3}},
+     {"text": "Ausweisen statt verbrennen.", "effects": {"estate": {"klerus": -3}, "dev_random": -1, "dip": 20}},
+     {"text": "Sie in Ruhe lassen.", "effects": {"estate": {"klerus": -10, "buerger": 5}, "adm": 20}}]},
+  {"id": "gov_refugees", "tag": "*", "title": "Glaubensflüchtlinge", "text": "Verfolgte aus dem Nachbarland bitten um Aufnahme. Unter ihnen sind fähige Handwerker.", "image": "procession",
+   "trigger": {"law": {"kirche": "toleranz"}, "year_min": 1520},
+   "options": [
+     {"text": "Willkommen!", "effects": {"dev_capital": 1, "estate": {"klerus": -8}}},
+     {"text": "Nur die Handwerker.", "effects": {"mods": {"production": 0.01}, "estate": {"klerus": -3}, "dip": -20}},
+     {"text": "Abweisen.", "effects": {"estate": {"klerus": 5}, "prestige": -3}}]},
+  {"id": "gov_monastery_lands", "tag": "*", "title": "Die Klostergüter", "text": "Nach der Säkularisierung stehen die Klöster leer. Was soll mit dem Land geschehen?", "image": "church",
+   "trigger": {"law": {"kirche": "saekularisierung"}},
+   "options": [
+     {"text": "Krongut daraus machen.", "effects": {"gold": 80, "estate": {"klerus": -5}}},
+     {"text": "An den Adel verkaufen.", "effects": {"gold": 120, "estate": {"adel": 10, "klerus": -8}}, "ai": 35},
+     {"text": "Schulen und Spitäler stiften.", "effects": {"estate": {"buerger": 10, "klerus": 5}, "gold": -40}, "ai": 15}]},
+  {"id": "gov_printing_pamphlets", "tag": "*", "title": "Flugschriften gegen die Krone", "text": "Die neuen Druckpressen sind schneller als jeder Zensor. Spottschriften über den Hof gehen von Hand zu Hand.", "image": "printing",
+   "trigger": {"has_tech": "dip_flugschriften"},
+   "options": [
+     {"text": "Gegenschriften drucken lassen.", "effects": {"dip": -25, "prestige": 3}},
+     {"text": "Die Drucker verhaften.", "effects": {"estate": {"buerger": -8}, "adm": 20}},
+     {"text": "Die Spötter an den Hof holen.", "effects": {"estate": {"buerger": 6}, "prestige": -3}}]},
+  {"id": "gov_university_debate", "tag": "*", "title": "Streit an der Universität", "text": "Die Magister disputieren über die Bewegung der Planeten. Die Theologen sind empört.", "image": "scholar",
+   "trigger": {"has_tech": "adm_naturphil"},
+   "options": [
+     {"text": "Die Wissenschaft ist frei.", "effects": {"adm": 40, "estate": {"klerus": -8}}},
+     {"text": "Die Theologen haben das letzte Wort.", "effects": {"estate": {"klerus": 8}, "adm": -20}},
+     {"text": "Beide Seiten fördern.", "effects": {"gold": -50, "adm": 25, "estate": {"klerus": 2}}}]},
+  {"id": "gov_fortress_architect", "tag": "*", "title": "Ein Festungsbaumeister", "text": "Ein Ingenieur aus Italien bietet an, deine Grenzfesten im neuen Stil umzubauen.", "image": "siege",
+   "trigger": {"has_tech": "mil_trace_italienne"},
+   "options": [
+     {"text": "Er soll Pläne zeichnen.", "effects": {"mil": 30, "dip": -20}},
+     {"text": "Sofort bauen!", "effects": {"gold": -80, "mods": {"combat": 0.02}}, "ai": 30},
+     {"text": "Zu teuer.", "effects": {"prestige": -2, "gold": 20}, "ai": 20}]},
+  {"id": "gov_joint_stock", "tag": "*", "title": "Fieber an der Börse", "text": "Anteile an deinen Handelskompanien werden zu immer höheren Preisen gehandelt. Manche warnen vor einer Blase.", "image": "bank",
+   "trigger": {"has_tech": "dip_aktien", "year_min": 1560},
+   "options": [
+     {"text": "Die Kurse beruhigen.", "effects": {"dip": -30, "estate": {"buerger": -3}}},
+     {"text": "Eigene Anteile verkaufen.", "effects": {"gold": 100, "estate": {"buerger": -8}}, "ai": 30},
+     {"text": "Einfach mitspekulieren.", "effects": {"gold": 40, "prestige": -3}, "ai": 20}]},
+  {"id": "gov_loyal_nobility", "tag": "*", "title": "Der Adel steht zur Krone", "text": "Die großen Familien sind zufrieden. Einige bieten an, ihre Söhne in dein Heer zu schicken.", "image": "knights",
+   "trigger": {"estate_min": {"adel": 70}},
+   "options": [
+     {"text": "Offiziersstellen für Adlige.", "effects": {"regs": 2, "estate": {"adel": -5}}},
+     {"text": "Sie an den Hof binden.", "effects": {"prestige": 5, "gold": -30}, "ai": 30},
+     {"text": "Ein Turnier zu Ehren des Adels.", "effects": {"gold": -40, "estate": {"adel": 5}, "mil": 30}, "ai": 20}]},
+  {"id": "gov_burgher_loan", "tag": "*", "title": "Die Bürger bieten einen Kredit an", "text": "Die Kaufleute sind zufrieden und reich. Sie bieten der Krone eine Anleihe zu günstigen Zinsen.", "image": "bank",
+   "trigger": {"estate_min": {"buerger": 70}},
+   "options": [
+     {"text": "Dankend annehmen.", "effects": {"gold": 100, "estate": {"buerger": -8}}},
+     {"text": "In die Städte investieren.", "effects": {"dev_capital": 1, "estate": {"buerger": -3}}},
+     {"text": "Ablehnen, wir sind nicht arm.", "effects": {"prestige": 3}, "ai": 20}]},
+  {"id": "gov_clergy_tithe", "tag": "*", "title": "Der Zehnte wird verweigert", "text": "Die Bauern zahlen den Zehnten nicht mehr, und die Bischöfe geben der Krone die Schuld.", "image": "church",
+   "trigger": {"estate_max": {"klerus": 40}, "year_min": 1450},
+   "options": [
+     {"text": "Den Zehnten eintreiben lassen.", "effects": {"estate": {"klerus": 8}, "dev_random": -1}},
+     {"text": "Die Kirche aus der Staatskasse entschädigen.", "effects": {"gold": -50, "estate": {"klerus": 10}}, "ai": 30},
+     {"text": "Soll die Kirche selbst sehen.", "effects": {"estate": {"klerus": -5}, "gold": 30}, "ai": 20}]}
 ]

@@ -5,6 +5,7 @@ fehlt ein Effekt oder eine Bedingung, bitte im Feature-Thread anfragen.
 
 ## Ablauf
 1. Branch von `main`, nur `data/events.json`, `data/missions.json` (und ggf. `data/nations.json` für Herrschernamen/Ideen).
+   Ausnahme: Events mit der ID-Vorsilbe `gov_` erzeugt `tools/content/gov_events.py` (dort editieren, sie stehen immer am Dateiende).
 2. Format beibehalten: ein Event = Kopfzeile, `trigger`-Zeile, je Option eine Zeile (siehe bestehende Einträge).
 3. Lokal prüfen: `godot --headless --path . -s res://tests/run_tests.gd` muss `0 failures` melden
    (prüft Provinz-Keys, Tags, Event-Form). CI macht das auch auf jedem PR.

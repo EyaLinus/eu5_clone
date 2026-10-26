@@ -35,7 +35,7 @@ Events und Missionen für 7 Nationen, Save/Load, Tests, Headless-Balance, APK + 
 - ✅ Regierungs-Screen: Berater (16 generische, 34 historische), 19 Investitionskompanien, 4 Gesetze mit Trade-offs.
 - ✅ Investitions-Schieberegler: Kompanien bis Stufe 5.
 - ✅ Stände (Adel, Klerus, Bürger) mit Zufriedenheit, Zugeständnissen und Krisen-Events.
-- ⏳ Events, die Gesetze/Techs voraussetzen (`has_tech`, `law` sind als Bedingungen schon da).
+- ✅ 20 Regierungs-Events, die auf Gesetze, Techs und Stände reagieren (`tools/content/gov_events.py`).
 - ⏳ Grafischer Baum mit Verbindungslinien, falls die Liste im Playtest zu unübersichtlich ist.
 
 ## Bewusst gestrichen
