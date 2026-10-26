@@ -9,6 +9,7 @@ const Icons = preload("res://scripts/ui/icons.gd")
 const TechScreen = preload("res://scripts/ui/tech_screen.gd")
 const Tech = preload("res://scripts/core/tech.gd")
 const Faith = preload("res://scripts/core/religion.gd")
+const Monuments = preload("res://scripts/core/monuments.gd")
 const GovScreen = preload("res://scripts/ui/gov_screen.gd")
 const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
 const SAVE_PATH := "user://save.json"
@@ -1790,6 +1791,7 @@ func _panel_nation() -> void:
 			func(): _act(game.conscript(me), "👥 Neue Rekruten ausgehoben"),
 			"Füllt sofort bis zu %d %% deiner maximalen Mannschaften auf. Danach %d Monate Pause." % [int(float(game.bal.conscript_share) * 100), int(game.bal.conscript_cooldown)]))
 	side_box.add_child(_lbl("Außerdem: 📜 Entwickeln, ✊ Unruhe unterdrücken (⚔️) und 🤝 Integrieren (🕊️) im Provinzfenster, 🔥 Drill (⚔️) im Armeefenster, ❤️ Beziehungen, Bündnisse, Ansprüche und Handelsabkommen (🕊️) bei anderen Nationen, Technologie mit allen drei.", 14, Color(0.7, 0.75, 0.8)))
+	_nation_monuments(me)
 	if game.history.size() >= 2:
 		side_box.add_child(_lbl("📈 Verlauf (Platz %d)" % game.rank_of(me), 22))
 		side_box.add_child(_history_chart(180))
@@ -1810,13 +1812,45 @@ func _panel_nation() -> void:
 
 
 const MOD_SOURCES := {"": "Nationalgeist & Ereignisse", "goods": "Handelsgüter", "buildings": "Gebäude", "rank": "Rang",
-		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte"}
+		"tech": "Technologie", "gov": "Regierung", "estates": "Stände", "pacts": "Handelspakte", "monuments": "Großprojekte"}
 const MOD_GROUPS := [
 	["💰 Wirtschaft", ["income", "tax", "production", "trade", "merchants", "build_cost", "develop_cost"]],
 	["⚔️ Militär", ["combat", "army_power", "army_power_regen", "manpower", "force_limit", "maintenance", "siege"]],
 	["📜 Staat", ["adm", "dip", "mil", "tech_cost", "coring", "unrest", "ae_gen", "ae_decay", "prestige", "advisor_slots", "company_slots"]],
 	["⚖️ Stände", ["estate_adel", "estate_klerus", "estate_buerger"]],
 ]
+
+
+## Gold sinks for rich realms: a court feast and one great work at a time in the capital.
+func _nation_monuments(me: String) -> void:
+	var n = game.nations[me]
+	side_box.add_child(_lbl("🏛️ Prunk und Großprojekte", 22))
+	var fr: int = game.feast_ready_in(me)
+	side_box.add_child(_btn(("👑 Hoffest ausrichten (%d 💰)" % int(game.feast_cost(me))) if fr == 0 else ("👑 Hoffest (wieder in %d Monaten)" % fr),
+			func(): _act(game.hold_feast(me), "👑 Ein prächtiges Fest!"),
+			"+%d ⭐ Prestige, −%d Kriegsmüdigkeit. Kostet %d Monatseinnahmen, höchstens alle %d Jahre." % [
+			int(game.bal.feast_prestige), int(game.bal.feast_we), int(game.bal.feast_income_months), int(game.bal.feast_cooldown) / 12]))
+	if not n.monument_build.is_empty():
+		var bm: Dictionary = game.monument_defs[n.monument_build.id]
+		side_box.add_child(_lbl("🔨 %s %s: noch %d Monate" % [bm.emoji, bm.name, int(n.monument_build.months)], 16, Color(0.6, 0.8, 1.0)))
+	for id in game.monument_defs:
+		var m: Dictionary = game.monument_defs[id]
+		var parts := []
+		for r in UiTheme.mod_rows(m.bonus):
+			parts.append("%s %s" % [r[0], r[1]])
+		var tip: String = "%s\n%s" % [m.text, ", ".join(parts)]
+		if n.monuments.has(id):
+			var l := _lbl("✓ %s %s" % [m.emoji, m.name], 16, Color(0.6, 0.9, 0.6))
+			l.tooltip_text = tip
+			l.mouse_filter = Control.MOUSE_FILTER_STOP
+			side_box.add_child(l)
+			continue
+		if n.monument_build.get("id", "") == id:
+			continue
+		var br: String = Monuments.block_reason(game, me, id)
+		side_box.add_child(_btn("%s %s bauen (%d 💰, %d Mon.)" % [m.emoji, m.name, int(Monuments.cost(game, me, id)), int(m.months)],
+				func(): _act(Monuments.start(game, me, id), "🔨 Bau begonnen: " + m.name),
+				tip + ("\n❌ " + br if br != "" else ""), br != ""))
 
 
 ## Every modifier of the player: total (green buff / red nerf) and the sources it is summed from (Game.mod).

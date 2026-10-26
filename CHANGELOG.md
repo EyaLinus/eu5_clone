@@ -12,6 +12,13 @@
 - Ereignisse können jetzt Gebäudestufen schenken, Kredite erlassen, die Moral heben oder Söldner sofort
   bereitstellen.
 
+- **Großprojekte 🏛️ (neu):** Sieben Bauwerke für die Hauptstadt im Nationsfenster: Kathedrale, Gesandtenhof, Arsenal,
+  Universität, Börse, Kriegsakademie, Prunkpalast. Jedes braucht eine Technologiestufe, kostet viel Gold (mehr, je
+  entwickelter dein Reich) und baut 3 bis 6 Jahre. Fertig gibt es dauerhafte Boni (z. B. Technologie −8 %,
+  +3 Truppenlimit, +5 % Kampfkraft). Immer nur ein Großprojekt zugleich.
+- **Hoffest 👑:** Für vier Monatseinnahmen (mindestens 50 Gold) +10 ⭐ Prestige und −2 Kriegsmüdigkeit, alle 5 Jahre.
+  Damit hat Gold auch im reichen Spätspiel einen Nutzen.
+
 ## v0.8.8 – 2026-10-26
 - **Glaube ⛪ (neu):** Jedes Land hat einen Staatsglauben (katholisch, orthodox, sunnitisch, ab 1517 protestantisch),
   jede Provinz den Glauben ihrer Bevölkerung. Provinzen mit anderem Glauben als ihr Herrscher haben +1 Unruhe und
