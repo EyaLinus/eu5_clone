@@ -767,6 +767,7 @@ const MODE_LEGENDS := [
 	"Deine Kriege auf einen Blick. Streifen = besetzt.",
 	"Welches Gut jede Provinz herstellt (eigene Provinzen hell).",
 	"Einzugsgebiete der Märkte, das Zentrum leuchtet hell (eigene Provinzen hell).",
+	"Gebäudestufen je Provinz: dunkel = nichts gebaut, gold = gut ausgebaut, bläulich = Baustelle. Fremde Provinzen dunkler.",
 ]
 ## Color keys per map mode: [color, text]
 const MODE_KEYS := {
@@ -1513,12 +1514,15 @@ func _province_buildings(p) -> void:
 			txt = label + "  (max.)"
 		else:
 			txt = "%s  %s %d💰" % [label, "➕" if lvl > 0 else "+", int(Eco.building_cost(game, me, p.id, bid))]
+			var gain: float = Eco.building_gain(game, p, bid)
+			if gain >= 0.05:
+				txt += "  ≈ +%.1f/Monat" % gain
 		var b := _btn(txt, func(): _act(game.construct(me, p.id, bid), "🏗️ Bau begonnen: " + d.name), d.text + (("\n❌ " + reason) if reason != "" else ""), reason != "")
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		side_box.add_child(b)
 		if reason != "" and lvl < maxl and not reason.begins_with("Hier wird") and not reason.begins_with("Höchste"):
 			side_box.add_child(_lbl("   " + reason, 14, Color(0.75, 0.6, 0.5)))
-	side_box.add_child(_lbl("Jede fertige Stufe: +1 Entwicklung (außer Straßen).", 14, Color(0.7, 0.75, 0.8)))
+	side_box.add_child(_lbl("Jede fertige Stufe: +1 Entwicklung (außer Straßen). \"+X/Monat\" = mehr Steuer und Produktion hier, ohne Handel.", 14, Color(0.7, 0.75, 0.8)))
 
 
 func _panel_economy() -> void:
@@ -1914,6 +1918,13 @@ func _panel_other(tag: String) -> void:
 		return
 	var b: Dictionary = game.bal
 	side_box.add_child(_btn("❤️ Beziehungen verbessern (%d 🕊️)" % int(b.improve_relation_cost), func(): _act(game.improve_relations(me, tag), "❤️ Beziehungen verbessert")))
+	if game.nations[me].marriages.has(tag):
+		side_box.add_child(_lbl("👑 Eure Häuser sind verheiratet: Beziehung bleibt mindestens bei %d." % int(b.marriage_rel_floor), 15, Color(1, 0.85, 0.5)))
+	else:
+		var mr: String = game.marriage_block_reason(me, tag)
+		side_box.add_child(_btn("👑 Königliche Heirat (%d 🕊️)" % int(b.marriage_cost), func(): _act(game.marry(me, tag), "👑 Hochzeit gefeiert!"),
+				"+%d Beziehung, die nie unter %d fällt. Ist %s klein (höchstens %d Provinzen) und du viel stärker, kann es beim Thronwechsel per Personalunion dein Vasall werden. Ein Krieg gegen den Partner beendet die Ehe.%s" % [
+				int(b.marriage_rel), int(b.marriage_rel_floor), o.name, int(b.marriage_union_max_provinces), ("\n❌ " + mr) if mr != "" else ""], mr != ""))
 	if o.overlord == me:
 		var left: int = game.annex_months_left(tag)
 		var t := "📜 Annektieren (%d 🕊️, %d 📜)" % [int(game.annex_cost(tag)), int(game.annex_adm_cost(tag))]
