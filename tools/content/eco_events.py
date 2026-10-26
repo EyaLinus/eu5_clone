@@ -15,12 +15,19 @@ import os
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+def _ai(o):
+    # gold-costing options stay rare for the AI: several of these events fire for most nations every decade
+    if o[1].get("gold", 0) < 0:
+        return {"ai": min(o[2] if len(o) > 2 else 10, 10)}
+    return {"ai": o[2]} if len(o) > 2 else {}
+
+
 def ev(id, title, text, image, trigger, options, once=True):
     e = {"id": "eco_" + id}
     if not once:
         e["once"] = False
     e.update({"tag": "*", "title": title, "text": text, "image": image, "trigger": trigger,
-              "options": [dict(text=o[0], effects=o[1], **({"ai": o[2]} if len(o) > 2 else {})) for o in options]})
+              "options": [dict(text=o[0], effects=o[1], **_ai(o)) for o in options]})
     return e
 
 
