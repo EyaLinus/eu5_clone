@@ -52,6 +52,18 @@ var toast_time := 0.0
 var hud: Control
 var settings := {"ui_scale": 1.0, "tips": true, "tips_seen": [], "sound": true}
 var sfx_players: Array = []
+# touch layer: drag-to-scroll over buttons and long-press tooltips (see _input)
+const DRAG_START := 14.0
+const LONG_PRESS := 0.5
+var _scrolls: Array = []
+var _press_pos := Vector2.ZERO
+var _press_time := -1.0
+var _press_scroll: ScrollContainer = null
+var _press_scroll_start := 0
+var _dragging := false
+var _suppress_click := false
+var _tip_panel: PanelContainer
+var _tip_label: Label
 var sfx_streams := {}
 var last_battles := 0
 var tech_screen := TechScreen.new(self)
@@ -77,6 +89,7 @@ func _ready() -> void:
 	map.province_tapped.connect(_on_province_tapped)
 	map.army_tapped.connect(_on_army_tapped)
 	map.province_long_pressed.connect(_on_province_info)
+	map.label_scale = 1.2 if _big() else 1.0
 	hud = Control.new()
 	hud.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -252,6 +265,7 @@ func _build_hud() -> void:
 	side_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	side_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	vb.add_child(side_scroll)
+	register_scroll(side_scroll)
 	side_box = VBoxContainer.new()
 	side_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	side_box.add_theme_constant_override("separation", 8)
@@ -269,6 +283,16 @@ func _build_hud() -> void:
 	toast.add_theme_color_override("font_outline_color", Color.BLACK)
 	toast.add_theme_constant_override("outline_size", 6)
 	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tsb := StyleBoxFlat.new()
+	tsb.bg_color = Color(0.05, 0.06, 0.09, 0.82)
+	tsb.set_corner_radius_all(8)
+	tsb.content_margin_left = 14
+	tsb.content_margin_right = 14
+	tsb.content_margin_top = 4
+	tsb.content_margin_bottom = 4
+	toast.add_theme_stylebox_override("normal", tsb)
+	toast.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	toast.visible = false
 	hud.add_child(toast)
 
 
@@ -291,6 +315,7 @@ func _build_modal() -> void:
 	sc.custom_minimum_size = Vector2(620, 0)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	pc.add_child(sc)
+	register_scroll(sc)
 	modal_box = VBoxContainer.new()
 	modal_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	modal_box.add_theme_constant_override("separation", 10)
@@ -311,8 +336,12 @@ func _btn(text: String, cb: Callable, tip: String = "", disabled: bool = false) 
 	# long labels are trimmed instead of widening the side panel past the screen edge
 	b.clip_text = true
 	b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	b.pressed.connect(func(): _sfx("click", -14.0))
-	b.pressed.connect(cb)
+	# a press that turned into a scroll or a long-press tooltip is not a click
+	b.pressed.connect(func():
+		if _suppress_click:
+			return
+		_sfx("click", -14.0)
+		cb.call())
 	return b
 
 
@@ -371,6 +400,12 @@ func _row(children: Array) -> HBoxContainer:
 
 func _toast(text: String) -> void:
 	toast.text = text
+	toast.visible = text != ""
+	# box hugs the text (max 840 px wide, wraps beyond)
+	var f: Font = toast.get_theme_font("font")
+	var w: float = minf(840.0, f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, toast.get_theme_font_size("font_size")).x + 40.0)
+	toast.offset_left = -w / 2.0
+	toast.offset_right = w / 2.0
 	toast_time = 4.0
 
 
@@ -487,11 +522,133 @@ func _show_intro() -> void:
 	modal_box.add_child(_btn("Los geht's ▶", func(): _close_modal(); _set_speed(2)))
 
 
+## ScrollContainers that scroll by dragging anywhere on them, also when the finger starts on a button.
+func register_scroll(sc: ScrollContainer) -> void:
+	_scrolls.append(sc)
+
+
+func _scroll_at(pos: Vector2) -> ScrollContainer:
+	for i in range(_scrolls.size() - 1, -1, -1):
+		var sc: ScrollContainer = _scrolls[i]
+		if is_instance_valid(sc) and sc.is_visible_in_tree() and sc.get_global_rect().has_point(pos):
+			return sc
+	return null
+
+
+## True if a visible Range control (slider, scroll bar, spin box) lies under `pos`.
+func _range_at(node: Node, pos: Vector2) -> bool:
+	if node is CanvasItem and not node.visible:
+		return false
+	if node is Range and node.get_global_rect().has_point(pos):
+		return true
+	for c in node.get_children():
+		if _range_at(c, pos):
+			return true
+	return false
+
+
+## Deepest visible control under `pos` that carries a tooltip.
+func _tooltip_at(node: Node, pos: Vector2) -> Control:
+	if node is CanvasItem and not node.visible:
+		return null
+	for i in range(node.get_child_count() - 1, -1, -1):
+		var hit := _tooltip_at(node.get_child(i), pos)
+		if hit != null:
+			return hit
+	if node is Control and node.tooltip_text != "" and node.mouse_filter != Control.MOUSE_FILTER_IGNORE \
+			and node.get_global_rect().has_point(pos):
+		return node
+	return null
+
+
+func _show_tip(text: String, pos: Vector2) -> void:
+	if _tip_panel == null:
+		_tip_panel = PanelContainer.new()
+		_tip_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_tip_label = Label.new()
+		_tip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_tip_label.add_theme_font_size_override("font_size", 20 if _big() else 17)
+		_tip_panel.add_child(_tip_label)
+		add_child(_tip_panel)
+	var w: float = minf(520.0, size.x - 32.0)
+	_tip_label.text = text
+	_tip_label.custom_minimum_size = Vector2(w - 20, 0)
+	_tip_panel.reset_size()
+	_tip_panel.size = Vector2(w, 0)
+	_tip_panel.position = Vector2(clampf(pos.x - w / 2, 16, size.x - w - 16), maxf(16, pos.y - 140))
+	_tip_panel.visible = true
+	_sfx("click", -18.0)
+
+
+func _input(event: InputEvent) -> void:
+	var down := false
+	var up := false
+	var moved := false
+	var pos := Vector2.ZERO
+	if event is InputEventScreenTouch:
+		if event.index != 0:
+			return
+		down = event.pressed
+		up = not event.pressed
+		pos = event.position
+	elif event is InputEventScreenDrag:
+		if event.index != 0:
+			return
+		moved = true
+		pos = event.position
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.is_echo():
+		if DisplayServer.is_touchscreen_available():
+			return  # emulated from touch: the screen events above already handled it
+		down = event.pressed
+		up = not event.pressed
+		pos = event.position
+	elif event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+		if DisplayServer.is_touchscreen_available():
+			return
+		moved = true
+		pos = event.position
+	else:
+		return
+	if down:
+		if _tip_panel != null:
+			_tip_panel.visible = false
+		_suppress_click = false
+		_dragging = false
+		_press_pos = pos
+		_press_time = Time.get_ticks_msec() / 1000.0
+		# sliders and scroll bars keep their own drag
+		_press_scroll = null if _range_at(self, pos) else _scroll_at(pos)
+		_press_scroll_start = _press_scroll.scroll_vertical if _press_scroll != null else 0
+	elif moved and _press_time >= 0.0:
+		if not _dragging and _press_scroll != null and pos.distance_to(_press_pos) > DRAG_START:
+			_dragging = true
+			_suppress_click = true
+		if _dragging:
+			_press_scroll.scroll_vertical = _press_scroll_start - int(pos.y - _press_pos.y)
+			get_viewport().set_input_as_handled()
+	elif up:
+		_press_time = -1.0
+		_press_scroll = null
+
+
+func _check_long_press() -> void:
+	if _press_time < 0.0 or _dragging or _suppress_click:
+		return
+	if Time.get_ticks_msec() / 1000.0 - _press_time < LONG_PRESS:
+		return
+	var c := _tooltip_at(self, _press_pos)
+	if c != null:
+		_suppress_click = true
+		_show_tip(c.tooltip_text, _press_pos)
+
+
 func _process(delta: float) -> void:
+	_check_long_press()
 	if toast_time > 0.0:
 		toast_time -= delta
 		if toast_time <= 0.0:
 			toast.text = ""
+			toast.visible = false
 	if game == null or modal.visible or speed == 0 or game.game_over:
 		return
 	acc += delta
@@ -682,6 +839,16 @@ func _update_top() -> void:
 	top_labels.ae.add_theme_color_override("font_color", Color.TOMATO if n.ae >= game.bal.ae_coalition_threshold * 0.7 else Color.WHITE)
 	top_labels.gold.add_theme_color_override("font_color", Color.TOMATO if n.gold < 0 else Color.WHITE)
 	top_labels.date.text = Icons.prefix("date") + game.date_string()
+	# live tooltips (long press on mobile)
+	var trib: float = game.tribute_income(game.player)
+	top_labels.gold.tooltip_text = "Gold %d · Bilanz %+.2f/Monat\nEinnahmen %.2f (Steuern %.2f, Güter %.2f, Handel %.2f)\nAusgaben %.2f%s" % [
+			n.gold, net, n.income, n.tax_income, n.prod_income, n.trade_income, n.expenses, ("\nTribut %+.2f" % trib) if trib != 0.0 else ""]
+	var cap := int(game.bal.power_cap)
+	for k in ["adm", "dip", "mil"]:
+		top_labels[k].tooltip_text = "%s\n%+.1f pro Monat, Obergrenze %d" % [HUD_TIPS[k], game.monthly_power(n, k), cap]
+	top_labels.manpower.tooltip_text = "Mannschaften %.0f / %.0f\nFüllen sich jeden Monat auf; Gutshöfe und Kasernen erhöhen das Maximum." % [n.manpower, n.max_manpower]
+	top_labels.army.tooltip_text = "Regimenter / Truppenlimit\nMehr Regimenter als das Limit kannst du nicht ausheben. Kasernen, Technik und Ränge erhöhen es."
+	top_labels.ae.tooltip_text = "Aggressive Expansion %d (Koalitionsgrenze %d)\nSinkt langsam; hohe Werte machen Nachbarn feindlich." % [n.ae, int(game.bal.ae_coalition_threshold)]
 	speed_label.text = "⏸" if speed == 0 else "▶".repeat(speed)
 	_update_badges()
 
@@ -1109,19 +1276,28 @@ func _panel_province(pid: int) -> void:
 	side_box.add_child(owner_btn)
 	var gd: Dictionary = game.goods_def[p.good]
 	var price: float = game.prices[p.good]
-	var info := "🏘️ Entwicklung: %d\n%s %s: %.1f × %.2f 💰 = %.2f/Monat\n💰 Steuer: %.2f/Monat" % [p.dev, gd.emoji, gd.name,
-			Eco.units(game, p), price, Eco.production_value(game, p), Eco.tax(game, p)]
-	info += "\n🏬 Markt %s · Handelsmacht %.0f" % [game.provinces[p.market].name, Eco.province_trade_power(game, p)]
+	# one line per fact, each with an explanation (hover / long press)
+	var rows: Array = []
+	rows.append(["🏘️ Entwicklung: %d · %d Bauplätze" % [p.dev, Eco.slots(game, p)],
+			"Entwicklung erhöht Steuern, Güterproduktion, Handelsmacht und Mannschaften. Alle %d Stufen gibt es einen Bauplatz mehr (höchstens %d)." % [int(game.bal.dev_per_building_slot), int(game.bal.building_slots_max)]])
+	rows.append(["%s %s: %.1f × %.2f 💰 = %.2f/Monat" % [gd.emoji, gd.name, Eco.units(game, p), price, Eco.production_value(game, p)],
+			"Produktion × Marktpreis. Die Menge wächst mit Entwicklung, Werkstatt, Manufaktur und Hafen; der Preis ändert sich jährlich mit Angebot und Nachfrage. Marktführer bei %s erhält: %s." % [gd.name, gd.bonus_text]])
+	rows.append(["💰 Steuer: %.2f/Monat" % Eco.tax(game, p), "Steuern steigen mit Entwicklung und Marktplatz, Gesetze und Techs geben weitere Prozente."])
+	rows.append(["🏬 Markt %s · Handelsmacht %.0f" % [game.provinces[p.market].name, Eco.province_trade_power(game, p)],
+			"Die Handelsmacht zählt im Markt %s. Dein Anteil an allen Handelsmächten dort ergibt deinen Anteil am Marktwert. Marktplatz und Hafen steigern sie, Händler im Markt noch mehr." % game.provinces[p.market].name])
+	if p.coastal:
+		rows.append(["⚓ Küstenprovinz", "Hier kann ein Hafen gebaut werden."])
 	if Eco.fort_level(game, p) > 0:
-		info += "\n🏰 Festung Stufe %d (Belagerung dauert länger)" % Eco.fort_level(game, p)
+		rows.append(["🏰 Festung Stufe %d" % Eco.fort_level(game, p), "Belagerungen dauern deutlich länger."])
 	if p.core_months > 0:
-		info += "\n🔨 Wird integriert: noch %d Monate (%d %% Einkommen)" % [p.core_months, int(Eco.uncored_mult(game, p) * 100)]
+		rows.append(["🔨 Wird integriert: noch %d Monate (%d %% Einkommen)" % [p.core_months, int(Eco.uncored_mult(game, p) * 100)],
+				"Frisch erobertes Land bringt weniger Einkommen und mehr Unruhe, bis es integriert ist. Ein Gerichtshof hilft."])
 	if p.controller != p.owner:
-		info += "\n🔥 Besetzt von " + game.nations[p.controller].name
+		rows.append(["🔥 Besetzt von " + game.nations[p.controller].name, "Besetzte Provinzen bringen ihrem Besitzer nichts ein."])
 	if p.siege > 0:
-		info += "\n🔥 Belagerung: %d%%" % int(p.siege)
+		rows.append(["🔥 Belagerung: %d%%" % int(p.siege), "Bei 100 % fällt die Provinz an den Belagerer (bis zum Frieden)."])
 	if n.claims.has(pid):
-		info += "\n📜 Du hast einen Anspruch (Kriegsgrund)"
+		rows.append(["📜 Du hast einen Anspruch", "Ein Anspruch ist ein Kriegsgrund und macht die Provinz im Frieden billiger."])
 	if p.owner == me:
 		var u: Dictionary = game.unrest_parts(pid)
 		var why := []
@@ -1139,10 +1315,16 @@ func _panel_province(pid: int) -> void:
 			why.append("Regierung & Technik %+.1f" % u.policy)
 		if absf(u.estates) >= 0.05:
 			why.append("Stände %+.1f" % u.estates)
-		info += "\n✊ Unruhe %.1f / %d%s" % [u.total, int(game.bal.revolt_threshold), (" (" + ", ".join(why) + ")") if not why.is_empty() else ""]
+		rows.append(["✊ Unruhe %.1f / %d%s" % [u.total, int(game.bal.revolt_threshold), (" (" + ", ".join(why) + ")") if not why.is_empty() else ""],
+				"Ab %d Unruhe drohen Aufstände. Senken: Truppen in der Provinz, Unterdrücken, Gerichtshof, Festung, Gesetze, zufriedene Stände." % int(game.bal.revolt_threshold)])
 		if p.prev_owner != "" and p.core_months > 0 and game.nations[p.prev_owner].alive:
-			info += "\n⚠️ Bei einem Aufstand fällt die Provinz an %s zurück." % game.nations[p.prev_owner].name
-	side_box.add_child(_lbl(info))
+			rows.append(["⚠️ Bei einem Aufstand fällt die Provinz an %s zurück." % game.nations[p.prev_owner].name, ""])
+	for r in rows:
+		var l := _lbl(r[0])
+		if r[1] != "":
+			l.tooltip_text = r[1]
+			l.mouse_filter = Control.MOUSE_FILTER_STOP
+		side_box.add_child(l)
 	if p.owner == me:
 		if game.unrest(pid) > 0.0 and p.suppress_months == 0:
 			side_box.add_child(_btn("✊ Unruhe unterdrücken (%d ⚔️)" % int(game.suppress_cost(pid)), func(): _act(game.suppress_unrest(me, pid), "✊ Ruhe wiederhergestellt")))
@@ -1190,7 +1372,7 @@ func _province_buildings(p) -> void:
 		var maxl: int = Eco.max_level(game, bid)
 		var reason: String = Eco.build_block_reason(game, me, p.id, bid)
 		# hide what cannot matter right now: unbuilt buildings without a free slot
-		if lvl == 0 and reason.begins_with("Keine freien"):
+		if lvl == 0 and (reason.begins_with("Keine freien") or (d.get("coastal", false) and not p.coastal)):
 			continue
 		var label := "%s %s %d/%d" % [d.emoji, d.name, lvl, maxl]
 		var txt: String
@@ -1212,18 +1394,52 @@ func _panel_economy() -> void:
 	var Eco = game.Economy
 	side_title.text = "💰 Wirtschaft"
 	var trib: float = game.tribute_income(me)
-	var army_cost: float = n.expenses - Eco.upkeep(game, me)
+	var intr: float = Eco.interest(game, n)
+	var army_cost: float = n.expenses - Eco.upkeep(game, me) - intr
 	var lines := "Einnahmen %.2f/Monat\n  💰 Steuern %.2f\n  🏭 Güter %.2f\n  🏬 Handel %.2f" % [n.income, n.tax_income, n.prod_income, n.trade_income]
 	if trib != 0.0:
 		lines += "\n  ⛓️ Tribut %+.2f" % trib
 	lines += "\nAusgaben %.2f/Monat\n  🛡️ Armee %.2f\n  🏰 Gebäude %.2f" % [n.expenses, army_cost, Eco.upkeep(game, me)]
+	if intr > 0.0:
+		lines += "\n  🏦 Zinsen %.2f" % intr
 	side_box.add_child(_lbl(lines))
+	# loans
+	var lrow := HBoxContainer.new()
+	var lsize: float = Eco.loan_size(game, n)
+	lrow.add_child(_btn("🏦 Kredit +%d💰 (%d%%)" % [int(lsize), int(round(Eco.loan_rate(game, n) * 100))], func():
+		_act(Eco.take_loan(game, me), "🏦 Kredit aufgenommen"),
+		"Sofort %d Gold. Zinsen %.1f%% pro Jahr, jeder weitere Kredit wird teurer. Höchstens %d Kredite." % [int(lsize), Eco.loan_rate(game, n) * 100, int(game.bal.max_loans)],
+		n.loans.size() >= int(game.bal.max_loans)))
+	if not n.loans.is_empty():
+		var last: float = n.loans[n.loans.size() - 1]
+		lrow.add_child(_btn("↩ Tilgen %d💰" % int(last), func(): _act(Eco.repay_loan(game, me), "🏦 Kredit getilgt"),
+				"Zahlt den teuersten Kredit zurück.", n.gold < last))
+	for c in lrow.get_children():
+		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	side_box.add_child(lrow)
+	if not n.loans.is_empty():
+		side_box.add_child(_lbl("🏦 %d Kredite · Schulden %d💰 · Zinsen %.2f/Monat" % [n.loans.size(), int(Eco.debt(n)), intr], 16, Color(0.95, 0.75, 0.5)))
 	var best: Array = Eco.best_building(game, n, game.is_at_war(me))
 	if not best.is_empty():
 		var bd: Dictionary = game.buildings_def[best[1]]
 		var bp = game.provinces[best[0]]
 		side_box.add_child(_btn("✨ Bauvorschlag: %s %s in %s (%d💰)" % [bd.emoji, bd.name, bp.name, int(Eco.building_cost(game, me, best[0], best[1]))],
 				func(): _act(game.construct(me, best[0], best[1]), "🏗️ Bau begonnen: " + bd.name), "Das Gebäude mit dem besten Ertrag pro Gold."))
+	side_box.add_child(_btn("🤖 Autobau: " + ("AN" if n.autobuild else "AUS"), func():
+		n.autobuild = not n.autobuild
+		if n.autobuild:
+			Eco.autobuild(game, n)
+		_refresh(), "Baut automatisch das lohnendste Gebäude, solange die Kasse danach nicht unter die Mindestkasse fällt."))
+	if n.autobuild:
+		var row := HBoxContainer.new()
+		row.add_child(_lbl("Mindestkasse %d💰" % int(n.autobuild_reserve)))
+		for step in [-100, -25, 25, 100]:
+			var st: int = step
+			var b := _btn("%+d" % st, func():
+				n.autobuild_reserve = clampf(n.autobuild_reserve + st, 0.0, 5000.0)
+				_refresh(), "Mindestkasse ändern: Autobau gibt nur Gold darüber aus.")
+			row.add_child(b)
+		side_box.add_child(row)
 	var building := 0
 	for pid in game.provinces_of(me):
 		if not game.provinces[pid].constructing.is_empty():
@@ -1269,6 +1485,10 @@ func _panel_economy() -> void:
 		if leader != "":
 			txt += " · 👑 " + game.nations[leader].name
 		var why := "%s %s: Marktführer (meiste Produktion, mind. %d %% der Welt) erhält %s." % [gd.emoji, gd.name, int(float(game.bal.goods_leader_share) * 100), gd.bonus_text]
+		if game.shocks.has(k):
+			var sh: Dictionary = game.shocks[k]
+			txt += " · ⚠️"
+			why += "\n%s noch %d Jahre: Preis ×%.1f." % ["Knappheit" if float(sh.mult) > 1.0 else "Überangebot", int(sh.years), float(sh.mult)]
 		var b := _btn(txt, _toast.bind(why), why)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		if leader == me:

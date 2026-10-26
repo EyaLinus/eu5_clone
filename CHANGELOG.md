@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.7.1 – 2026-10-25
+- **Touch-Bedienung:** In allen Listen und Fenstern kann man jetzt überall scrollen, auch wenn der Finger auf einem
+  Button startet (ab 14 px Bewegung wird gescrollt statt geklickt). Regler bleiben normal ziehbar.
+- **Tooltips auf dem Handy:** Lange auf einen Button oder Wert drücken zeigt die Erklärung. Die Kopfleiste zeigt live
+  Einnahmen-Aufschlüsselung, Punkte pro Monat, Mannschafts-Maximum und Koalitionsgrenze.
+- **Autobau:** Im Wirtschafts-Panel einschaltbar. Baut automatisch das lohnendste Gebäude, solange die Kasse danach
+  nicht unter die eingestellte Mindestkasse fällt (in 25er- und 100er-Schritten).
+- **Hafen ⚓:** Neues Gebäude für 86 Küstenprovinzen (bis Stufe 3): +3 Handelsmacht, +25 % Handelsmacht, +10 %
+  Produktion der Provinz und +2 % Handelseinnahmen im ganzen Reich je Stufe.
+- **Kredite (neu):** Sofort ein Jahreseinkommen leihen (mind. 50), 5 % Zinsen plus 1 % für jeden weiteren Kredit,
+  höchstens 5. Tilgen jederzeit. Die KI nutzt Kredite im Krieg.
+- **Marktschocks (neu):** Ab und zu wird ein Gut für 3–6 Jahre knapp (Preis ×1,4) oder im Überfluss (×0,7).
+  Im Wirtschafts-Panel mit ⚠️ markiert.
+- **Lesbarkeit:** Größere Provinz- und Ländernamen auf dem Handy, kräftigere Umrandung, Meldungen unten mit
+  dunklem Hintergrund.
+- **Tech- und Regierungs-Thread (PR #14):** Technologiebaum besser lesbar (Effekte in jeder Zelle, erledigte Reihen
+  eingeklappt, Tooltips), Investitionsregler für Handelskompanien (Stufe 1–5) und Stände (Adel, Klerus, Bürger)
+  mit Zufriedenheit, Zugeständnissen und Krisen-Events im Regierungsbildschirm.
+
 ## v0.7.0 – 2026-10-25
 - **Wirtschaft:** Jede Provinz stellt ein Gut her (12 Güter, z. B. Getreide, Wein, Tuch, Eisen, Silber). Die Preise
   ändern sich jedes Jahr mit Angebot und Nachfrage. Wer am meisten von einem Gut herstellt (mind. 20 % der Welt),

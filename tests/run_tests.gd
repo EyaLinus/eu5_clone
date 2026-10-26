@@ -15,7 +15,7 @@ func _init() -> void:
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
-		"test_economy_goods_and_trade", "test_buildings", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures",
@@ -411,6 +411,86 @@ func test_economy_goods_and_trade() -> void:
 	p.dev += 6
 	check(Eco.tax(g, p) > tax0 and Eco.production_value(g, p) > prod0 and Eco.province_trade_power(g, p) > tp0 \
 			and Eco.local_manpower(g, p) > mp0, "development raises tax, production, trade power and manpower")
+
+
+func test_harbor() -> void:
+	var g = new_game("ENG", 5)
+	var Eco = g.Economy
+	var n = g.nations.ENG
+	n.gold = 10000.0
+	var london = g.provinces[g.key_to_pid["london"]]
+	check(london.coastal, "London is coastal")
+	var inland := -1
+	for pid in g.provinces_of("ENG"):
+		if not g.provinces[pid].coastal:
+			inland = pid
+	var coastal_count := 0
+	for p in g.provinces:
+		if p.coastal:
+			coastal_count += 1
+	check(coastal_count > 40 and coastal_count < g.provinces.size() - 20, "a plausible share of provinces is coastal")
+	if inland >= 0:
+		check(Eco.build_block_reason(g, "ENG", inland, "harbor") != "", "no harbor inland")
+	var tp0: float = Eco.province_trade_power(g, london)
+	london.buildings["harbor"] = 1
+	Eco.refresh_local(g, london)
+	check(Eco.province_trade_power(g, london) > tp0 + 2.9, "harbor adds trade power")
+	g._update_cached(n)
+	check(g.mod(n, "trade") >= 0.02, "harbor raises national trade income")
+
+
+func test_loans_and_shocks() -> void:
+	var g = new_game("FRA", 5)
+	var Eco = g.Economy
+	var n = g.nations.FRA
+	n.gold = 0.0
+	var size: float = Eco.loan_size(g, n)
+	check(size >= float(g.bal.loan_min), "a loan is at least the minimum")
+	check(Eco.take_loan(g, "FRA") == "" and n.gold == size, "taking a loan pays out gold")
+	check(Eco.interest(g, n) > 0.0, "loans cost interest")
+	var r1: float = Eco.loan_rate(g, n)
+	Eco.take_loan(g, "FRA")
+	check(Eco.loan_rate(g, n) > r1, "every further loan is more expensive")
+	for i in 10:
+		Eco.take_loan(g, "FRA")
+	check(n.loans.size() == int(g.bal.max_loans), "loans are capped")
+	n.gold = 0.0
+	check(Eco.repay_loan(g, "FRA") != "", "repaying needs gold")
+	n.gold = 100000.0
+	check(Eco.repay_loan(g, "FRA") == "" and n.loans.size() == int(g.bal.max_loans) - 1, "repaying removes a loan")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.FRA.loans.size() == n.loans.size(), "loans are saved")
+	# market shocks: price follows the shock, shocks expire
+	var k: String = g.goods_def.keys()[0]
+	g.shocks = {k: {"mult": 1.4, "years": 2}}
+	g.bal.shock_chance = 0.0
+	var base: float = g.prices[k]
+	Eco.yearly(g)
+	check(g.prices[k] > base * 1.2, "a scarcity shock raises the price")
+	Eco.yearly(g)
+	check(not g.shocks.has(k), "shocks expire")
+	g.bal.shock_chance = 1.0
+	Eco.yearly(g)
+	check(g.shocks.size() == 1, "new shocks appear")
+
+
+func test_autobuild() -> void:
+	var g = new_game("FRA", 5)
+	var n = g.nations.FRA
+	n.gold = 150.0
+	n.autobuild_reserve = 140.0
+	check(g.Economy.autobuild(g, n) == 0, "autobuild off by default")
+	n.autobuild = true
+	check(g.Economy.autobuild(g, n) == 0, "autobuild never goes below the reserve")
+	n.autobuild_reserve = 0.0
+	n.gold = 1000.0
+	check(g.Economy.autobuild(g, n) >= 1, "autobuild starts buildings above the reserve")
+	check(n.gold >= 0.0, "autobuild keeps the treasury at or above the reserve")
+	n.autobuild_reserve = 777.0
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.FRA.autobuild and g2.nations.FRA.autobuild_reserve == 777.0, "autobuild is saved")
 
 
 func test_buildings() -> void:

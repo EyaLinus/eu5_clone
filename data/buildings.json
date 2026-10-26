@@ -80,5 +80,22 @@
   },
   "text": "je Stufe: -1,5 Unruhe, frisch eroberte Provinzen bringen +15 % Einkommen",
   "max_level": 2
+ },
+ "harbor": {
+  "name": "Hafen",
+  "emoji": "⚓",
+  "cost": 60,
+  "months": 12,
+  "coastal": true,
+  "max_level": 3,
+  "local": {
+   "trade_power": 0.25,
+   "trade_flat": 3.0,
+   "production": 0.1
+  },
+  "nation": {
+   "trade": 0.02
+  },
+  "text": "nur an der Küste. je Stufe: +3 Handelsmacht, +25 % Handelsmacht und +10 % Produktion der Provinz, +2 % Handelseinnahmen im Reich"
  }
 }
