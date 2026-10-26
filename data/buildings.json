@@ -101,7 +101,7 @@
  "road": {
   "name": "Straßen",
   "emoji": "🛤",
-  "cost": 35,
+  "cost": 55,
   "months": 6,
   "max_level": 3,
   "local": {
