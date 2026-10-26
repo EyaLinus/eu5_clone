@@ -150,5 +150,11 @@
   "marriage_union_max_provinces": 4,
   "general_cost": 40.0,
   "general_bonus": 0.06,
-  "general_death_chance": 0.04
+  "general_death_chance": 0.04,
+  "access_cost": 10.0,
+  "access_min_rel": 0.0,
+  "access_lost_rel": -25.0,
+  "guarantee_cost": 25.0,
+  "max_guarantees": 3,
+  "guarantee_rel": 15.0
 }

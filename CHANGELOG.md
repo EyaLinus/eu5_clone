@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.8.7 – 2026-10-26
+- **Durchmarschrecht 🚶 (neu):** Im Fenster eines anderen Landes für 10 🕊️ erbitten. Deine Armeen dürfen dann durch
+  dessen Land ziehen, etwa um einen Feind dahinter zu erreichen. Freunde (Beziehung ab 0) sagen ja, Verbündete
+  deines Kriegsgegners nein. Fällt die Beziehung unter −25 oder kommt es zum Krieg, endet das Recht, Truppen dort
+  kehren heim.
+- **Unabhängigkeit garantieren 🛡️ (neu):** Für 25 🕊️ (höchstens 3): Wer dem Schützling den Krieg erklärt, hat dich
+  automatisch als Gegner, +15 Beziehung. Greifst du ihn selbst an, ist die Garantie gebrochen.
+- Diplomatie-Liste zeigt 🚶 und 🛡️, „Kein Weg dorthin" erklärt jetzt das Durchmarschrecht.
+
 ## v0.8.6 – 2026-10-26
 - **Separatfrieden 🏳️:** Bist du in einem Krieg nur Verbündeter, kannst du im Kriegsfenster aussteigen:
   Waffenstillstand mit allen Gegnern, besetzte Provinzen gehen zurück, der Kriegsführer ist verärgert.

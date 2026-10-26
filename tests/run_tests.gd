@@ -17,6 +17,8 @@ func _init() -> void:
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_generals", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_separate_peace", "test_tired_ai_seeks_peace",
+		"test_military_access",
+		"test_guarantee",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_morale_modifiers", "test_reforms",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
@@ -668,6 +670,59 @@ func test_building_gain() -> void:
 	check(gain > 0.0, "a workshop raises income")
 	check(p.buildings == before and p.dev == dev and absf(g.Economy.province_income(g, p) - inc) < 0.0001, "estimate leaves the province untouched")
 	check(g.Economy.building_gain(g, p, "road") < gain, "a road brings less income than a workshop")
+
+
+func test_military_access() -> void:
+	var g = new_game("FRA", 5)
+	var nb := ""
+	for t in g.neighbors_of("FRA"):
+		if not g.is_allied("FRA", t) and g.nations[t].overlord != "FRA" and g.nations[t].overlord == "" and not g.at_war("FRA", t):
+			nb = t
+			break
+	check(nb != "", "France has a neutral neighbour")
+	if nb == "":
+		return
+	var pid: int = g.nations[nb].capital
+	check(not g.can_enter("FRA", pid), "neutral land is closed")
+	g.nations.FRA.dip = 200.0
+	g.add_rel(nb, "FRA", -100.0)
+	check(g.request_access("FRA", nb) != "", "a hostile neighbour refuses access")
+	g.add_rel(nb, "FRA", 200.0)
+	check(g.request_access("FRA", nb) == "", "a friendly neighbour grants access")
+	check(g.can_enter("FRA", pid), "access opens the land")
+	check(not g.find_path("FRA", g.nations.FRA.capital, pid).is_empty(), "armies can path through granted land")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.FRA.access.has(nb), "access is saved")
+	var a = g.spawn_army("FRA", pid, 2.0)
+	g.nations[nb].relations["FRA"] = -100.0
+	g.tick()
+	check(not g.nations.FRA.access.has(nb), "bad relations end access")
+	check(a.pid == g.nations.FRA.capital, "troops in revoked land go home")
+
+
+func test_guarantee() -> void:
+	var g = new_game("ENG", 5)
+	g.nations.FRA.dip = 200.0
+	var target := ""
+	for t in g.nations:
+		var n = g.nations[t]
+		if t != "FRA" and t != "ENG" and n.overlord == "" and not g.is_allied("ENG", t) and not g.is_allied("FRA", t) and not g.has_truce("ENG", t) and n.allies.is_empty():
+			target = t
+			break
+	check(target != "", "a lone state exists")
+	if target == "":
+		return
+	check(g.guarantee("FRA", target) == "", "France guarantees a small state")
+	check(g.guarantee("FRA", target) != "", "no double guarantee")
+	check(g.defenders_for("ENG", target).has("FRA"), "the guarantor defends")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.FRA.guarantees.has(target), "guarantees are saved")
+	g.nations.FRA.truces.erase(target)
+	g.nations[target].truces.erase("FRA")
+	g.declare_war("FRA", target)
+	check(not g.nations.FRA.guarantees.has(target), "attacking the protected state breaks the guarantee")
 
 
 func test_marriage() -> void:
