@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## v0.8.6 – 2026-10-26
+- **Separatfrieden 🏳️:** Bist du in einem Krieg nur Verbündeter, kannst du im Kriegsfenster aussteigen:
+  Waffenstillstand mit allen Gegnern, besetzte Provinzen gehen zurück, der Kriegsführer ist verärgert.
+- **Kampfkraft im Kriegsfenster:** Jeder Krieg zeigt die Stärke der Armeen beider Seiten (Regimenter × Kampfwert ×
+  Moral), grün wenn du vorne liegst.
+- Kriegsmüde Verbündete schließen Separatfrieden, erschöpfte KI beendet Kriege früher (deutlich weniger Aufstände).
 - **Staatsreformen 🏛️ (neu):** Vier Reformstufen im Regierungs-Screen (Herrschaftsgrundlage ab 1444, Verwaltung ab
   1480, Heerwesen ab 1520, Staatsidee ab 1570) mit je drei Wahlmöglichkeiten, alle mit Vor- und Nachteilen. Kostet
   Verwaltungspunkte (100, 150, 200, 250), ein Wechsel ist nur alle 25 Jahre möglich. Die KI reformiert ebenfalls.
