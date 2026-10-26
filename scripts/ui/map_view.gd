@@ -52,10 +52,11 @@ var font: Font
 ## 0 political, 1 diplomatic (player view), 2 development, 3 unrest, 4 war, 5 goods, 6 trade (markets)
 var map_mode := 0
 var label_scale := 1.0  # >1 on phones / big UI: larger map text
-const MODE_NAMES := ["Politisch", "Diplomatisch", "Entwicklung", "Unruhe", "Krieg", "Güter", "Handel"]
+const MODE_NAMES := ["Politisch", "Diplomatisch", "Entwicklung", "Unruhe", "Krieg", "Güter", "Handel", "Bauten"]
 const MODE_WAR := 4
 const MODE_GOODS := 5
 const MODE_TRADE := 6
+const MODE_BUILD := 7
 const MARKET_COLORS := ["c0392b", "2e5bd4", "e3b21b", "1e8449", "8e44ad", "d35400", "16a085", "7f8c8d", "e84393",
 		"6c5ce7", "00b894", "fdcb6e", "a0522d"]
 
@@ -460,6 +461,14 @@ func province_color(p) -> Color:
 		MODE_GOODS:
 			var gc := Color(game.goods_def[p.good].get("color", "#888888"))
 			return gc if p.owner == game.player or game.player == "" else gc.darkened(0.25)
+		MODE_BUILD:
+			var lv := 0
+			for b in p.buildings:
+				lv += int(p.buildings[b])
+			var bc := Color("2b2a33").lerp(Color("e3b21b"), clampf(lv / 10.0, 0.0, 1.0))
+			if not p.constructing.is_empty():
+				bc = bc.lerp(Color("4a9fd0"), 0.35)
+			return bc if p.owner == game.player or game.player == "" else bc.darkened(0.4)
 		MODE_TRADE:
 			var i: int = game.markets.find(p.market)
 			var mc := Color(MARKET_COLORS[i % MARKET_COLORS.size()])
@@ -499,10 +508,11 @@ func _draw_labels() -> void:
 			if p.siege > 0.0:
 				txt += " 🔥%d%%" % int(p.siege)
 			var marks := ""
-			if p.buildings.get("fortress", 0) > 0:
-				marks += "🏰"
-			if p.buildings.get("harbor", 0) > 0:
-				marks += "⚓"
+			if zoom >= 1.6:  # only close up, harbors are everywhere on the coasts later on
+				if p.buildings.get("fortress", 0) > 0:
+					marks += "🏰"
+				if p.buildings.get("harbor", 0) > 0:
+					marks += "⚓"
 			if marks != "":
 				txt += " " + marks
 			var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x

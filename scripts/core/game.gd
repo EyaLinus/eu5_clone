@@ -85,6 +85,7 @@ class Nation:
 	var merchant_auto: bool = true
 	var loans: Array = []  # loan amounts (gold) still owed
 	var trade_pacts: Array = []  # tags with a trade agreement (+trade income for both)
+	var marriages: Array = []  # royal marriages: lasting good relations, a chance of personal union
 	var autobuild: bool = false  # player: build the best building whenever the treasury stays above the reserve
 	var autobuild_reserve: float = 100.0
 	var army_stance: String = ""  # player's default for new armies: "" manual, "attack" or "defend"
@@ -590,6 +591,8 @@ func _economy(n: Nation) -> void:
 		prod += Economy.production_value(self, p) * um
 		if p.core_months > 0:
 			p.core_months -= 1
+			if p.core_months == 0 and n.tag == player:
+				log_msg("🤝 %s ist jetzt Kernland: volles Einkommen, weniger Unruhe." % p.name, [n.tag])
 	var inc_mult: float = 1.0 + n.tech.adm * float(bal.adm_tech_income) + mod(n, "income")
 	n.tax_income = tax * inc_mult
 	n.prod_income = prod * inc_mult
@@ -619,6 +622,9 @@ func _economy(n: Nation) -> void:
 		n.ae = 0.0
 	for t in n.relations:
 		var r: float = n.relations[t]
+		if n.marriages.has(t) and r <= float(bal.marriage_rel_floor):
+			n.relations[t] = maxf(r, float(bal.marriage_rel_floor))
+			continue
 		n.relations[t] = r - signf(r) * minf(absf(r), 0.15)
 	if n.gold < -20.0:
 		stats.bankrupt_months += 1
@@ -751,6 +757,7 @@ func _yearly() -> void:
 			_new_ruler(n)
 			var who: String = n.ruler_name if n.ruler_name != "" else "Ein neuer Herrscher"
 			log_msg("👑 %s besteigt den Thron (📜%d 🕊️%d ⚔️%d)." % [who, n.ruler.adm, n.ruler.dip, n.ruler.mil], [tag])
+			_marriage_succession(n)
 			if tag == emperor:
 				hre_election()
 		govt.yearly(self, n)
@@ -999,6 +1006,9 @@ func _battle(war: War, att: Array, def: Array, pid: int) -> void:
 		a.power = maxf(0.0, a.power - power_max(a.owner) * float(bal.army_power_loss_win))
 	for a in lose:
 		a.power = maxf(0.0, a.power - power_max(a.owner) * float(bal.army_power_loss_lose))
+	for a in win + lose:
+		if a.owner == player and a.power < 0.3 * power_max(a.owner):
+			log_msg("🔥 Deine Armee bei %s ist erschöpft (Moral %d %%). Drill (⚔️) oder Rückzug auf eigenes Land hilft." % [provinces[pid].name, int(a.power * 100)], [player])
 	for a in win:
 		a.regs *= 1.0 - win_frac
 	for a in lose:
@@ -1244,6 +1254,9 @@ func declare_war(att: String, def: String, coalition_members: Array = []) -> Str
 	if nations[att].overlord != "" and coalition_members.is_empty():
 		return "Vasallen dürfen keine Kriege erklären."
 	var n: Nation = nations[att]
+	if n.marriages.has(def):
+		end_marriage(att, def)
+		log_msg("💔 %s bricht die Ehe mit %s und erklärt den Krieg." % [n.name, nations[def].name], [att, def])
 	var has_cb := coalition_members.size() > 0 or has_claim_on(att, def)
 	if not has_cb:
 		if n.dip < float(bal.nocb_war_dip):
@@ -1512,6 +1525,9 @@ func _check_alive(tag: String) -> void:
 	for a in armies.duplicate():
 		if a.owner == tag:
 			armies.erase(a)
+	for t in n.marriages:
+		nations[t].marriages.erase(tag)
+	n.marriages.clear()
 	for ally in n.allies:
 		nations[ally].allies.erase(tag)
 	n.allies.clear()
@@ -1793,6 +1809,8 @@ func integrate(tag: String, pid: int) -> String:
 		return "Zu wenig Diplomatie (%d)." % int(bal.integrate_cost)
 	nations[tag].dip -= float(bal.integrate_cost)
 	p.core_months = maxi(0, p.core_months - int(bal.integrate_months))
+	if p.core_months == 0 and tag == player:
+		log_msg("🤝 %s ist jetzt Kernland: volles Einkommen, weniger Unruhe." % p.name, [tag])
 	return ""
 
 
@@ -1861,6 +1879,57 @@ func improve_relations(tag: String, target: String) -> String:
 	n.dip -= c
 	add_rel(tag, target, float(bal.improve_relation_amount))
 	return ""
+
+
+# ---- royal marriages
+
+func marriage_block_reason(tag: String, target: String) -> String:
+	var n: Nation = nations[tag]
+	if tag == target or not nations.has(target) or not nations[target].alive:
+		return "Ungültiges Ziel."
+	if n.marriages.has(target):
+		return "Die Häuser sind schon verheiratet."
+	if at_war(tag, target):
+		return "Ihr seid im Krieg."
+	if n.marriages.size() >= int(bal.max_marriages) or nations[target].marriages.size() >= int(bal.max_marriages):
+		return "Höchstens %d Ehen je Haus." % int(bal.max_marriages)
+	if n.dip < float(bal.marriage_cost):
+		return "Zu wenig Diplomatie (%d)." % int(bal.marriage_cost)
+	if target != player and get_rel(target, tag) < float(bal.marriage_min_rel):
+		return "%s lehnt ab (Beziehung %d, braucht %d)." % [nations[target].name, int(get_rel(target, tag)), int(bal.marriage_min_rel)]
+	return ""
+
+
+func marry(tag: String, target: String) -> String:
+	var r := marriage_block_reason(tag, target)
+	if r != "":
+		return r
+	nations[tag].dip -= float(bal.marriage_cost)
+	nations[tag].marriages.append(target)
+	nations[target].marriages.append(tag)
+	add_rel(tag, target, float(bal.marriage_rel))
+	log_msg("👑 Königliche Heirat zwischen %s und %s." % [nations[tag].name, nations[target].name], [tag, target])
+	return ""
+
+
+func end_marriage(a: String, b: String) -> void:
+	nations[a].marriages.erase(b)
+	nations[b].marriages.erase(a)
+
+
+## A small realm whose new ruler is related by marriage to a much stronger house may fall to it in personal union.
+func _marriage_succession(n: Nation) -> void:
+	if n.tag == player or n.overlord != "" or provinces_of(n.tag).size() > int(bal.marriage_union_max_provinces):
+		return
+	for t in n.marriages:
+		var o: Nation = nations[t]
+		if not o.alive or o.overlord != "" or at_war(t, n.tag) or is_at_war(n.tag):
+			continue
+		if strength(t) < strength(n.tag) * 2.0 or rng.randf() >= float(bal.marriage_union_chance):
+			continue
+		_vassalize(t, n.tag, true)
+		log_msg("👑 Personalunion: Durch Erbfolge fällt %s an das Haus %s." % [n.name, o.name], [t, n.tag])
+		return
 
 
 func propose_alliance(tag: String, target: String) -> String:
@@ -2227,7 +2296,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages,
 				"techs": tree.to_save(n), "gov": govt.to_save(n)}
 	d.nations = ns
 	var ar := []
@@ -2336,6 +2405,9 @@ func from_dict(d: Dictionary) -> void:
 		n.trade_pacts = []
 		for t in e.get("trade_pacts", []):
 			n.trade_pacts.append(str(t))
+		n.marriages = []
+		for t in e.get("marriages", []):
+			n.marriages.append(str(t))
 		n.loans = []
 		for l in e.get("loans", []):
 			n.loans.append(float(l))

@@ -8,6 +8,23 @@
   (je +10 %), Magazinsystem und Landesaufgebot beschleunigen die Moral-Erholung, Söldnerheere senken die max. Moral
   um 5 %. Neuer Berater Drillmeister, der Generalquartiermeister hilft jetzt auch bei der Erholung.
 
+## v0.8.4 – 2026-10-26
+- **Königliche Heirat 👑 (neu, Diplo):** Im Fenster einer anderen Nation für 40 🕊️, wenn die Beziehung mindestens
+  +20 ist. Die Beziehung steigt um 25 und fällt danach nie unter +25. Ist der Partner klein (höchstens 4
+  Provinzen) und du mindestens doppelt so stark, kann er beim nächsten Thronwechsel per Personalunion dein Vasall
+  werden. Höchstens 3 Ehen je Haus. Ein Krieg gegen den Partner beendet die Ehe.
+- **Warnung bei erschöpften Armeen:** Fällt die Moral einer deiner Armeen nach einer Schlacht unter 30 %, steht im
+  Protokoll, wo sie steht und was hilft (Drill oder Rückzug).
+
+## v0.8.3 – 2026-10-26
+- **Neuer Kartenmodus "Bauten":** zeigt, wie gut jede Provinz ausgebaut ist (dunkel = nichts, gold = viel),
+  Baustellen bläulich, fremde Provinzen dunkler.
+- **Bauen-Reiter zeigt den Ertrag:** Jedes Gebäude nennt, wie viel Steuer und Produktion die nächste Stufe hier
+  bringt ("≈ +0,4/Monat", inklusive der +1 Entwicklung, ohne Handel).
+- **Meldung bei Kernland:** Wird eine eroberte Provinz zu Kernland (Zeit abgelaufen oder integriert), steht das
+  im Protokoll.
+- Festungs- und Hafen-Symbole auf der Karte erst bei starkem Zoom, damit die Küsten nicht zugepflastert sind.
+
 ## v0.8.2 – 2026-10-26
 - **Diplo- und Militär-Macht haben neue Verwendungen** (bisher fast nur Technologie):
   - 🔥 **Drill** (Armeefenster, ⚔️): Moral der Armee sofort auf das Maximum, auf eigenem oder verbündetem Gebiet.
