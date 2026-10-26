@@ -15,7 +15,7 @@ func _init() -> void:
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
-		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_generals", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
@@ -665,6 +665,31 @@ func test_marriage() -> void:
 	h.nations.ENG.truces.erase("BRI")
 	h.declare_war("ENG", "BRI")
 	check(not h.nations.ENG.marriages.has("BRI"), "war ends a marriage")
+
+
+func test_generals() -> void:
+	var g = new_game("FRA", 5)
+	var cap: int = g.nations.FRA.capital
+	var a = g.spawn_army("FRA", cap, 6.0)
+	var base: float = g._side_power([a], cap)
+	g.nations.FRA.mil = 0.0
+	check(g.hire_general("FRA", a.id) != "", "a general costs military power")
+	g.nations.FRA.mil = 100.0
+	check(g.hire_general("FRA", a.id) == "", "hire a general")
+	check(a.general >= 1 and a.general <= 3, "general has 1-3 stars")
+	check(g._side_power([a], cap) > base, "a general makes the army stronger")
+	check(g.hire_general("FRA", a.id) != "", "only one general per army")
+	var b = g.spawn_army("FRA", cap, 2.0)
+	var stars: int = a.general
+	g.merge_armies("FRA", cap)
+	var merged = null
+	for x in g.armies_in(cap):
+		if x.owner == "FRA":
+			merged = x
+	check(merged != null and merged.general == stars, "merged army keeps the general")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.army_by_id(merged.id).general == stars, "generals are saved")
 
 
 func test_peace_offer_cooldown() -> void:

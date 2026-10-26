@@ -145,5 +145,8 @@
   "marriage_rel": 25.0,
   "marriage_rel_floor": 25.0,
   "marriage_union_chance": 0.15,
-  "marriage_union_max_provinces": 4
+  "marriage_union_max_provinces": 4,
+  "general_cost": 40.0,
+  "general_bonus": 0.06,
+  "general_death_chance": 0.04
 }

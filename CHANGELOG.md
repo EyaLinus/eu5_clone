@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.8.5 – 2026-10-26
+- **Generäle ⭐ (neu, Militär-Macht):** Im Armeefenster für 40 ⚔️ einen General anwerben. Er hat 1 bis 3 Sterne
+  (bessere Militärtechnik, bessere Offiziere), jeder Stern gibt +6 % Kampfkraft. Generäle können in Schlachten
+  fallen, nach Niederlagen eher. Beim Vereinen bleibt der bessere General. Armeen mit General tragen auf der Karte
+  einen Stern.
+- Diplomatie-Liste: 👑 markiert Häuser, mit denen du verheiratet bist.
+
 ## v0.8.4 – 2026-10-26
 - **Königliche Heirat 👑 (neu, Diplo):** Im Fenster einer anderen Nation für 40 🕊️, wenn die Beziehung mindestens
   +20 ist. Die Beziehung steigt um 25 und fällt danach nie unter +25. Ist der Partner klein (höchstens 4
