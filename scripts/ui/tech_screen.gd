@@ -204,6 +204,10 @@ func _detail(id: String) -> void:
 		box.add_child(m._lbl(reason, 17, Color(0.95, 0.6, 0.55)))
 	else:
 		box.add_child(m._lbl("Kosten: %d %s (du hast %d)" % [cost, Icons.emoji(t.cat), n.get(t.cat)], 18))
+		var sd: float = g.tree.spread_discount(g, me, id)
+		if sd >= 0.01:
+			box.add_child(m._lbl("Davon −%d %% durch Wissensverbreitung: %d %% der anderen Nationen kennen sie schon." % [
+					roundi(sd * 100.0), roundi(g.tree.known_share(g, me, id) * 100.0)], 15, Color(0.6, 0.9, 0.6)))
 	var go := func():
 		var err: String = g.research(me, id)
 		m._close_modal()

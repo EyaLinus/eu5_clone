@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- **Wissensverbreitung:** Eine Technologie wird billiger, je mehr andere Nationen sie schon kennen (bis −30 %).
+  Pioniere zahlen den vollen Preis, Nachzügler holen auf. Das Detailfenster zeigt den Rabatt.
 - **Staatsreformen 🏛️ (neu):** Vier Reformstufen im Regierungs-Screen (Herrschaftsgrundlage ab 1444, Verwaltung ab
   1480, Heerwesen ab 1520, Staatsidee ab 1570) mit je drei Wahlmöglichkeiten, alle mit Vor- und Nachteilen. Kostet
   Verwaltungspunkte (100, 150, 200, 250), ein Wechsel ist nur alle 25 Jahre möglich. Die KI reformiert ebenfalls.

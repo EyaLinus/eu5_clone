@@ -18,7 +18,7 @@ func _init() -> void:
 		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_generals", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_separate_peace", "test_tired_ai_seeks_peace",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_morale_modifiers", "test_reforms",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1427,4 +1427,30 @@ func test_reforms() -> void:
 	ai.adm = 1000.0
 	gv._ai_reforms(g, ai)
 	check(ai.gov.reforms.has("grundlage"), "AI enacts the oldest open tier")
+
+
+## Knowledge spreads: techs known by many other nations get cheaper, specials never.
+func test_tech_spread() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	var id := ""
+	for t in g.tree.techs_for("FRA", "adm"):
+		if not n.techs.has(t.id) and not Tech.is_special(t):
+			id = t.id
+			break
+	for o in g.nations.values():
+		o.techs.erase(id)
+	var full: float = g.tree.cost(g, "FRA", id)
+	check(absf(full - g.tech_cost("FRA", "adm")) < 0.01, "nobody knows it: full price")
+	var others: Array = g.nations.values().filter(func(o): return o.alive and o.tag != "FRA")
+	for i in others.size() / 2:
+		others[i].techs[id] = 0
+	var share: float = g.tree.known_share(g, "FRA", id)
+	check(share > 0.45 and share <= 0.5, "half the world knows it (%.2f)" % share)
+	check(absf(g.tree.cost(g, "FRA", id) - full * (1.0 - 0.5 * share)) < 0.01, "spread discount")
+	for o in others:
+		o.techs[id] = 0
+	check(absf(g.tree.cost(g, "FRA", id) - full * 0.7) < 0.01, "discount capped at 30 %")
+	var sp: Dictionary = g.tree.specials_of("FRA")[0]
+	check(g.tree.spread_discount(g, "FRA", sp.id) == 0.0, "special techs never get cheaper")
 
