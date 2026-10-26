@@ -59,6 +59,7 @@ func _power_actions(g, n, cap: float) -> void:
 				best = pid
 		if best >= 0:
 			g.integrate(n.tag, best)
+	_hire_general(g, n, cap)
 	if not g.is_at_war(n.tag) or n.mil < 50.0:
 		return
 	if n.manpower < n.max_manpower * 0.2 and n.mil >= float(g.bal.conscript_cost) + 40.0:
@@ -67,6 +68,20 @@ func _power_actions(g, n, cap: float) -> void:
 		if a.power < 0.5 * g.power_max(n.tag) and n.mil >= g.drill_cost(a) + 50.0:
 			if g.drill_army(n.tag, a.id) == "":
 				break
+
+
+## The largest army without a commander gets a general: in war as soon as military power allows,
+## in peace only from a large surplus.
+func _hire_general(g, n, cap: float) -> void:
+	var need: float = float(g.bal.general_cost) + (30.0 if g.is_at_war(n.tag) else cap * 0.3)
+	if n.mil < need:
+		return
+	var best = null
+	for a in g.armies_of(n.tag):
+		if a.general == 0 and a.regs >= 3.0 and (best == null or a.regs > best.regs):
+			best = a
+	if best != null:
+		g.hire_general(n.tag, best.id)
 
 
 func _cheapest_province(g, tag: String) -> int:
@@ -139,7 +154,7 @@ func _cheapest_building_cost(g, n) -> float:
 	var c := 1e9
 	for bid in g.buildings_def:
 		c = minf(c, float(g.buildings_def[bid].cost))
-	return c * maxf(0.3, 1.0 + g.mod(n, "build_cost")) - 1.0
+	return c * float(g.bal.building_cost_mult) * maxf(0.3, 1.0 + g.mod(n, "build_cost")) - 1.0
 
 
 # ---------------------------------------------------------------- diplomacy
@@ -170,6 +185,9 @@ func _diplomacy(g, n) -> void:
 		if g.get_rel(tag, ally) < -30.0:
 			g.break_alliance(tag, ally)
 	_trade_pact(g, n)
+	_marriage(g, n)
+	_war_access(g, n)
+	_guarantee(g, n)
 	if n.allies.size() >= 2:
 		return
 	var best := ""
@@ -207,6 +225,65 @@ func _trade_pact(g, n) -> void:
 			best = t
 	if best != "":
 		g.Economy.offer_pact(g, n.tag, best)
+
+
+## Now and then a royal marriage with a friendly house nearby, allies first.
+func _marriage(g, n) -> void:
+	if n.marriages.size() >= int(g.bal.ai_max_marriages) or n.dip < float(g.bal.marriage_cost) + 60.0 \
+			or g.rng.randf() > float(g.bal.ai_marriage_chance):
+		return
+	var best := ""
+	var best_score := -1e9
+	for t in g.nations_in_range(n.tag, 4):
+		if t == g.player or g.marriage_block_reason(n.tag, t) != "":
+			continue
+		var s: float = g.get_rel(t, n.tag) + (30.0 if n.allies.has(t) else 0.0)
+		if s > best_score:
+			best_score = s
+			best = t
+	if best != "":
+		g.marry(n.tag, best)
+
+
+## In war, ask a neutral neighbour for military access when an enemy can only be reached through its land.
+func _war_access(g, n) -> void:
+	if not g.is_at_war(n.tag) or n.dip < float(g.bal.access_cost) + 20.0:
+		return
+	var mine: Array = g.neighbors_of(n.tag)
+	for e in g.enemies_of(n.tag):
+		if mine.has(e):
+			continue
+		for t in mine:
+			if g.neighbors_of(t).has(e) and g.access_block_reason(n.tag, t) == "":
+				g.request_access(n.tag, t)
+				return
+
+
+## A great power now and then guarantees a small friendly neighbour (keeps minors alive, buys influence).
+func _guarantee(g, n) -> void:
+	if not n.major or n.guarantees.size() >= int(g.bal.ai_max_guarantees) \
+			or n.dip < float(g.bal.guarantee_cost) + 80.0 or g.rng.randf() > float(g.bal.ai_guarantee_chance):
+		return
+	var best := ""
+	var best_score := -1e9
+	for t in g.nations_in_range(n.tag, 2):
+		if t == g.player or g.nations[t].major or g.provinces_of(t).size() > int(g.bal.protect_max_provinces):
+			continue
+		if g.has_claim_on(n.tag, t) or g.guarantee_block_reason(n.tag, t) != "":
+			continue
+		var rel: float = g.get_rel(n.tag, t)
+		if rel < 10.0:
+			continue
+		var s: float = rel
+		for nb in g.neighbors_of(t):
+			if nb != n.tag and g.strength(nb) > g.strength(t) * 3.0:
+				s += 20.0  # threatened by a strong neighbour
+				break
+		if s > best_score:
+			best_score = s
+			best = t
+	if best != "":
+		g.guarantee(n.tag, best)
 
 
 func accepts_alliance(g, target: String, from: String) -> bool:
@@ -271,15 +348,20 @@ func _consider_war(g, n) -> void:
 # ---------------------------------------------------------------- peace
 
 func _consider_peace(g, n) -> void:
+	# war-weary nations look for a way out: exhaustion turns into revolts at home
+	var tired: bool = n.we >= float(g.bal.we_max) * float(g.bal.ai_tired_we)
 	for w in g.wars_of(n.tag).duplicate():
 		if not g.wars.has(w):
 			continue
 		var att: bool = g.is_attacker(w, n.tag)
-		if g.side_tags(w, att)[0] != n.tag:
-			continue
 		var ws: float = g.warscore(w) * (1.0 if att else -1.0)
 		var dur: int = g.month - w.start
-		if ws >= 25.0 or (ws >= 8.0 and dur > 36):
+		if g.side_tags(w, att)[0] != n.tag:
+			# an exhausted ally bails out of a war that is not going its way
+			if tired and dur > 12 and ws < 10.0 and g.leave_war_block_reason(n.tag, w) == "":
+				g.leave_war(n.tag, w)
+			continue
+		if ws >= 25.0 or (ws >= 8.0 and (dur > 36 or tired)):
 			if wants_vassal(g, w, att, ws):
 				g.offer_peace(n.tag, w, [], true, true)
 				continue
@@ -287,12 +369,12 @@ func _consider_peace(g, n) -> void:
 			if not pids.is_empty():
 				g.offer_peace(n.tag, w, pids, true)
 				continue
-		if ws <= -30.0 and dur > 12:
+		if ws <= (-15.0 if tired else -30.0) and dur > 12:
 			var give := pick_demands(g, w, not att, -ws * 0.8)
 			if not give.is_empty():
 				g.offer_peace(n.tag, w, give, false)
 				continue
-		if dur > 48 and absf(ws) < 15.0:
+		if (dur > 48 and absf(ws) < 15.0) or (tired and dur > 12 and ws > -15.0 and ws < 25.0):
 			g.offer_peace(n.tag, w, [], true)
 
 

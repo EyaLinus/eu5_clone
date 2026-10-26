@@ -52,11 +52,13 @@ var font: Font
 ## 0 political, 1 diplomatic (player view), 2 development, 3 unrest, 4 war, 5 goods, 6 trade (markets)
 var map_mode := 0
 var label_scale := 1.0  # >1 on phones / big UI: larger map text
-const MODE_NAMES := ["Politisch", "Diplomatisch", "Entwicklung", "Unruhe", "Krieg", "Güter", "Handel", "Bauten"]
+const MODE_NAMES := ["Politisch", "Diplomatisch", "Entwicklung", "Unruhe", "Krieg", "Güter", "Handel", "Bauten", "Glaube"]
 const MODE_WAR := 4
 const MODE_GOODS := 5
 const MODE_TRADE := 6
 const MODE_BUILD := 7
+const MODE_FAITH := 8
+const Faith = preload("res://scripts/core/religion.gd")
 const MARKET_COLORS := ["c0392b", "2e5bd4", "e3b21b", "1e8449", "8e44ad", "d35400", "16a085", "7f8c8d", "e84393",
 		"6c5ce7", "00b894", "fdcb6e", "a0522d"]
 
@@ -266,7 +268,13 @@ func _draw() -> void:
 			c = c.lightened(0.28 if p.id == selected_pid else 0.16)
 		for poly in polys[p.id]:
 			draw_colored_polygon(poly, c)
-		if p.controller != p.owner:
+		if map_mode == MODE_FAITH:
+			var own: String = game.nations[p.owner].religion
+			if p.religion != own:
+				var fc := Color(Faith.FAITHS[own].color)
+				for poly in polys[p.id]:
+					_draw_hatch(poly, bboxes[p.id], fc)
+		elif p.controller != p.owner:
 			var cc: Color = _occupier_color(p.controller)
 			cc.a = 0.6 if map_mode != MODE_WAR else 0.9
 			for poly in polys[p.id]:
@@ -445,6 +453,12 @@ func province_color(p) -> Color:
 				return Color("e0a030")
 			if n.coalition.has(p.owner):
 				return Color("8e3a8e")
+			if n.guarantees.has(p.owner) or game.nations[p.owner].guarantees.has(me):
+				return Color("3fae9e")
+			if n.marriages.has(p.owner):
+				return Color("c08ab8")
+			if n.access.has(p.owner):
+				return Color("b09a62")
 			if game.has_truce(me, p.owner):
 				return Color("9aa7b0")
 			return Color("6b6b62")
@@ -461,6 +475,9 @@ func province_color(p) -> Color:
 		MODE_GOODS:
 			var gc := Color(game.goods_def[p.good].get("color", "#888888"))
 			return gc if p.owner == game.player or game.player == "" else gc.darkened(0.25)
+		MODE_FAITH:
+			var fcol := Color(Faith.FAITHS.get(p.religion, {"color": "888888"}).color)
+			return fcol if p.owner == game.player or game.player == "" else fcol.darkened(0.2)
 		MODE_BUILD:
 			var lv := 0
 			for b in p.buildings:
@@ -813,6 +830,9 @@ func _draw_counter(a, s: Vector2, c: Color, counter: Texture2D) -> void:
 	var unit := Icons.texture("army_unit")
 	if unit != null and not compact:
 		draw_texture_rect(unit, Rect2(r.position, Vector2(20, 28)), false)
+	if a.general > 0 and not compact:
+		draw_string_outline(font, Vector2(r.position.x - 6, r.position.y + 4), "⭐", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, 3, Color.BLACK)
+		draw_string(font, Vector2(r.position.x - 6, r.position.y + 4), "⭐", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
 	if a.target >= 0 and not compact:
 		var arrow := Icons.texture("army_moving")
 		if arrow != null:

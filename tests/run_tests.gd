@@ -15,9 +15,13 @@ func _init() -> void:
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
-		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_generals", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_separate_peace", "test_tired_ai_seeks_peace", "test_ai_marriage_and_generals", "test_ai_access_and_guarantee",
+		"test_military_access",
+		"test_guarantee",
+		"test_religion",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -329,6 +333,44 @@ func test_alliance_joins_war() -> void:
 	check(w.defenders.has("ENG"), "defensive ally joins")
 
 
+func test_separate_peace() -> void:
+	var g = new_game("FRA")
+	for t in g.order:
+		g.nations[t].allies.clear()
+		g.nations[t].truces.clear()
+	g._ally("BRI", "ENG")
+	g.declare_war("FRA", "BRI")
+	var w = g.war_between("FRA", "BRI")
+	check(g.leave_war("BRI", w) != "", "the war leader cannot leave its own war")
+	check(g.leave_war("FRA", w) != "", "nor can the attacking leader")
+	var york: int = g.key_to_pid["york"]
+	g.provinces[york].controller = "FRA"
+	var rel_before: float = g.get_rel("BRI", "ENG")
+	check(g.leave_war("ENG", w) == "", "an ally may make a separate peace")
+	check(not w.defenders.has("ENG") and g.wars.has(w), "the war goes on without the ally")
+	check(g.provinces[york].controller == "ENG", "occupations between the two end")
+	check(g.has_truce("ENG", "FRA"), "a truce follows")
+	check(g.get_rel("BRI", "ENG") < rel_before, "the abandoned leader resents it")
+
+
+func test_tired_ai_seeks_peace() -> void:
+	var g = new_game("ENG")
+	for t in g.order:
+		g.nations[t].allies.clear()
+		g.nations[t].truces.clear()
+	g._ally("BRI", "SPA")
+	g.declare_war("FRA", "BRI")
+	var w = g.war_between("FRA", "BRI")
+	w.start = g.month - 24
+	g.nations.SPA.we = float(g.bal.we_max)
+	g.ai._consider_peace(g, g.nations.SPA)
+	check(not w.defenders.has("SPA"), "an exhausted ally leaves a war it is not winning")
+	g.nations.FRA.we = float(g.bal.we_max)
+	g.nations.BRI.we = float(g.bal.we_max)
+	g.ai._consider_peace(g, g.nations.FRA)
+	check(not g.wars.has(w), "an exhausted leader settles an even war")
+
+
 func test_protector_defends_small_state() -> void:
 	var g = new_game("")
 	for t in g.order:
@@ -631,6 +673,102 @@ func test_building_gain() -> void:
 	check(g.Economy.building_gain(g, p, "road") < gain, "a road brings less income than a workshop")
 
 
+func test_military_access() -> void:
+	var g = new_game("FRA", 5)
+	var nb := ""
+	for t in g.neighbors_of("FRA"):
+		if not g.is_allied("FRA", t) and g.nations[t].overlord != "FRA" and g.nations[t].overlord == "" and not g.at_war("FRA", t):
+			nb = t
+			break
+	check(nb != "", "France has a neutral neighbour")
+	if nb == "":
+		return
+	var pid: int = g.nations[nb].capital
+	check(not g.can_enter("FRA", pid), "neutral land is closed")
+	g.nations.FRA.dip = 200.0
+	g.add_rel(nb, "FRA", -100.0)
+	check(g.request_access("FRA", nb) != "", "a hostile neighbour refuses access")
+	g.add_rel(nb, "FRA", 200.0)
+	check(g.request_access("FRA", nb) == "", "a friendly neighbour grants access")
+	check(g.can_enter("FRA", pid), "access opens the land")
+	check(not g.find_path("FRA", g.nations.FRA.capital, pid).is_empty(), "armies can path through granted land")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.FRA.access.has(nb), "access is saved")
+	var a = g.spawn_army("FRA", pid, 2.0)
+	g.nations[nb].relations["FRA"] = -100.0
+	g.tick()
+	check(not g.nations.FRA.access.has(nb), "bad relations end access")
+	check(a.pid == g.nations.FRA.capital, "troops in revoked land go home")
+
+
+func test_guarantee() -> void:
+	var g = new_game("ENG", 5)
+	g.nations.FRA.dip = 200.0
+	var target := ""
+	for t in g.nations:
+		var n = g.nations[t]
+		if t != "FRA" and t != "ENG" and n.overlord == "" and not g.is_allied("ENG", t) and not g.is_allied("FRA", t) and not g.has_truce("ENG", t) and n.allies.is_empty():
+			target = t
+			break
+	check(target != "", "a lone state exists")
+	if target == "":
+		return
+	check(g.guarantee("FRA", target) == "", "France guarantees a small state")
+	check(g.guarantee("FRA", target) != "", "no double guarantee")
+	check(g.defenders_for("ENG", target).has("FRA"), "the guarantor defends")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.FRA.guarantees.has(target), "guarantees are saved")
+	g.nations.FRA.truces.erase(target)
+	g.nations[target].truces.erase("FRA")
+	g.declare_war("FRA", target)
+	check(not g.nations.FRA.guarantees.has(target), "attacking the protected state breaks the guarantee")
+
+
+func test_religion() -> void:
+	var F = load("res://scripts/core/religion.gd")
+	var g = new_game("TUR", 5)
+	check(g.nations.TUR.religion == "sunni" and g.nations.FRA.religion == "catholic" and g.nations.BYZ.religion == "orthodox", "start religions")
+	var bp: int = g.nations.BYZ.capital
+	check(g.provinces[bp].religion == "orthodox", "provinces follow their owner at start")
+	check(g.unrest_parts(bp).religion == 0.0, "own faith gives no unrest")
+	g.provinces[bp].owner = "TUR"
+	g.provinces[bp].controller = "TUR"
+	g._rebuild_owned()
+	check(g.unrest_parts(bp).religion > 0.0, "a foreign faith is restless")
+	g.nations.TUR.gold = 500.0
+	check(F.send_missionary(g, "TUR", bp) == "", "missionary sent")
+	check(F.send_missionary(g, "TUR", bp) != "", "one missionary per province")
+	for i in int(g.bal.convert_months):
+		F.monthly(g, g.nations.TUR)
+	check(g.provinces[bp].religion == "sunni", "the missionary converts the province")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.provinces[bp].religion == "sunni" and g2.nations.BYZ.religion == "orthodox", "religion is saved")
+	# state religion change needs enough of the realm
+	check(F.change_religion(g, "FRA", "orthodox") != "", "no change without believers")
+	# the Reformation
+	var h = new_game("FRA", 5)
+	h.month = (int(h.bal.reformation_year) - 1444) * 12
+	F.yearly(h)
+	var prot := 0
+	for p in h.provinces:
+		if p.religion == "protestant":
+			prot += 1
+	check(prot == 1, "the Reformation starts in one province")
+	h.bal.reformation_spread = 1.0
+	for i in 3:
+		h.month += 12
+		F.yearly(h)
+	var prot2 := 0
+	for p in h.provinces:
+		if p.religion == "protestant":
+			prot2 += 1
+	check(prot2 > prot, "Protestantism spreads")
+	check(h.check_conditions("FRA", {"religion": "catholic"}) and not h.check_conditions("FRA", {"religion": "sunni"}), "religion condition")
+
+
 func test_marriage() -> void:
 	var g = new_game("FRA", 5)
 	g.nations.FRA.dip = 200.0
@@ -665,6 +803,31 @@ func test_marriage() -> void:
 	h.nations.ENG.truces.erase("BRI")
 	h.declare_war("ENG", "BRI")
 	check(not h.nations.ENG.marriages.has("BRI"), "war ends a marriage")
+
+
+func test_generals() -> void:
+	var g = new_game("FRA", 5)
+	var cap: int = g.nations.FRA.capital
+	var a = g.spawn_army("FRA", cap, 6.0)
+	var base: float = g._side_power([a], cap)
+	g.nations.FRA.mil = 0.0
+	check(g.hire_general("FRA", a.id) != "", "a general costs military power")
+	g.nations.FRA.mil = 100.0
+	check(g.hire_general("FRA", a.id) == "", "hire a general")
+	check(a.general >= 1 and a.general <= 3, "general has 1-3 stars")
+	check(g._side_power([a], cap) > base, "a general makes the army stronger")
+	check(g.hire_general("FRA", a.id) != "", "only one general per army")
+	var b = g.spawn_army("FRA", cap, 2.0)
+	var stars: int = a.general
+	g.merge_armies("FRA", cap)
+	var merged = null
+	for x in g.armies_in(cap):
+		if x.owner == "FRA":
+			merged = x
+	check(merged != null and merged.general == stars, "merged army keeps the general")
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.army_by_id(merged.id).general == stars, "generals are saved")
 
 
 func test_peace_offer_cooldown() -> void:
@@ -1382,3 +1545,125 @@ func test_eco_content() -> void:
 	g.shocks = {"wool": {"mult": 1.4, "years": 3}}
 	check(g.check_conditions("ENG", {"shock": "up"}) and not g.check_conditions("ENG", {"shock": "down"}), "scarcity shock on own good")
 
+## Techs, laws, advisors and the army budget feed the morale system (army_power / army_power_regen).
+func test_morale_modifiers() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	var base: float = g.power_max("FRA")
+	n.techs["mil_stehendes_heer"] = 0
+	g.tree.refresh(n)
+	check(absf(g.power_max("FRA") - base - 0.1) < 0.001, "standing army tech raises max morale")
+	n.gov.laws["heer"] = "stehendes_heer"
+	g.govt.refresh(n)
+	check(absf(g.power_max("FRA") - base - 0.2) < 0.001, "standing army law raises max morale")
+	var r0: float = g.mod(n, "army_power_regen")
+	g.govt.set_budget(g, "FRA", "heer", 4)
+	check(absf(g.mod(n, "army_power_regen") - r0 - 0.5) < 0.001, "lavish army budget speeds up morale recovery")
+	check(g.govt.adv_by_id.has("drillmeister") and g.govt.adv_by_id.drillmeister.effects.has("army_power"), "drill master advisor")
+
+
+## State reforms: tiers unlock by year, cost administrative power, are trade-offs, survive save/load, AI fills them.
+func test_reforms() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	var gv = g.govt
+	check(gv.reforms.size() == 4, "four reform tiers")
+	for t in gv.reforms:
+		for o in t.options:
+			var good := false
+			var bad := false
+			for l in Tech.effect_lines(o.effects):
+				good = good or l[1]
+				bad = bad or not l[1]
+			check(good and bad, "reform %s has a buff and a nerf" % o.id)
+	n.adm = 1000.0
+	check(gv.open_reform_tiers(g, n) == ["grundlage"], "only the first tier is open in 1444")
+	check(gv.reform_block(g, "FRA", "verwaltung", "hofrat") != "", "second tier locked in 1444")
+	check(gv.enact_reform(g, "FRA", "grundlage", "domaenen") == "", "enact a reform")
+	check(absf(n.adm - 900.0) < 0.01, "first tier costs 100 adm")
+	check(absf(n.bonus.gov.get("tax", 0.0) - 0.1) < 0.001 and n.bonus.gov.get("manpower", 0.0) < 0.0, "reform effects apply")
+	check(gv.enact_reform(g, "FRA", "grundlage", "lehnswesen") != "", "reform change has a cooldown")
+	g.month = (1530 - 1444) * 12
+	check(gv.open_reform_tiers(g, n) == ["verwaltung", "heerwesen"], "tiers unlock over time")
+	check(absf(gv.reform_cost(g, n, "heerwesen") - 200.0) < 0.01, "later tiers cost more")
+	var text := JSON.stringify(g.to_dict())
+	var g2 = new_game("FRA", 3)
+	g2.from_dict(JSON.parse_string(text))
+	check(g2.nations.FRA.gov.reforms.get("grundlage", "") == "domaenen", "reforms survive save/load")
+	var ai = g.nations.ENG
+	ai.adm = 1000.0
+	gv._ai_reforms(g, ai)
+	check(ai.gov.reforms.has("grundlage"), "AI enacts the oldest open tier")
+
+
+## Knowledge spreads: techs known by many other nations get cheaper, specials never.
+func test_tech_spread() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	var id := ""
+	for t in g.tree.techs_for("FRA", "adm"):
+		if not n.techs.has(t.id) and not Tech.is_special(t):
+			id = t.id
+			break
+	for o in g.nations.values():
+		o.techs.erase(id)
+	var full: float = g.tree.cost(g, "FRA", id)
+	check(absf(full - g.tech_cost("FRA", "adm")) < 0.01, "nobody knows it: full price")
+	var others: Array = g.nations.values().filter(func(o): return o.alive and o.tag != "FRA")
+	for i in others.size() / 2:
+		others[i].techs[id] = 0
+	var share: float = g.tree.known_share(g, "FRA", id)
+	check(share > 0.45 and share <= 0.5, "half the world knows it (%.2f)" % share)
+	check(absf(g.tree.cost(g, "FRA", id) - full * (1.0 - 0.5 * share)) < 0.01, "spread discount")
+	for o in others:
+		o.techs[id] = 0
+	check(absf(g.tree.cost(g, "FRA", id) - full * 0.7) < 0.01, "discount capped at 30 %")
+	var sp: Dictionary = g.tree.specials_of("FRA")[0]
+	check(g.tree.spread_discount(g, "FRA", sp.id) == 0.0, "special techs never get cheaper")
+
+
+func test_ai_marriage_and_generals() -> void:
+	var g = new_game("ENG")
+	var fra = g.nations.FRA
+	g.bal.ai_marriage_chance = 1.0
+	fra.dip = 500.0
+	for t in g.order:
+		g.add_rel("FRA", t, 60.0)
+	g.ai._marriage(g, fra)
+	check(fra.marriages.size() == 1, "the AI marries a friendly house")
+	fra.mil = 999.0
+	var arms: Array = g.armies_of("FRA")
+	check(not arms.is_empty(), "France starts with an army")
+	g.ai._hire_general(g, fra, float(g.bal.power_cap))
+	var led := 0
+	for a in g.armies_of("FRA"):
+		if a.general > 0:
+			led += 1
+	check(led == 1, "the largest army gets a general from a power surplus")
+
+
+func test_ai_access_and_guarantee() -> void:
+	var g = new_game("ENG")
+	var fra = g.nations.FRA
+	for t in g.order:
+		g.nations[t].allies.clear()
+		g.nations[t].truces.clear()
+		g.add_rel("FRA", t, 50.0)
+	var mine: Array = g.neighbors_of("FRA")
+	var target := ""
+	for t in mine:
+		for e in g.neighbors_of(t):
+			if e != "FRA" and not mine.has(e) and e != "ENG" and target == "":
+				target = e
+	check(target != "", "some nation lies behind a French neighbour")
+	g.declare_war("FRA", target)
+	for e in g.enemies_of("FRA"):
+		for t in mine:
+			g.add_rel(t, e, -100.0)
+	fra.dip = 500.0
+	g.ai._war_access(g, fra)
+	check(not fra.access.is_empty(), "the AI asks a neutral neighbour for passage to its enemy")
+	g.wars.clear()
+	g.bal.ai_guarantee_chance = 1.0
+	g.ai._guarantee(g, fra)
+	check(fra.guarantees.size() == 1, "a great power guarantees a small friendly neighbour")

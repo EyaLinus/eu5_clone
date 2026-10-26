@@ -7,6 +7,7 @@ const Economy = preload("res://scripts/core/economy.gd")
 const Progression = preload("res://scripts/core/progression.gd")
 const Tech = preload("res://scripts/core/tech.gd")
 const Government = preload("res://scripts/core/government.gd")
+const Religion = preload("res://scripts/core/religion.gd")
 
 const POWERS := ["adm", "dip", "mil"]
 const MONTH_NAMES := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
@@ -32,6 +33,8 @@ class Province:
 	var buildings := {}  # building id -> level
 	var constructing := {}  # {"id": building, "months": left}
 	var loc := {}  # cached local building effects (Economy.refresh_local)
+	var religion: String = "catholic"  # faith of the people (Religion)
+	var convert_months: int = 0  # a missionary is at work
 
 
 class Nation:
@@ -86,6 +89,9 @@ class Nation:
 	var loans: Array = []  # loan amounts (gold) still owed
 	var trade_pacts: Array = []  # tags with a trade agreement (+trade income for both)
 	var marriages: Array = []  # royal marriages: lasting good relations, a chance of personal union
+	var access := {}  # nations whose land our armies may cross (military access)
+	var guarantees := {}  # nations whose independence we defend
+	var religion: String = "catholic"  # state religion
 	var autobuild: bool = false  # player: build the best building whenever the treasury stays above the reserve
 	var autobuild_reserve: float = 100.0
 	var army_stance: String = ""  # player's default for new armies: "" manual, "attack" or "defend"
@@ -102,6 +108,7 @@ class Army:
 	var stance: String = "attack"  # when auto: "attack" (seek battles and sieges) or "defend" (own and allied land)
 	var path: Array = []
 	var power: float = 1.0  # fighting power 0..power_max: recovers with supply over time, battles drain it
+	var general: int = 0  # 0 = none, 1..3 = skill of the commanding general
 
 
 class War:
@@ -210,6 +217,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		order.append(tag)
 		provinces[n.capital].fort = 1
 	_rebuild_owned()
+	Religion.setup(self, data)
 	Economy.setup(self, data)
 	Economy.refresh_goods_leaders(self)
 	Economy.update_markets(self)
@@ -446,7 +454,7 @@ func can_enter(tag: String, pid: int) -> bool:
 	for t in [p.owner, p.controller]:
 		if t == tag or is_allied(tag, t) or at_war(tag, t):
 			return true
-	return false
+	return nations[tag].access.has(p.owner) and p.controller == p.owner
 
 
 func find_path(tag: String, from: int, to: int) -> Array:
@@ -605,6 +613,7 @@ func _economy(n: Nation) -> void:
 		maint *= float(bal.peace_maintenance_mult)
 	n.we = clampf(n.we + (float(bal.we_monthly) if war else -float(bal.we_decay)), 0.0, float(bal.we_max))
 	_unrest_tick(n)
+	Religion.monthly(self, n)
 	n.expenses = maint + Economy.upkeep(self, n.tag) + Economy.interest(self, n) + govt.budget_cost(self, n)
 	if n.overlord != "":
 		var tribute: float = maxf(0.0, n.income * float(bal.vassal_tribute))
@@ -626,6 +635,12 @@ func _economy(n: Nation) -> void:
 			n.relations[t] = maxf(r, float(bal.marriage_rel_floor))
 			continue
 		n.relations[t] = r - signf(r) * minf(absf(r), 0.15)
+	for t in n.access.keys():
+		if at_war(n.tag, t):
+			n.access.erase(t)
+		elif get_rel(t, n.tag) < float(bal.access_lost_rel):
+			revoke_access(n.tag, t)
+			log_msg("🚶 %s entzieht %s das Durchmarschrecht." % [nations[t].name, n.name], [n.tag, t])
 	if n.gold < -20.0:
 		stats.bankrupt_months += 1
 		# bankruptcy: troops desert until the budget recovers
@@ -651,7 +666,7 @@ func unrest_parts(pid: int) -> Dictionary:
 	var p: Province = provinces[pid]
 	var n: Nation = nations[p.owner]
 	var r := {"uncored": 0.0, "war": n.we * float(bal.unrest_per_we), "garrison": 0.0, "suppressed": 0.0,
-			"buildings": Economy.local(self, p, "unrest")}
+			"buildings": Economy.local(self, p, "unrest"), "religion": Religion.unrest(self, p)}
 	if p.core_months > 0:
 		r.uncored = float(bal.unrest_uncored)
 	for a in armies:
@@ -662,7 +677,7 @@ func unrest_parts(pid: int) -> Dictionary:
 		r.suppressed = -float(bal.unrest_suppress)
 	r.estates = float(n.bonus.get("estates", {}).get("unrest", 0.0))  # angry or loyal estates
 	r.policy = mod(n, "unrest") - r.estates  # techs, advisors, laws
-	r.total = maxf(0.0, r.uncored + r.war + r.garrison + r.suppressed + r.policy + r.estates + r.buildings)
+	r.total = maxf(0.0, r.uncored + r.war + r.garrison + r.suppressed + r.policy + r.estates + r.buildings + r.religion)
 	return r
 
 
@@ -768,6 +783,7 @@ func _yearly() -> void:
 					complete_mission(tag, m.id)
 	Economy.yearly(self)
 	Progression.yearly(self)
+	Religion.yearly(self)
 	_coalitions_yearly()
 	_liberty_yearly()
 	_record_history()
@@ -987,6 +1003,7 @@ func _side_power(arms: Array, pid: int) -> float:
 		var m := combat_mult(a.owner)
 		if provinces[pid].owner == a.owner:
 			m += float(bal.home_defense)
+		m += float(bal.general_bonus) * a.general
 		s += a.regs * m * power_factor(a)
 	return s
 
@@ -1007,6 +1024,10 @@ func _battle(war: War, att: Array, def: Array, pid: int) -> void:
 	for a in lose:
 		a.power = maxf(0.0, a.power - power_max(a.owner) * float(bal.army_power_loss_lose))
 	for a in win + lose:
+		if a.general > 0 and rng.randf() < float(bal.general_death_chance) * (2.0 if lose.has(a) else 1.0):
+			a.general = 0
+			if a.owner == player:
+				log_msg("⭐ Dein General bei %s ist in der Schlacht gefallen." % provinces[pid].name, [player])
 		if a.owner == player and a.power < 0.3 * power_max(a.owner):
 			log_msg("🔥 Deine Armee bei %s ist erschöpft (Moral %d %%). Drill (⚔️) oder Rückzug auf eigenes Land hilft." % [provinces[pid].name, int(a.power * 100)], [player])
 	for a in win:
@@ -1257,6 +1278,11 @@ func declare_war(att: String, def: String, coalition_members: Array = []) -> Str
 	if n.marriages.has(def):
 		end_marriage(att, def)
 		log_msg("💔 %s bricht die Ehe mit %s und erklärt den Krieg." % [n.name, nations[def].name], [att, def])
+	n.access.erase(def)
+	nations[def].access.erase(att)
+	if n.guarantees.has(def):
+		n.guarantees.erase(def)
+		log_msg("🛡️ %s bricht die Garantie für %s." % [n.name, nations[def].name], [att, def])
 	var has_cb := coalition_members.size() > 0 or has_claim_on(att, def)
 	if not has_cb:
 		if n.dip < float(bal.nocb_war_dip):
@@ -1308,6 +1334,11 @@ func defenders_for(att: String, def: String) -> Array:
 	for ally in nations[def].allies:
 		if not is_allied(ally, att) and nations[ally].alive and not has_truce(ally, att) and not r.has(ally):
 			r.append(ally)
+	for t in nations:
+		var gn: Nation = nations[t]
+		if gn.alive and gn.guarantees.has(def) and t != att and not r.has(t) and not is_allied(t, att) \
+				and not has_truce(t, att) and nations[att].overlord != t:
+			r.append(t)
 	if emperor != "" and nations[emperor].alive and hre.has(def) and not hre.has(att) and emperor != def \
 			and emperor != att and not r.has(emperor) and not is_allied(emperor, att) and not has_truce(emperor, att):
 		r.append(emperor)
@@ -1431,6 +1462,46 @@ func make_peace(w: War, winner_att: bool, pids: Array, vassalize: bool = false) 
 			stats[key] = stats.get(key, 0) + 1
 
 
+## Separate peace: a war participant that does not lead its side (and is not a subject on it) leaves
+## the war without territorial changes. Occupations between it and the other side end, a truce follows,
+## and the side's leader resents being abandoned.
+func leave_war_block_reason(tag: String, w: War) -> String:
+	var att := is_attacker(w, tag)
+	var side: Array = side_tags(w, att)
+	if not side.has(tag):
+		return "Nicht an diesem Krieg beteiligt."
+	if side[0] == tag:
+		return "Der Kriegsführer muss Frieden schließen."
+	if side.has(nations[tag].overlord):
+		return "Der Oberherr führt den Krieg."
+	return ""
+
+
+func leave_war(tag: String, w: War) -> String:
+	var why := leave_war_block_reason(tag, w)
+	if why != "":
+		return why
+	var att := is_attacker(w, tag)
+	var leader: String = side_tags(w, att)[0]
+	var others: Array = side_tags(w, not att)
+	side_tags(w, att).erase(tag)
+	add_rel(leader, tag, -float(bal.separate_peace_rel))
+	for t in others:
+		nations[tag].truces[t] = month + int(bal.truce_months)
+		nations[t].truces[tag] = month + int(bal.truce_months)
+	for p in provinces:
+		if (p.owner == tag and others.has(p.controller)) or (others.has(p.owner) and p.controller == tag):
+			p.controller = p.owner
+			p.siege = 0.0
+	for a in armies:
+		if (a.owner == tag or others.has(a.owner)) and not can_enter(a.owner, a.pid):
+			a.pid = nations[a.owner].capital
+			a.target = -1
+	stats.separate_peace = stats.get("separate_peace", 0) + 1
+	log_msg("🕊️ %s schließt einen Separatfrieden und verlässt %s." % [nations[tag].name, w.name], [tag, leader] + others)
+	return ""
+
+
 func _vassalize(lord: String, tag: String, reduced_ae: bool) -> void:
 	var v: Nation = nations[tag]
 	var l: Nation = nations[lord]
@@ -1528,6 +1599,11 @@ func _check_alive(tag: String) -> void:
 	for t in n.marriages:
 		nations[t].marriages.erase(tag)
 	n.marriages.clear()
+	n.access.clear()
+	n.guarantees.clear()
+	for o in nations.values():
+		o.access.erase(tag)
+		o.guarantees.erase(tag)
 	for ally in n.allies:
 		nations[ally].allies.erase(tag)
 	n.allies.clear()
@@ -1752,6 +1828,22 @@ func hire_mercs(tag: String, pid: int) -> String:
 
 # ---- military and diplomatic power actions (besides tech)
 
+## Military power: a general leads the army (+general_bonus combat strength per skill point).
+func hire_general(tag: String, id: int) -> String:
+	var a := army_by_id(id)
+	if a == null or a.owner != tag:
+		return "Keine eigene Armee."
+	if a.general > 0:
+		return "Die Armee hat schon einen General."
+	if nations[tag].mil < float(bal.general_cost):
+		return "Zu wenig Militär (%d)." % int(bal.general_cost)
+	nations[tag].mil -= float(bal.general_cost)
+	# better military tech, better officers
+	var roll := rng.randi_range(1, 3) + (1 if rng.randf() < 0.05 * nations[tag].tech.mil else 0)
+	a.general = mini(3, roll)
+	return ""
+
+
 ## Military power: drill an army back to full morale (only on own or allied land).
 func drill_cost(a: Army) -> float:
 	return float(bal.drill_cost_base) + float(bal.drill_cost_per_reg) * a.regs
@@ -1846,6 +1938,7 @@ func merge_armies(tag: String, pid: int) -> void:
 			here[0].power = (here[0].power * here[0].regs + here[i].power * here[i].regs) / tot
 		here[0].regs += here[i].regs
 		here[0].full += here[i].full
+		here[0].general = maxi(here[0].general, here[i].general)
 		armies.erase(here[i])
 
 
@@ -1865,7 +1958,7 @@ func split_army(army: Army) -> Army:
 func move_army(army: Army, pid: int) -> String:
 	var path := find_path(army.owner, army.pid, pid)
 	if path.is_empty():
-		return "Kein Weg dorthin (kein Zugang)."
+		return "Kein Weg dorthin. Fremdes Land braucht 🚶 Durchmarschrecht (Diplomatie-Fenster des Landes)."
 	army.target = pid
 	army.path = path
 	return ""
@@ -1879,6 +1972,85 @@ func improve_relations(tag: String, target: String) -> String:
 	n.dip -= c
 	add_rel(tag, target, float(bal.improve_relation_amount))
 	return ""
+
+
+# ---- military access
+
+func access_block_reason(tag: String, target: String) -> String:
+	var n: Nation = nations[tag]
+	if tag == target or not nations.has(target) or not nations[target].alive:
+		return "Ungültiges Ziel."
+	if n.access.has(target):
+		return "Durchmarschrecht besteht schon."
+	if is_allied(tag, target) or nations[target].overlord == tag:
+		return "Verbündete und Vasallen lassen dich ohnehin durch."
+	if at_war(tag, target):
+		return "Ihr seid im Krieg."
+	if n.dip < float(bal.access_cost):
+		return "Zu wenig Diplomatie (%d)." % int(bal.access_cost)
+	if target != player:
+		if get_rel(target, tag) < float(bal.access_min_rel):
+			return "%s lehnt ab (Beziehung %d, braucht %d)." % [nations[target].name, int(get_rel(target, tag)), int(bal.access_min_rel)]
+		for e in enemies_of(tag):
+			if is_allied(target, e) or nations[target].overlord == e:
+				return "%s steht auf der Seite von %s." % [nations[target].name, nations[e].name]
+	return ""
+
+
+func request_access(tag: String, target: String) -> String:
+	var r := access_block_reason(tag, target)
+	if r != "":
+		return r
+	nations[tag].dip -= float(bal.access_cost)
+	nations[tag].access[target] = true
+	log_msg("🚶 %s gewährt %s Durchmarschrecht." % [nations[target].name, nations[tag].name], [tag, target])
+	return ""
+
+
+## Ends tag's right to cross target's land; its armies standing there are sent home.
+func revoke_access(tag: String, target: String) -> void:
+	nations[tag].access.erase(target)
+	for a in armies:
+		if a.owner == tag and not can_enter(tag, a.pid):
+			a.pid = nations[tag].capital
+			a.target = -1
+			a.path = []
+
+
+# ---- guarantees
+
+func guarantee_block_reason(tag: String, target: String) -> String:
+	var n: Nation = nations[tag]
+	if tag == target or not nations.has(target) or not nations[target].alive:
+		return "Ungültiges Ziel."
+	if n.guarantees.has(target):
+		return "Garantie besteht schon."
+	if nations[target].overlord != "":
+		return "Vasallen schützt ihr Lehnsherr."
+	if at_war(tag, target):
+		return "Ihr seid im Krieg."
+	if n.guarantees.size() >= int(bal.max_guarantees):
+		return "Höchstens %d Garantien." % int(bal.max_guarantees)
+	if n.dip < float(bal.guarantee_cost):
+		return "Zu wenig Diplomatie (%d)." % int(bal.guarantee_cost)
+	return ""
+
+
+## Tag promises to join any war declared on target. The protected state is grateful.
+func guarantee(tag: String, target: String) -> String:
+	var r := guarantee_block_reason(tag, target)
+	if r != "":
+		return r
+	nations[tag].dip -= float(bal.guarantee_cost)
+	nations[tag].guarantees[target] = true
+	add_rel(target, tag, float(bal.guarantee_rel))
+	log_msg("🛡️ %s garantiert die Unabhängigkeit von %s." % [nations[tag].name, nations[target].name], [tag, target])
+	return ""
+
+
+func end_guarantee(tag: String, target: String) -> void:
+	if nations[tag].guarantees.erase(target):
+		add_rel(target, tag, -float(bal.guarantee_rel))
 
 
 # ---- royal marriages
@@ -2272,6 +2444,9 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"gold_max":
 				if n.gold > float(v):
 					return false
+			"religion":
+				if n.religion != str(v):
+					return false
 			"unrest_min":
 				var top := 0.0
 				for pid in provinces_of(tag):
@@ -2361,7 +2536,7 @@ func to_dict() -> Dictionary:
 	var ps := []
 	for p in provinces:
 		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort, p.prev_owner, p.suppress_months,
-				p.buildings, p.constructing])
+				p.buildings, p.constructing, p.religion, p.convert_months])
 	d.provinces = ps
 	var ns := {}
 	for tag in order:
@@ -2375,13 +2550,13 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "religion": n.religion,
 				"techs": tree.to_save(n), "gov": govt.to_save(n)}
 	d.nations = ns
 	var ar := []
 	for a in armies:
 		ar.append({"id": a.id, "owner": a.owner, "pid": a.pid, "regs": a.regs, "full": a.full,
-				"target": a.target, "auto": a.auto, "stance": a.stance, "power": a.power})
+				"target": a.target, "auto": a.auto, "stance": a.stance, "power": a.power, "general": a.general})
 	d.armies = ar
 	var ws := []
 	for w in wars:
@@ -2444,6 +2619,8 @@ func from_dict(d: Dictionary) -> void:
 		p.constructing = {}
 		if e.size() > 9 and not e[9].is_empty():
 			p.constructing = {"id": e[9].id, "months": int(e[9].months)}
+		p.religion = str(e[10]) if e.size() > 10 else nations[p.owner].religion
+		p.convert_months = int(e[11]) if e.size() > 11 else 0
 	for tag in d.nations:
 		var e: Dictionary = d.nations[tag]
 		var n: Nation = nations[tag]
@@ -2487,6 +2664,13 @@ func from_dict(d: Dictionary) -> void:
 		n.marriages = []
 		for t in e.get("marriages", []):
 			n.marriages.append(str(t))
+		n.access = {}
+		for t in e.get("access", []):
+			n.access[str(t)] = true
+		n.religion = str(e.get("religion", n.religion))
+		n.guarantees = {}
+		for t in e.get("guarantees", []):
+			n.guarantees[str(t)] = true
 		n.loans = []
 		for l in e.get("loans", []):
 			n.loans.append(float(l))
@@ -2505,6 +2689,7 @@ func from_dict(d: Dictionary) -> void:
 		a.auto = e.auto
 		a.stance = e.get("stance", "attack")
 		a.power = float(e.get("power", 1.0))
+		a.general = int(e.get("general", 0))
 		armies.append(a)
 	wars.clear()
 	for e in d.wars:

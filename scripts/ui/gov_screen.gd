@@ -25,6 +25,9 @@ func can_act(g, tag: String) -> bool:
 		for a in gv.advisor_pool(g, tag):
 			if gv.advisor_block(g, tag, a.id) == "":
 				return true
+	for tier in gv.open_reform_tiers(g, n):
+		if n.adm >= gv.reform_cost(g, n, tier):
+			return true
 	if n.gov.companies.size() < gv.company_slots(g, n):
 		for c in gv.company_pool(g, tag):
 			if gv.company_block(g, tag, c.id) == "":
@@ -78,6 +81,21 @@ func build() -> void:
 		var cd: int = gv.law_cooldown_left(g, n, l.id)
 		var sub: String = l.name + (" · änderbar in %d Monaten" % cd if cd > 0 else "")
 		m.side_box.add_child(_card(o.name, sub, o.effects, false, "Ändern", _pick_law.bind(l.id)))
+
+	var rh: Label = m._lbl("🏛️ Staatsreformen", 22)
+	rh.tooltip_text = "Dauerhafte Reformen in vier Stufen, jede ab einem bestimmten Jahr. Pro Stufe gilt eine Reform, bezahlt mit Verwaltungspunkten. Ein späterer Wechsel kostet erneut und ist nur alle %d Jahre möglich." % int(gv.cfg.get("reform_change_years", 25))
+	rh.mouse_filter = Control.MOUSE_FILTER_PASS
+	m.side_box.add_child(rh)
+	for t in gv.reforms:
+		if n.gov.reforms.has(t.id):
+			var o: Dictionary = gv.reform_option(t.id, n.gov.reforms[t.id])
+			var cd: int = gv.reform_cooldown_left(g, n, t.id)
+			var sub: String = t.name + (" · änderbar in %d Monaten" % cd if cd > 0 else "")
+			m.side_box.add_child(_card(o.name, sub, o.effects, false, "Ändern", _pick_reform.bind(t.id)))
+		elif g.year() >= int(t.year):
+			m.side_box.add_child(m._btn("➕ %s: Reform wählen (%d %s)" % [t.name, gv.reform_cost(g, n, t.id), Icons.emoji("adm")], _pick_reform.bind(t.id)))
+		else:
+			m.side_box.add_child(m._lbl("🔒 %s ab %d" % [t.name, int(t.year)], 15, Color(0.65, 0.68, 0.75)))
 
 	var est_tip := "Die Zufriedenheit wandert langsam zum Zielwert (50 plus Wirkung von Gesetzen, Beratern, Kompanien und Technologien). Ab %d ist ein Stand treu und gibt Boni, unter %d ist er zornig und schadet, unter %d drohen Forderungen." % [
 			int(gv.cfg.get("estate_loyal", 60)), int(gv.cfg.get("estate_angry", 30)), int(gv.cfg.get("estate_crisis", 25))]
@@ -187,6 +205,29 @@ func _pick_law(law_id: String) -> void:
 			var e: String = gv.set_law(g, me, law_id, o.id)
 			m._close_modal()
 			m._act(e, "📜 %s: %s" % [l.name, o.name]))
+		if current:
+			card.get_child(0).get_child(1).disabled = true
+		m.modal_box.add_child(card)
+	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
+
+
+func _pick_reform(tier: String) -> void:
+	var g = m.game
+	var gv = g.govt
+	var me: String = g.player
+	var n = g.nations[me]
+	var t: Dictionary = gv.reform_by_id[tier]
+	m._open_modal()
+	m.modal_box.add_child(m._lbl("🏛️ " + t.name, 26))
+	m.modal_box.add_child(m._lbl("Kostet %d %s. Ein späterer Wechsel kostet erneut und ist nur alle %d Jahre möglich." % [
+			gv.reform_cost(g, n, tier), Icons.emoji("adm"), int(gv.cfg.get("reform_change_years", 25))], 16))
+	for o in t.options:
+		var current: bool = n.gov.reforms.get(tier, "") == o.id
+		var err: String = "" if current else gv.reform_block(g, me, tier, o.id)
+		var card := _choice(o.name, o.get("text", ""), o.effects, false, "Eingeführt" if current else "Einführen", err, func():
+			var e: String = gv.enact_reform(g, me, tier, o.id)
+			m._close_modal()
+			m._act(e, "🏛️ %s: %s" % [t.name, o.name]))
 		if current:
 			card.get_child(0).get_child(1).disabled = true
 		m.modal_box.add_child(card)
