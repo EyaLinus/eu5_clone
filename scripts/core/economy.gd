@@ -69,6 +69,26 @@ static func refresh_local(g, p) -> void:
 	p.loc = c
 
 
+## Extra monthly tax + production income of the next level of `bid` (incl. its +1 development), for the build tab.
+static func building_gain(g, p, bid: String) -> float:
+	var before := province_income(g, p)
+	var old_lv := level(p, bid)
+	var old_dev: int = p.dev
+	p.buildings[bid] = old_lv + 1
+	if not g.buildings_def[bid].get("no_dev", false):
+		p.dev = mini(int(g.bal.max_dev), p.dev + int(g.bal.building_dev))
+	refresh_local(g, p)
+	var after := province_income(g, p)
+	if old_lv == 0:
+		p.buildings.erase(bid)
+	else:
+		p.buildings[bid] = old_lv
+	p.dev = old_dev
+	refresh_local(g, p)
+	var n = g.nations[p.owner]
+	return (after - before) * (1.0 + n.tech.adm * float(g.bal.adm_tech_income) + g.mod(n, "income"))
+
+
 static func slots(g, p) -> int:
 	return mini(int(g.bal.building_slots_max), 2 + p.dev / int(g.bal.dev_per_building_slot))
 
@@ -138,8 +158,9 @@ static func construction_tick(g, n) -> void:
 			var bid: String = p.constructing.id
 			p.constructing = {}
 			p.buildings[bid] = mini(level(p, bid) + 1, max_level(g, bid))
-			# every finished level also grows the province (more tax, goods, manpower and slots)
-			p.dev = mini(int(g.bal.max_dev), p.dev + int(g.bal.building_dev))
+			# every finished level also grows the province (more tax, goods, manpower and slots); roads don't
+			if not g.buildings_def[bid].get("no_dev", false):
+				p.dev = mini(int(g.bal.max_dev), p.dev + int(g.bal.building_dev))
 			refresh_local(g, p)
 			if n.tag == g.player:
 				g.log_msg("%s %s (Stufe %d) in %s fertig." % [g.buildings_def[bid].emoji, g.buildings_def[bid].name, p.buildings[bid], p.name])
@@ -175,7 +196,8 @@ static func free_level(g, tag: String, bid: String) -> bool:
 	if best == null:
 		return false
 	best.buildings[bid] = level(best, bid) + 1
-	best.dev = mini(int(g.bal.max_dev), best.dev + int(g.bal.building_dev))
+	if not g.buildings_def[bid].get("no_dev", false):
+		best.dev = mini(int(g.bal.max_dev), best.dev + int(g.bal.building_dev))
 	refresh_local(g, best)
 	refresh_building_bonus(g, g.nations[tag])
 	return true
@@ -598,7 +620,8 @@ static func _building_value(g, n, p, bid: String, war: bool) -> float:
 	elif g.unrest(p.id) > 1.0:
 		v += absf(float(loc.get("unrest", 0.0))) * 0.03
 	v += float(d.get("nation", {}).get("force_limit", 0.0)) * (0.08 if war else 0.03)
-	v += float(loc.get("supply", 0.0)) * (0.04 if war else 0.01)
+	if p.core_months == 0:  # roads in fresh conquests would crowd out courthouses
+		v += float(loc.get("supply", 0.0)) * (0.012 if war else 0.004)
 	if loc.has("fort"):
 		# forts only where it matters: the capital or a border province next to a strong neighbor
 		var exposed: bool = p.id == n.capital

@@ -125,7 +125,7 @@ add("📉", "chart_down", layer(["PPPPPPPPPP", "PQRPPPPPPP", "PQPRPPPPPP", "PQPP
 
 add("⚓", "anchor", layer(["....aaa.....", "...a.d.g....", "....aad.....", "..ggaagdd...", ".....ad.....", ".....ad.....", "a....ad....g", "ag...ad...gd", ".ag..ad..gd.", "..aggadggd..", "....dddd...."], 2, 3))
 
-add("🛤", "road", layer(["L....aa....L", "LL...ag...LL", "lL..aagd..Ll", "Ll..agad..lL", "L..aagadd..L", "l..agaagd..l", "..aaggagdd..", "..agaagagd..", ".aagaagagdd.", ".agaaggaagd."], 2, 3))
+add("🛤", "road", layer(["lLlL.HH.lLlL", "LlL.HOOH.LlL", "lLl.HOwOH.lL", "Ll.HOOOOH.Ll", "lL.HOOwOOH.l", "L.HOOOOOOH.L", "l.HOOOwOOOH.", ".HOOOOOOOOH.", ".HOOOOwOOOOH", "HOOOOOOOOOOH", "HOOOOOwOOOOH"], 2, 3))
 
 # ---- tech tree states
 add("🔒", "lock", layer(["...aaaa...", "..ag..ga..", "..a....g..", "..a....g..", "YYYYYYYYYD", "YGGGGGGGGD", "YGGGkkGGGD", "YGGGkkGGGD", "YGGGGkGGGD", "DDDDDDDDDD"], 3, 3))

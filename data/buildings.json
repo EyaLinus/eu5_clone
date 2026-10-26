@@ -101,7 +101,7 @@
  "road": {
   "name": "Straßen",
   "emoji": "🛤",
-  "cost": 35,
+  "cost": 55,
   "months": 6,
   "max_level": 3,
   "local": {
@@ -109,6 +109,7 @@
    "trade_power": 0.1,
    "production": 0.05
   },
-  "text": "je Stufe: Armeen erholen ihre Kampfkraft hier 25 % schneller, +10 % Handelsmacht, +5 % Produktion der Provinz"
+  "text": "je Stufe: Armeen erholen ihre Kampfkraft hier 25 % schneller und marschieren zwischen eigenen Straßen-Provinzen schneller, +10 % Handelsmacht, +5 % Produktion. Straßen geben keine Entwicklung.",
+  "no_dev": true
  }
 }
