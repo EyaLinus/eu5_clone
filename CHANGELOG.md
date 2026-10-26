@@ -5,6 +5,18 @@
   Kacheln im Raster (Details im Tooltip), Aktionen stehen in zwei Spalten. Diplomatie, Missionen, Meilensteine,
   Großprojekte, Verlauf, Rangliste (Top 10) und weitere Handelsmärkte lassen sich mit ▼/▶ ein- und ausklappen.
   Das Diplomatiefenster ist von gut sechs Bildschirmhöhen auf eine halbe geschrumpft.
+
+## v0.8.9 – 2026-10-26
+- **45 neue Ereignisse zu den neuen Systemen:** Knappheit und Überangebot auf den Märkten, Monopole, Messen und
+  Streit mit Handelspartnern, Silberadern, Weinjahrgänge, Heringszüge, Weberstreiks; Ereignisse zu Marktplätzen,
+  Manufakturen, Kasernen, Festungen und Gerichtshöfen; Häfen (Piraten, Schiffbauer, Hafenbrand, Kaufleute wollen
+  einen Hafen), Straßen (Wegelagerer, Postdienst, adlige Wegzölle, Schlammwege), Kredite (drängende Bankiers,
+  drohender Staatsbankrott, Bürger lösen Schulden ab), Söldner (Meuterei, Plünderung, Landsknechte), erschöpfte
+  Truppen und die Haushaltsregler (Feste, Steuerverweigerer, Akademien, verrostete Rüstungen).
+- **20 Wirtschaftsmissionen:** Je zwei für jede spielbare Nation, z. B. Englands Tuchmanufakturen und Häfen,
+  Böhmens Silber, Russlands Pelzhandel und Straßen, Brügges Messen.
+- Ereignisse können jetzt Gebäudestufen schenken, Kredite erlassen, die Moral heben oder Söldner sofort
+  bereitstellen.
 - **Großprojekte 🏛️ (neu):** Sieben Bauwerke für die Hauptstadt im Nationsfenster: Kathedrale, Gesandtenhof, Arsenal,
   Universität, Börse, Kriegsakademie, Prunkpalast. Jedes braucht eine Technologiestufe, kostet viel Gold (mehr, je
   entwickelter dein Reich) und baut 3 bis 6 Jahre. Fertig gibt es dauerhafte Boni (z. B. Technologie −8 %,
