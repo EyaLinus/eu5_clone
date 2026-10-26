@@ -106,6 +106,8 @@
   "building_cost_mult": 0.5,
   "ai_max_marriages": 2,
   "ai_marriage_chance": 0.15,
+  "ai_max_guarantees": 1,
+  "ai_guarantee_chance": 0.1,
   "loan_months_income": 12,
   "loan_min": 50,
   "loan_interest": 0.05,
