@@ -61,6 +61,12 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 		m.econ_tab = t
 		m._open_panel("economy")
 		n += 1
+	var own: Array = g.provinces_of(tag)
+	if not own.is_empty():
+		for t in ["build", "army", "info"]:
+			m.prov_tab = t
+			m._open_panel("province", own[month % own.size()])
+			n += 1
 	# tech + government: play them like a player (AI choices), open every screen and popup
 	for k in g.POWERS:
 		var id: String = g.tree.best_choice(g, tag, k)
