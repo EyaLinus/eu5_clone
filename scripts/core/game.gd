@@ -900,6 +900,16 @@ func spawn_army(tag: String, pid: int, regs: float) -> Army:
 	return a
 
 
+## Chance for an extra march step between two own, roaded provinces (per road level of the worse one).
+func road_step_chance(tag: String, from_pid: int, to_pid: int) -> float:
+	var a: Province = provinces[from_pid]
+	var b: Province = provinces[to_pid]
+	if a.owner != tag or b.owner != tag or a.controller != tag or b.controller != tag:
+		return 0.0
+	var lv := mini(Economy.level(a, "road"), Economy.level(b, "road"))
+	return float(bal.get("road_move_chance", 0.25)) * lv
+
+
 func army_by_id(id: int) -> Army:
 	for a in armies:
 		if a.id == id:
@@ -923,6 +933,9 @@ func _armies_tick() -> void:
 			if a.path.size() >= 2:
 				a.path.pop_front()
 				a.pid = a.path[0]
+				if a.path.size() >= 2 and a.path[0] != a.target and rng.randf() < road_step_chance(a.owner, a.pid, a.path[1]):
+					a.path.pop_front()  # roads on own land: a second march step this month
+					a.pid = a.path[0]
 			else:
 				a.target = -1
 		if a.target == a.pid:

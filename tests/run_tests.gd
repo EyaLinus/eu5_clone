@@ -15,7 +15,7 @@ func _init() -> void:
 	for t in [
 		"test_data_references", "test_map_geometry", "test_map_connected", "test_events_shape",
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
-		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
+		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures",
@@ -551,6 +551,32 @@ func test_army_power() -> void:
 	var g2 = new_game("FRA", 9)
 	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
 	check(absf(g2.army_by_id(w.id).power - w.power) < 0.0001, "army power is saved")
+
+
+func test_road_march() -> void:
+	var g = new_game("FRA", 5)
+	var cap: int = g.nations.FRA.capital
+	var far := -1
+	var path: Array = []
+	for pid in g.provinces_of("FRA"):
+		var pp: Array = g.find_path("FRA", cap, pid)
+		if pp.size() >= 4:
+			far = pid
+			path = pp
+			break
+	check(far >= 0, "France has a province three marches from the capital")
+	check(g.road_step_chance("FRA", path[0], path[1]) == 0.0, "no roads, no extra march step")
+	for pid in path:
+		g.provinces[pid].buildings["road"] = 2
+	check(absf(g.road_step_chance("FRA", path[0], path[1]) - 0.5) < 0.0001, "two road levels: 50 % extra step")
+	check(g.road_step_chance("ENG", path[0], path[1]) == 0.0, "roads only help their owner")
+	g.bal.road_move_chance = 1.0
+	var a = g.spawn_army("FRA", cap, 3.0)
+	a.target = path[-1]
+	g._armies_tick()
+	check(a.pid == path[2], "army on roads marches two provinces in one month")
+	g._armies_tick()
+	check(a.pid == path[3], "the last step onto the target stays a normal step")
 
 
 func test_peace_offer_cooldown() -> void:

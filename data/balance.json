@@ -128,5 +128,6 @@
   "army_power_regen_road": 0.25,
   "army_power_loss_win": 0.15,
   "army_power_loss_lose": 0.5,
-  "army_power_floor": 0.4
+  "army_power_floor": 0.4,
+  "road_move_chance": 0.25
 }
