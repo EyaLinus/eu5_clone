@@ -99,7 +99,7 @@ static func building_cost(g, tag: String, pid: int, bid: String) -> float:
 	var p = g.provinces[pid]
 	var dev_mult: float = 1.0 + p.dev * float(g.bal.building_cost_per_dev)
 	var lvl: int = level(p, bid) + 1
-	return round(float(g.buildings_def[bid].cost) * pow(lvl, float(g.bal.building_level_exp)) * dev_mult * maxf(0.3, 1.0 + g.mod(n, "build_cost")))
+	return round(float(g.buildings_def[bid].cost) * float(g.bal.building_cost_mult) * pow(lvl, float(g.bal.building_level_exp)) * dev_mult * maxf(0.3, 1.0 + g.mod(n, "build_cost")))
 
 
 static func max_level(g, bid: String) -> int:
