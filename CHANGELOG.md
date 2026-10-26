@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+- Die KI nutzt jetzt königliche Heiraten (mit befreundeten Nachbarn, höchstens 2) und stellt Generäle für ihre größte Armee ein.
+- **Gebäude lohnen sich wieder:** Bauen kostet die Hälfte, höhere Stufen steigen flacher im Preis. Eine Werkstatt
+  amortisiert sich jetzt in rund 35 statt 70 Jahren. Die KI baut entsprechend mehr.
+
 ## v0.8.7 – 2026-10-26
 - **Durchmarschrecht 🚶 (neu):** Im Fenster eines anderen Landes für 10 🕊️ erbitten. Deine Armeen dürfen dann durch
   dessen Land ziehen, etwa um einen Feind dahinter zu erreichen. Freunde (Beziehung ab 0) sagen ja, Verbündete

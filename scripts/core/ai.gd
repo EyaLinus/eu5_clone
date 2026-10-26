@@ -59,6 +59,7 @@ func _power_actions(g, n, cap: float) -> void:
 				best = pid
 		if best >= 0:
 			g.integrate(n.tag, best)
+	_hire_general(g, n, cap)
 	if not g.is_at_war(n.tag) or n.mil < 50.0:
 		return
 	if n.manpower < n.max_manpower * 0.2 and n.mil >= float(g.bal.conscript_cost) + 40.0:
@@ -67,6 +68,20 @@ func _power_actions(g, n, cap: float) -> void:
 		if a.power < 0.5 * g.power_max(n.tag) and n.mil >= g.drill_cost(a) + 50.0:
 			if g.drill_army(n.tag, a.id) == "":
 				break
+
+
+## The largest army without a commander gets a general: in war as soon as military power allows,
+## in peace only from a large surplus.
+func _hire_general(g, n, cap: float) -> void:
+	var need: float = float(g.bal.general_cost) + (30.0 if g.is_at_war(n.tag) else cap * 0.3)
+	if n.mil < need:
+		return
+	var best = null
+	for a in g.armies_of(n.tag):
+		if a.general == 0 and a.regs >= 3.0 and (best == null or a.regs > best.regs):
+			best = a
+	if best != null:
+		g.hire_general(n.tag, best.id)
 
 
 func _cheapest_province(g, tag: String) -> int:
@@ -139,7 +154,7 @@ func _cheapest_building_cost(g, n) -> float:
 	var c := 1e9
 	for bid in g.buildings_def:
 		c = minf(c, float(g.buildings_def[bid].cost))
-	return c * maxf(0.3, 1.0 + g.mod(n, "build_cost")) - 1.0
+	return c * float(g.bal.building_cost_mult) * maxf(0.3, 1.0 + g.mod(n, "build_cost")) - 1.0
 
 
 # ---------------------------------------------------------------- diplomacy
@@ -170,6 +185,7 @@ func _diplomacy(g, n) -> void:
 		if g.get_rel(tag, ally) < -30.0:
 			g.break_alliance(tag, ally)
 	_trade_pact(g, n)
+	_marriage(g, n)
 	if n.allies.size() >= 2:
 		return
 	var best := ""
@@ -207,6 +223,24 @@ func _trade_pact(g, n) -> void:
 			best = t
 	if best != "":
 		g.Economy.offer_pact(g, n.tag, best)
+
+
+## Now and then a royal marriage with a friendly house nearby, allies first.
+func _marriage(g, n) -> void:
+	if n.marriages.size() >= int(g.bal.ai_max_marriages) or n.dip < float(g.bal.marriage_cost) + 60.0 \
+			or g.rng.randf() > float(g.bal.ai_marriage_chance):
+		return
+	var best := ""
+	var best_score := -1e9
+	for t in g.nations_in_range(n.tag, 4):
+		if t == g.player or g.marriage_block_reason(n.tag, t) != "":
+			continue
+		var s: float = g.get_rel(t, n.tag) + (30.0 if n.allies.has(t) else 0.0)
+		if s > best_score:
+			best_score = s
+			best = t
+	if best != "":
+		g.marry(n.tag, best)
 
 
 func accepts_alliance(g, target: String, from: String) -> bool:
