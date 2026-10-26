@@ -1688,13 +1688,13 @@
   {"id": "eco_scarcity", "once": false, "tag": "*", "title": "Knappheit treibt die Preise", "text": "Eine Ware aus deinem Land ist plötzlich überall gefragt. Die Händler reiben sich die Hände, das Volk murrt.", "image": "market",
    "trigger": {"shock": "up", "year_min": 1450},
    "options": [
-     {"text": "Die Lager räumen und verkaufen.", "effects": {"gold": 45, "estate": {"buerger": -4}}},
+     {"text": "Die Lager räumen und verkaufen.", "effects": {"gold": 45, "estate": {"buerger": -2}}},
      {"text": "Den Preis für die eigenen Leute deckeln.", "effects": {"estate": {"buerger": 6}, "prestige": 2}},
      {"text": "Vorräte anlegen für schlechte Zeiten.", "effects": {"adm": -25, "mods": {"trade": 0.01}}, "ai": 20}]},
   {"id": "eco_glut", "once": false, "tag": "*", "title": "Die Märkte sind überschwemmt", "text": "Für deine wichtigste Ware zahlt niemand mehr einen anständigen Preis. Die Händler stehen vor dem Ruin.", "image": "market",
    "trigger": {"shock": "down", "year_min": 1450},
    "options": [
-     {"text": "Sie sollen neue Abnehmer suchen.", "effects": {"dip": -20, "estate": {"buerger": -4}}},
+     {"text": "Sie sollen neue Abnehmer suchen.", "effects": {"dip": -20, "estate": {"buerger": -2}}},
      {"text": "Die Ware für die Krone aufkaufen.", "effects": {"gold": -40, "estate": {"buerger": 8}}, "ai": 25},
      {"text": "Die Ausfuhr verbieten.", "effects": {"estate": {"buerger": -8}, "adm": 20}, "ai": 25}]},
   {"id": "eco_monopoly", "tag": "*", "title": "Herr über einen Markt", "text": "Kein anderes Land liefert so viel von einer Ware wie deines. Ganz Europa muss deine Preise zahlen.", "image": "bank",
@@ -1868,8 +1868,8 @@
   {"id": "eco_merchant_lender", "once": false, "tag": "*", "title": "Ein Kaufmann bietet Geld", "text": "Die Kasse ist leer. Ein reicher Kaufmann bietet einen Kredit an, will aber einen Sitz im Rat.", "image": "bank",
    "trigger": {"gold_max": 0, "loans_max": 1, "year_min": 1450},
    "options": [
-     {"text": "Annehmen.", "effects": {"loan": 1, "estate": {"buerger": 5, "adel": -5}}},
-     {"text": "Der Adel soll aushelfen.", "effects": {"gold": 40, "estate": {"adel": -8}}},
+     {"text": "Annehmen.", "effects": {"loan": 1, "estate": {"buerger": 5, "adel": -3}}, "ai": 30},
+     {"text": "Der Adel soll aushelfen.", "effects": {"gold": 40, "estate": {"adel": -5}}, "ai": 45},
      {"text": "Wir kommen zurecht.", "effects": {"prestige": 2, "adm": -15}, "ai": 20}]},
   {"id": "eco_burghers_buy_debt", "tag": "*", "title": "Die Bürger übernehmen die Schulden", "text": "Die reichen Städte bieten an, einen Kredit der Krone abzulösen. Dafür wollen sie Mitsprache bei den Steuern.", "image": "diet",
    "trigger": {"loans_min": 1, "estate_min": {"buerger": 60}},
@@ -1922,7 +1922,7 @@
   {"id": "eco_tax_revolt", "once": false, "tag": "*", "title": "Die Bauern verweigern die Steuer", "text": "Deine Steuereintreiber werden mit Dreschflegeln aus den Dörfern gejagt.", "image": "revolt",
    "trigger": {"budget_min": {"steuern": 3}, "year_min": 1450},
    "options": [
-     {"text": "Soldaten schicken.", "effects": {"mil": -25, "estate": {"buerger": -4}}},
+     {"text": "Soldaten schicken.", "effects": {"mil": -25, "estate": {"buerger": -2}}},
      {"text": "Ein Jahr Steuererlass für die Dörfer.", "effects": {"gold": -40, "estate": {"buerger": 6}}, "ai": 30},
      {"text": "Die Rädelsführer verhandeln lassen.", "effects": {"adm": -25, "dev_random": -1}, "ai": 20}]},
   {"id": "eco_mild_tax_blessing", "tag": "*", "title": "Die Bauern danken", "text": "Deine milden Steuern haben sich herumgesprochen. Siedler aus den Nachbarländern ziehen zu dir.", "image": "harvest",
@@ -1940,7 +1940,7 @@
   {"id": "eco_war_footing", "once": false, "tag": "*", "title": "Die Waffenschmieden glühen", "text": "Das Heer bekommt alles, was es verlangt. Die Schmiede arbeiten Tag und Nacht, das Eisen wird knapp.", "image": "artillery",
    "trigger": {"budget_min": {"heer": 3}, "at_war": true},
    "options": [
-     {"text": "Sie sollen weiterarbeiten.", "effects": {"army_power": 0.1, "estate": {"buerger": -3}}},
+     {"text": "Sie sollen weiterarbeiten.", "effects": {"army_power": 0.1, "estate": {"buerger": -2}}},
      {"text": "Eisen aus dem Ausland kaufen.", "effects": {"gold": -35, "mods": {"combat": 0.01}}, "ai": 25},
      {"text": "Neue Rekruten ausrüsten.", "effects": {"manpower": 1500, "mil": -15}, "ai": 25}]},
   {"id": "eco_academies", "tag": "*", "title": "Gelehrte aus aller Welt", "text": "Deine Akademien sind berühmt. Gelehrte aus ganz Europa wollen bei dir forschen und lehren.", "image": "scholar",
@@ -1952,7 +1952,7 @@
   {"id": "eco_university_closes", "tag": "*", "title": "Die Universität schließt", "text": "Ohne Geld laufen die Professoren davon. Die letzten Studenten ziehen in andere Länder.", "image": "scholar",
    "trigger": {"budget_max": {"bildung": 1}, "year_min": 1460},
    "options": [
-     {"text": "Dann eben ohne Gelehrte.", "effects": {"adm": -20, "estate": {"klerus": -3}}},
+     {"text": "Dann eben ohne Gelehrte.", "effects": {"adm": -20, "estate": {"klerus": -2}}},
      {"text": "Die Kirche soll die Lehrer bezahlen.", "effects": {"estate": {"klerus": -6}, "adm": 10}},
      {"text": "Eine einmalige Spende.", "effects": {"gold": -40, "adm": 30}, "ai": 25}]},
   {"id": "gov_guild_charter", "tag": "*", "title": "Die Zünfte wollen Privilegien", "text": "Die Städte blühen unter deinem Schutz. Nun verlangen die Zünfte ein Monopol auf ihr Handwerk.", "image": "city",
