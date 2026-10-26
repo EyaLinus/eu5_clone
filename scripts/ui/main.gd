@@ -1513,14 +1513,19 @@ func _economy_overview() -> void:
 	var Eco = game.Economy
 	var trib: float = game.tribute_income(me)
 	var intr: float = Eco.interest(game, n)
-	var army_cost: float = n.expenses - Eco.upkeep(game, me) - intr
+	var budget: float = game.govt.budget_cost(game, n)
+	var army_cost: float = n.expenses - Eco.upkeep(game, me) - intr - budget
 	var lines := "Einnahmen %.2f/Monat\n  💰 Steuern %.2f\n  🏭 Güter %.2f\n  🏬 Handel %.2f" % [n.income, n.tax_income, n.prod_income, n.trade_income]
 	if trib != 0.0:
 		lines += "\n  ⛓️ Tribut %+.2f" % trib
 	lines += "\nAusgaben %.2f/Monat\n  🛡️ Armee %.2f\n  🏰 Gebäude %.2f" % [n.expenses, army_cost, Eco.upkeep(game, me)]
 	if intr > 0.0:
 		lines += "\n  🏦 Zinsen %.2f" % intr
+	if absf(budget) >= 0.01:
+		lines += "\n  ⚖️ Haushalt %+.2f" % budget
 	side_box.add_child(_lbl(lines))
+	side_box.add_child(_btn("⚖️ Haushalt: Steuern, Hof, Heer, Forschung", func(): _open_panel("government"),
+		"Schieberegler im Regierungs-Screen: Steuerdruck, Hofhaltung, Militärbudget und Forschung."))
 	# loans
 	var lrow := HBoxContainer.new()
 	var lsize: float = Eco.loan_size(game, n)

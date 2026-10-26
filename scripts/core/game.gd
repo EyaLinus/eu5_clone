@@ -600,7 +600,7 @@ func _economy(n: Nation) -> void:
 		maint *= float(bal.peace_maintenance_mult)
 	n.we = clampf(n.we + (float(bal.we_monthly) if war else -float(bal.we_decay)), 0.0, float(bal.we_max))
 	_unrest_tick(n)
-	n.expenses = maint + Economy.upkeep(self, n.tag) + Economy.interest(self, n)
+	n.expenses = maint + Economy.upkeep(self, n.tag) + Economy.interest(self, n) + govt.budget_cost(self, n)
 	if n.overlord != "":
 		var tribute: float = maxf(0.0, n.income * float(bal.vassal_tribute))
 		n.expenses += tribute

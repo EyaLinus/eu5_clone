@@ -341,6 +341,23 @@ ESTATES = [
      {"tax": 0.05, "production": 0.05}, {"trade": -0.1, "unrest": 0.5}),
 ]
 
+# Budget sliders (EU5-like, simple): (id, name, text, step names, effects per step away from "normal",
+# gold cost per step as share of monthly income). Step 2 is neutral, so default nations are unchanged.
+BUDGET = [
+    ("steuern", "Steuerdruck", "Wie hart die Steuereintreiber zugreifen.",
+     ["sehr mild", "mild", "normal", "hoch", "erdrückend"],
+     {"tax": 0.1, "unrest": 0.4, "estate_buerger": -6, "estate_adel": -3}, 0.0),
+    ("hof", "Hofhaltung", "Feste, Gesandte und Mäzene. Kostet Gold, bringt Ansehen und einen zufriedenen Adel.",
+     ["karg", "sparsam", "normal", "prächtig", "verschwenderisch"],
+     {"prestige": 1.0, "dip": 0.5, "estate_adel": 5}, 0.04),
+    ("heer", "Militärbudget", "Sold, Ausrüstung und Drill der Armee.",
+     ["minimal", "knapp", "normal", "großzügig", "Kriegsfuß"],
+     {"maintenance": 0.15, "combat": 0.04, "manpower": 0.05}, 0.0),
+    ("bildung", "Forschung", "Universitäten, Gelehrte und Druckereien.",
+     ["keine", "wenig", "normal", "gefördert", "Akademien"],
+     {"tech_cost": -0.07, "adm": 0.25, "estate_klerus": 3}, 0.04),
+]
+
 # Estate crisis events, fired by government.gd when an estate is angry (id suffix = estate id)
 ESTATE_EVENTS = {
     "adel": ("Die Barone murren", "Der Adel klagt über verlorene Rechte und droht, dem Aufgebot fernzubleiben.", "knights", [
@@ -432,6 +449,9 @@ def build():
            "estates": [{"id": i, "name": nm, "text": tx, "loyal": lo, "angry": an} for i, nm, tx, lo, an in ESTATES],
            "estate_events": [{"id": "estate_crisis_" + k, "title": v[0], "text": v[1], "image": v[2],
                               "options": [{"text": t, "effects": e} for t, e in v[3]]} for k, v in ESTATE_EVENTS.items()],
+           "budget": [{"id": i, "name": nm, "text": tx, "steps": st, "per_step": e, "cost": c}
+                      for i, nm, tx, st, e, c in BUDGET],
+           "budget_default": 2,
            "law_cost": 60, "law_cooldown_years": 10, "forms": GOV_FORMS,
            "advisors": adv, "companies": comp, "laws": laws}
     json.dump(gov, open(os.path.join(ROOT, "data/government.json"), "w"), ensure_ascii=False, indent=1)

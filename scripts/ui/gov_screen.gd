@@ -47,6 +47,12 @@ func build() -> void:
 	if n.idea != "":
 		m.side_box.add_child(m._lbl("Nationalgeist: " + n.idea, 15, Color(0.8, 0.85, 0.7)))
 
+	var bh: Label = m._lbl("💰 Haushalt", 22)
+	bh.tooltip_text = "Wie im großen Vorbild: Schieberegler für Steuern und Ausgaben. Die Mitte ist neutral. Jede Stufe darüber oder darunter bringt Vor- und Nachteile, Hof und Forschung kosten oder sparen dazu Gold pro Monat. Änderungen wirken sofort und kosten nichts."
+	bh.mouse_filter = Control.MOUSE_FILTER_PASS
+	m.side_box.add_child(bh)
+	for b in gv.budget:
+		m.side_box.add_child(_budget_card(b))
 	m.side_box.add_child(m._lbl("🎓 Politische Berater (%d/%d)" % [n.gov.advisors.size(), gv.advisor_slots(g, n)], 22))
 	for id in n.gov.advisors:
 		var a: Dictionary = gv.adv_by_id[id]
@@ -257,6 +263,57 @@ func _invest_preview(preview: VBoxContainer, go: Button, id: String, cur: int, t
 	go.disabled = err != ""
 	if err != "":
 		preview.add_child(m._lbl(err, 15, Color(0.95, 0.6, 0.55)))
+
+
+## One budget slider: name, current step, live effects and monthly gold. Changes apply at once; the card
+## updates itself in place so the slider is not rebuilt while it is dragged.
+func _budget_card(b: Dictionary) -> Control:
+	var g = m.game
+	var gv = g.govt
+	var me: String = g.player
+	var pc := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = CARD
+	sb.set_corner_radius_all(8)
+	sb.set_content_margin_all(8)
+	pc.add_theme_stylebox_override("panel", sb)
+	pc.tooltip_text = b.get("text", "")
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 2)
+	pc.add_child(v)
+	var title: Label = m._lbl("", 18)
+	v.add_child(title)
+	var slider := HSlider.new()
+	slider.min_value = 0
+	slider.max_value = gv.budget_max()
+	slider.step = 1
+	slider.tick_count = gv.budget_max() + 1
+	slider.ticks_on_borders = true
+	slider.value = gv.budget_step(g.nations[me], b.id)
+	slider.custom_minimum_size = Vector2(0, 48 if m._big() else 36)
+	slider.focus_mode = Control.FOCUS_NONE
+	v.add_child(slider)
+	var info := VBoxContainer.new()
+	v.add_child(info)
+	var upd := func(val: float) -> void:
+		var step := int(val)
+		var n = g.nations[me]
+		if step != gv.budget_step(n, b.id):
+			gv.set_budget(g, me, b.id, step)
+		title.text = "%s: %s" % [b.name, b.steps[step]]
+		m._clear(info)
+		var eff: Dictionary = gv.budget_effects(b.id, step)
+		var cost: float = gv.budget_slider_cost(n, b.id, step)
+		if eff.is_empty():
+			info.add_child(m._lbl("Keine Wirkung (normal)", 14, Color(0.65, 0.68, 0.75)))
+		else:
+			info.add_child(TechScreen.effects_rich(eff, 15))
+		if absf(cost) >= 0.01:
+			info.add_child(m._lbl("%s %+.2f Gold pro Monat" % [Icons.emoji("gold"), -cost], 15,
+					Color(0.95, 0.6, 0.55) if cost > 0.0 else Color(0.6, 0.9, 0.6)))
+	slider.value_changed.connect(upd)
+	upd.call(slider.value)
+	return pc
 
 
 func _estate_card(e: Dictionary, tip: String) -> Control:

@@ -78,6 +78,7 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 		m._close_modal()
 		n += 1
 	g.govt.ai_think(g, g.nations[tag])
+	g.govt.set_budget(g, tag, g.govt.budget[month % g.govt.budget.size()].id, month % 5)
 	m._open_panel("government")
 	m.gov_screen._pick_advisor()
 	m._close_modal()

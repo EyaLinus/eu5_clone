@@ -169,6 +169,82 @@
    ]
   }
  ],
+ "budget": [
+  {
+   "id": "steuern",
+   "name": "Steuerdruck",
+   "text": "Wie hart die Steuereintreiber zugreifen.",
+   "steps": [
+    "sehr mild",
+    "mild",
+    "normal",
+    "hoch",
+    "erdrückend"
+   ],
+   "per_step": {
+    "tax": 0.1,
+    "unrest": 0.4,
+    "estate_buerger": -6,
+    "estate_adel": -3
+   },
+   "cost": 0.0
+  },
+  {
+   "id": "hof",
+   "name": "Hofhaltung",
+   "text": "Feste, Gesandte und Mäzene. Kostet Gold, bringt Ansehen und einen zufriedenen Adel.",
+   "steps": [
+    "karg",
+    "sparsam",
+    "normal",
+    "prächtig",
+    "verschwenderisch"
+   ],
+   "per_step": {
+    "prestige": 1.0,
+    "dip": 0.5,
+    "estate_adel": 5
+   },
+   "cost": 0.04
+  },
+  {
+   "id": "heer",
+   "name": "Militärbudget",
+   "text": "Sold, Ausrüstung und Drill der Armee.",
+   "steps": [
+    "minimal",
+    "knapp",
+    "normal",
+    "großzügig",
+    "Kriegsfuß"
+   ],
+   "per_step": {
+    "maintenance": 0.15,
+    "combat": 0.04,
+    "manpower": 0.05
+   },
+   "cost": 0.0
+  },
+  {
+   "id": "bildung",
+   "name": "Forschung",
+   "text": "Universitäten, Gelehrte und Druckereien.",
+   "steps": [
+    "keine",
+    "wenig",
+    "normal",
+    "gefördert",
+    "Akademien"
+   ],
+   "per_step": {
+    "tech_cost": -0.07,
+    "adm": 0.25,
+    "estate_klerus": 3
+   },
+   "cost": 0.04
+  }
+ ],
+ "budget_default": 2,
  "law_cost": 60,
  "law_cooldown_years": 10,
  "forms": {
