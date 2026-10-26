@@ -17,6 +17,7 @@ func _init() -> void:
 		"test_develop_and_tech", "test_recruit_limits", "test_war_and_peace", "test_vassal_and_annex", "test_unrest_and_revolt", "test_hre_election", "test_alliance_joins_war", "test_protector_defends_small_state",
 		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_generals", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_separate_peace", "test_tired_ai_seeks_peace", "test_ai_marriage_and_generals", "test_ai_access_and_guarantee", "test_income_bonus_and_army_cost",
+		"test_difficulty",
 		"test_military_access",
 		"test_guarantee",
 		"test_religion",
@@ -1223,8 +1224,28 @@ func test_companies() -> void:
 	check(not n.gov.companies.has("bergbau"), "dissolve company")
 
 
+func test_difficulty() -> void:
+	var g = new_game("ENG")
+	check(g.difficulty == "normal", "default difficulty is normal")
+	g.set_difficulty("easy")
+	check(absf(float(g.nations.ENG.bonus.difficulty.income) - 0.25) < 0.001, "easy gives player income bonus")
+	check(g.nations.FRA.bonus.difficulty.is_empty(), "easy gives AI no bonus")
+	g.set_difficulty("very_hard")
+	check(g.nations.ENG.bonus.difficulty.is_empty(), "very hard: no player bonus")
+	check(g.mod(g.nations.FRA, "income") >= 0.15 - 0.001, "very hard: AI income bonus")
+	check(g.diff("ai_vs_player") > 1.0, "very hard: AI targets player more")
+	g.set_difficulty("nonsense")
+	check(g.difficulty == "normal", "unknown difficulty falls back to normal")
+	g.set_difficulty("hard")
+	var g2 = new_game("ENG")
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.difficulty == "hard", "difficulty survives save/load")
+	check(g2.nations.ENG.bonus.difficulty.is_empty(), "loaded difficulty replaces the player bonus")
+
+
 func test_laws() -> void:
 	var g = new_game("SPA")
+	g.set_difficulty("hard")  # no player bonus from difficulty
 	var n = g.nations.SPA
 	n.adm = 500.0
 	n.mil = 500.0
