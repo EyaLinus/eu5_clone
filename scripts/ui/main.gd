@@ -2435,6 +2435,8 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["🏦 Kredit erlassen", 1])
 		elif k == "merc_ready":
 			parts.append(["⚔️ Söldner sofort verfügbar", 1])
+		elif k == "convert_random":
+			parts.append(["⛪ %d Provinzen nehmen deinen Glauben an" % int(v), 1])
 	return parts
 
 
@@ -2523,6 +2525,12 @@ func conditions_text(c: Dictionary) -> String:
 			"budget_max":
 				for id in v:
 					lines.append(mark + "%s höchstens „%s“" % [game.govt.budget_by_id[id].name, game.govt.budget_by_id[id].steps[int(v[id])]])
+			"faith_share_max":
+				lines.append(mark + "Höchstens %d%% des Landes teilen deinen Glauben" % int(float(v) * 100))
+			"religion":
+				lines.append(mark + "Staatsglaube: " + game.Religion.faith_name(v))
+			"province_faith":
+				lines.append(mark + "Eine deiner Provinzen ist %s" % game.Religion.faith_name(v).to_lower())
 			_:
 				lines.append(mark + k)
 	return "\n".join(lines)
