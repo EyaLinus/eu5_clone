@@ -5,6 +5,9 @@
   Uzun Hasan und die Weißen Hammel, Georgien und Schirwan, Qaitbay und der Gewürzhandel der Mamluken, Selims
   Feldzug, Portugiesen vor Tanger, Wattasiden und Saadier in Marokko, Venedig und Zypern, die Belagerung von Rhodos.
   Neue Missionen für Osmanen (Anatolien, Ostgrenze), Mamluken (Syrien, Gewürzweg, Dulkadir) und Marokko (Küste, Häfen).
+- **Drei Speicherplätze:** „Speichern“ im Menü bietet drei Plätze, „Laden“ zeigt dazu den Autosave, jeweils mit
+  Nation und Datum. Das Startmenü hat „Laden“, sobald ein Platz belegt ist. Der Autosave überschreibt keine
+  manuellen Stände mehr.
 - **Berater mit Stufen ⭐:** Berater starten auf Stufe 1 und lassen sich bis Stufe 3 fördern (Kosten: 1,5× bzw. 3×
   Ernennungskosten in ihrer Punkteart). Jede Stufe steigert ihre Vorteile um 50 %, Nachteile bleiben gleich. Gewöhnliche
   Berater gehen nach 20+ Dienstjahren irgendwann in den Ruhestand; ein Schüler übernimmt eine Stufe tiefer. Ein Klick
