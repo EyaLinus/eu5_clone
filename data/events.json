@@ -2067,19 +2067,19 @@
    "trigger": {"monument_building": true},
    "options": [
      {"text": "Er soll die Leitung übernehmen.", "effects": {"monument_progress": 4, "dip": -20}},
-     {"text": "Mit doppeltem Lohn locken.", "effects": {"monument_progress": 8, "gold": -40}, "ai": 10},
+     {"text": "Mit doppeltem Lohn locken.", "effects": {"monument_progress": 8, "gold": -40}, "ai": 2},
      {"text": "Unsere Leute können das selbst.", "effects": {"adm": 20, "prestige": 1}}]},
   {"id": "court_quarry", "tag": "*", "title": "Ein neuer Steinbruch", "text": "Bauern haben ganz in der Nähe der Hauptstadt einen Bruch mit hellem, festem Stein entdeckt.", "image": "mine",
    "trigger": {"monument_building": true},
    "options": [
      {"text": "Sofort abbauen.", "effects": {"monument_progress": 4, "estate": {"adel": -3}}},
      {"text": "Den Stein auch verkaufen.", "effects": {"gold": 40}},
-     {"text": "Den Bauern den Fund vergüten.", "effects": {"monument_progress": 4, "estate": {"buerger": 3}, "gold": -15}, "ai": 10}]},
+     {"text": "Den Bauern den Fund vergüten.", "effects": {"monument_progress": 4, "estate": {"buerger": 3}, "gold": -15}, "ai": 2}]},
   {"id": "court_builders_strike", "once": false, "tag": "*", "title": "Die Bauleute streiken", "text": "Die Steinmetze wollen mehr Lohn und kürzere Tage. Seit einer Woche ruht die Baustelle.", "image": "revolt",
    "trigger": {"monument_building": true, "year_min": 1460},
    "options": [
      {"text": "Kürzere Tage, gleicher Lohn.", "effects": {"estate": {"buerger": 5}, "adm": -15}},
-     {"text": "Mehr Lohn.", "effects": {"gold": -30, "monument_progress": 3}, "ai": 10},
+     {"text": "Mehr Lohn.", "effects": {"gold": -30, "monument_progress": 3}, "ai": 2},
      {"text": "Soldaten an die Baustelle.", "effects": {"mil": -20, "monument_progress": 2, "estate": {"buerger": -4}}}]},
   {"id": "court_foundation_find", "tag": "*", "title": "Ein Fund im Fundament", "text": "Beim Ausheben der Fundamente stoßen die Arbeiter auf alte römische Mauern und einen Schatz aus Münzen.", "image": "exploration",
    "trigger": {"monument_building": true},
@@ -2127,7 +2127,7 @@
    "trigger": {"monument": "palace"},
    "options": [
      {"text": "Gesandte herumführen.", "effects": {"dip": 40, "prestige": 3}},
-     {"text": "Ein Fest für die Neider.", "effects": {"gold": -40, "dip": 25, "prestige": 5}, "ai": 10},
+     {"text": "Ein Fest für die Neider.", "effects": {"gold": -40, "dip": 25, "prestige": 5}, "ai": 2},
      {"text": "Sollen sie neidisch sein.", "effects": {"prestige": 6, "dip": -15}}]},
   {"id": "court_wonders", "tag": "*", "title": "Reisende bestaunen deine Bauten", "text": "Gelehrte und Fürstensöhne reisen in deine Hauptstadt, nur um deine Bauwerke zu sehen.", "image": "city",
    "trigger": {"monuments_min": 3},
@@ -2146,7 +2146,7 @@
    "options": [
      {"text": "Ihn zum Hofdichter machen.", "effects": {"prestige": 5, "dip": 10}},
      {"text": "Die Verse drucken lassen.", "effects": {"prestige": 3, "estate": {"buerger": 3}}},
-     {"text": "Ein Beutel Gold, und er soll ziehen.", "effects": {"gold": -10, "adm": 15}, "ai": 10}]},
+     {"text": "Ein Beutel Gold, und er soll ziehen.", "effects": {"gold": -10, "adm": 15}, "ai": 2}]},
   {"id": "court_feast_envoys", "once": false, "tag": "*", "title": "Gesandte beim Fest", "text": "Unter den Gästen waren Gesandte mehrerer Höfe. Nach dem dritten Becher reden sie offen.", "image": "wedding",
    "trigger": {"feast_recent": 6, "year_min": 1450},
    "options": [
@@ -2158,7 +2158,7 @@
    "options": [
      {"text": "Mit gleichen Geschenken antworten.", "effects": {"spouse_rel": 15, "dip": -10}},
      {"text": "Dankbar annehmen.", "effects": {"gold": 30, "prestige": 2}},
-     {"text": "Ein Besuch der Familie.", "effects": {"spouse_rel": 25, "gold": -25}, "ai": 10}]},
+     {"text": "Ein Besuch der Familie.", "effects": {"spouse_rel": 25, "gold": -25}, "ai": 2}]},
   {"id": "court_heir_born", "tag": "*", "title": "Ein Erbe ist geboren", "text": "Aus der königlichen Ehe ist ein gesunder Sohn hervorgegangen. Das Volk jubelt.", "image": "heir",
    "trigger": {"married": true, "at_peace": true},
    "options": [
@@ -2169,7 +2169,7 @@
    "trigger": {"married": true, "year_min": 1460},
    "options": [
      {"text": "Freundliche Worte, kein Geld.", "effects": {"spouse_rel": -5, "dip": 10}},
-     {"text": "Einen Kredit gewähren.", "effects": {"gold": -50, "spouse_rel": 30, "dip": 20}, "ai": 10},
+     {"text": "Einen Kredit gewähren.", "effects": {"gold": -50, "spouse_rel": 30, "dip": 20}, "ai": 2},
      {"text": "Truppen statt Gold.", "effects": {"mil": -20, "spouse_rel": 15}}]},
   {"id": "gov_guild_charter", "tag": "*", "title": "Die Zünfte wollen Privilegien", "text": "Die Städte blühen unter deinem Schutz. Nun verlangen die Zünfte ein Monopol auf ihr Handwerk.", "image": "city",
    "trigger": {"law": {"wirtschaft": "staedtefoerderung"}, "year_min": 1450},

@@ -4,14 +4,15 @@ Generic events, id prefix "court_". Run: python3 tools/content/court_events.py (
 Conditions: monument, monuments_min, monument_building, feast_recent, married.
 Effects: monument_progress (months), feast_ready, spouse_rel.
 The AI builds no great works and holds no feasts, so most of these are player events: they lean towards
-rewards for using the new systems. Rules as in eco_events.py (first option gold-free, gold options AI <= 10).
+rewards for using the new systems. Rules as in eco_events.py (first option gold-free, gold options AI weight 2).
 """
 import events_io
 
 
 def _ai(o):
+    # flat gold costs hit poor minors hard (marriage events fire for ~45 realms): the AI almost never pays
     if o[1].get("gold", 0) < 0:
-        return {"ai": min(o[2] if len(o) > 2 else 10, 10)}
+        return {"ai": 2}
     return {"ai": o[2]} if len(o) > 2 else {}
 
 
