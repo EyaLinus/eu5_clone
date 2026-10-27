@@ -12,7 +12,9 @@ const Faith = preload("res://scripts/core/religion.gd")
 const Monuments = preload("res://scripts/core/monuments.gd")
 const GovScreen = preload("res://scripts/ui/gov_screen.gd")
 const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
-const SAVE_PATH := "user://save.json"
+const SAVE_PATH := "user://save.json"  # the autosave, also what "Weiterspielen" loads
+const SAVE_META_PATH := "user://saves.json"  # nation, date and score per slot, so the slot list needs no full parse
+const SAVE_SLOTS := ["auto", "1", "2", "3"]
 const SETTINGS_PATH := "user://settings.json"
 const UI_SCALES := [0.85, 1.0, 1.2, 1.4]
 const SPEEDS := [0.0, 1.2, 0.6, 0.3, 0.12, 0.04]
@@ -551,7 +553,9 @@ func _show_start_menu() -> void:
 	modal_box.add_child(_lbl("1444 – 1644 · Ziel: am Ende die höchste Punktzahl (Entwicklung + Prestige + Technologie).", 16, Color(0.8, 0.8, 0.8)))
 	var top := []
 	if FileAccess.file_exists(SAVE_PATH):
-		top.append(_btn("💾 Weiterspielen", _load_game))
+		top.append(_btn("💾 Weiterspielen", _load_game.bind("auto")))
+	if _has_manual_save():
+		top.append(_btn("📂 Laden", _show_slots.bind(false)))
 	top.append(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
 	if top.size() % 2 == 1:
 		top.append(Control.new())
@@ -618,8 +622,28 @@ func _start_game(tag: String) -> void:
 	_show_intro()
 
 
-func _load_game() -> void:
-	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
+func _slot_path(slot: String) -> String:
+	return SAVE_PATH if slot == "auto" else "user://slot%s.json" % slot
+
+
+func _save_meta() -> Dictionary:
+	var f := FileAccess.open(SAVE_META_PATH, FileAccess.READ)
+	if f:
+		var d = JSON.parse_string(f.get_as_text())
+		if d is Dictionary:
+			return d
+	return {}
+
+
+func _has_manual_save() -> bool:
+	for s in SAVE_SLOTS:
+		if s != "auto" and FileAccess.file_exists(_slot_path(s)):
+			return true
+	return false
+
+
+func _load_game(slot: String = "auto") -> void:
+	var f := FileAccess.open(_slot_path(slot), FileAccess.READ)
 	if f == null:
 		_toast("❌ Kein Spielstand gefunden.")
 		return
@@ -634,12 +658,50 @@ func _load_game() -> void:
 	_close_modal()
 
 
-func _save_game() -> void:
+## Writes the running game into a slot ("auto" = the yearly autosave) and notes what is in it.
+func _save_game(slot: String = "auto") -> bool:
 	if game == null or game.game_over:
-		return
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if f:
-		f.store_string(JSON.stringify(game.to_dict()))
+		return false
+	var f := FileAccess.open(_slot_path(slot), FileAccess.WRITE)
+	if f == null:
+		return false
+	f.store_string(JSON.stringify(game.to_dict()))
+	f.close()
+	var meta := _save_meta()
+	meta[slot] = {"name": game.nations[game.player].name, "date": game.date_string(), "score": game.score(game.player),
+			"difficulty": game.difficulty}
+	var mf := FileAccess.open(SAVE_META_PATH, FileAccess.WRITE)
+	if mf:
+		mf.store_string(JSON.stringify(meta))
+	return true
+
+
+## Slot list for saving (three manual slots) or loading (autosave and the three slots).
+func _show_slots(saving: bool) -> void:
+	_open_modal()
+	modal_box.add_child(_lbl("💾 Speichern" if saving else "📂 Laden", 30))
+	var meta := _save_meta()
+	for slot in SAVE_SLOTS:
+		if saving and slot == "auto":
+			continue
+		var exists := FileAccess.file_exists(_slot_path(slot))
+		var m: Dictionary = meta.get(slot, {})
+		var info := "leer"
+		var tip := ""
+		if exists:
+			info = "%s · %s" % [m.get("name", "?"), m.get("date", "?")] if not m.is_empty() else "belegt"
+			if not m.is_empty():
+				tip = "%d Punkte · %s" % [int(m.get("score", 0)), Game.DIFFICULTY_NAMES.get(m.get("difficulty", "normal"), "Normal")]
+		if slot == "auto":
+			tip += ("\n" if tip != "" else "") + "Wird jedes Jahr und beim Verlassen überschrieben."
+		var text := "%s: %s" % ["💾 Autosave" if slot == "auto" else "💾 Platz " + slot, info]
+		if saving:
+			modal_box.add_child(_btn(text, func():
+				_toast(("💾 Gespeichert in Platz %s." % slot) if _save_game(slot) else "❌ Speichern fehlgeschlagen.")
+				_close_modal(), tip + ("\nWird überschrieben." if exists else "")))
+		else:
+			modal_box.add_child(_btn(text, _load_game.bind(slot), tip, not exists))
+	modal_box.add_child(_btn("◀ Zurück", _show_menu if game != null else _show_start_menu))
 
 
 func _after_game_loaded() -> void:
@@ -1143,8 +1205,8 @@ func _show_menu() -> void:
 	modal_box.add_child(_lbl("☰ Menü", 30))
 	modal_box.add_child(_btn("▶ Weiter", _close_modal))
 	var acts := [
-		_btn("💾 Speichern", func(): _save_game(); _toast("💾 Gespeichert."); _close_modal()),
-		_btn("📂 Laden", _load_game),
+		_btn("💾 Speichern", _show_slots.bind(true), "Drei Speicherplätze; dazu speichert das Spiel jedes Jahr automatisch."),
+		_btn("📂 Laden", _show_slots.bind(false)),
 		_btn("🏠 Hauptmenü", func(): _save_game(); game = null; _show_start_menu(), "Speichert und kehrt zum Startmenü zurück."),
 	]
 	if OS.get_name() != "Android" and OS.get_name() != "Web":
