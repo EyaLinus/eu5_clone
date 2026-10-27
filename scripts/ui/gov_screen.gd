@@ -295,7 +295,13 @@ func _heir() -> void:
 		b.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	if int(h.get("edu", 0)) == g.year():
 		box.add_child(m._lbl("Dieses Jahr schon unterrichtet, wieder ab %d." % (g.year() + 1), 15, Color(1.0, 0.75, 0.45)))
-	box.add_child(m._btn("Schließen", m._close_modal))
+	var derr: String = gv.disinherit_block(g, me)
+	var dis: Button = m._btn("Enterben (−%d Prestige)" % int(gv.cfg.get("heir_disinherit_prestige", 25)), func():
+		var e: String = gv.disinherit(g, me)
+		m._act(e, "👑 Neuer %s: %s" % [title, str(n.gov.heir.get("name", ""))])
+		if e == "":
+			_heir(), derr if derr != "" else "Ein anderer %s wird benannt (zufällige Fähigkeiten). Höchstens alle %d Jahre." % [title, int(gv.cfg.get("heir_disinherit_years", 10))], derr != "")
+	box.add_child(m._row([dis, m._btn("Schließen", m._close_modal)]))
 
 
 ## Advisor popup: current and next skill level, promote and dismiss.
