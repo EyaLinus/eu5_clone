@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- **Staatsformen wirken:** Jede Staatsform bringt jetzt einen kleinen dauerhaften Vor- und Nachteil, etwa
+  Kaufmannsrepublik +15 % Handel (−10 % Truppen), Sultanat +2 Truppenlimit, Theokratie schnellere Bekehrung,
+  Wahlmonarchie +0,5 Diplomatie bei mächtigerem Adel. Die Wirkung steht unter dem Kopf des Regierungsfensters.
 - **Berater mit Stufen ⭐:** Berater starten auf Stufe 1 und lassen sich bis Stufe 3 fördern (Kosten: 1,5× bzw. 3×
   Ernennungskosten in ihrer Punkteart). Jede Stufe steigert ihre Vorteile um 50 %, Nachteile bleiben gleich. Gewöhnliche
   Berater gehen nach 20+ Dienstjahren irgendwann in den Ruhestand; ein Schüler übernimmt eine Stufe tiefer. Ein Klick
