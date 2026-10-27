@@ -32,6 +32,7 @@ func _init() -> void:
 		"test_advisor_skill",
 		"test_gov_forms",
 		"test_tech_ahead",
+		"test_tech_queue",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1786,6 +1787,60 @@ func test_religion_modifiers() -> void:
 
 
 ## Age goals: count only in their age, give permanent rewards, two of three win the triumph.
+func test_tech_queue() -> void:
+	var g = new_game("FRA")
+	var tr = g.tree
+	var n = g.nations.FRA
+	g.month = (1470 - 1444) * 12
+	# a generic adm tech with an unresearched prerequisite, regular window already open
+	var t: Dictionary = {}
+	for d in tr.defs:
+		if not Tech.is_special(d) and d.cat == "adm" and tr.years_ahead(g, d.id) == 0 and not d.get("req", []).is_empty() \
+				and d.req.any(func(r): return not n.techs.has(r)) and not n.techs.has(d.id):
+			t = d
+			break
+	check(not t.is_empty(), "found a tech with a missing prerequisite")
+	check(tr.queue_add(g, "FRA", t.id) == "", "plan accepts it")
+	var pre: String = tr.queue_of(n, "adm")[0]
+	check(t.req.has(pre) or tr.by_id[pre].cat == "adm", "prerequisite planned first")
+	check(n.tech_queue.back() == t.id, "target last")
+	check(tr.queue_add(g, "FRA", t.id) != "", "no duplicates")
+	n.adm = 0.0
+	check(tr.queue_tick(g, n).is_empty(), "waits without points")
+	check(tr.queue_wait(g, "FRA", pre).begins_with("wartet auf Punkte"), "says why it waits")
+	n.adm = float(g.bal.power_cap)
+	var done: Array = tr.queue_tick(g, n)
+	check(n.techs.has(t.id) and n.techs.has(pre), "plan researched in order")
+	check(done.size() >= 2 and not n.tech_queue.has(t.id), "researched techs leave the plan")
+	# removing a planned prerequisite drops what builds on it; saves keep the plan
+	n.tech_queue.clear()
+	var u: Dictionary = {}
+	for d in tr.defs:
+		if not Tech.is_special(d) and d.cat == "dip" and not n.techs.has(d.id) and d.get("req", []).any(func(r): return not n.techs.has(r)):
+			u = d
+			break
+	tr.queue_add(g, "FRA", u.id)
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.FRA.tech_queue == n.tech_queue, "plan saved")
+	tr.queue_remove(n, n.tech_queue[0])
+	check(not n.tech_queue.has(u.id), "dependent dropped with its prerequisite")
+	# early techs wait for their regular year unless points are capped
+	var e: Dictionary = {}
+	for d in tr.defs:
+		if not Tech.is_special(d) and tr.years_ahead(g, d.id) > 0 and tr.block_reason(g, "FRA", d.id) == "":
+			e = d
+			break
+	if not e.is_empty():
+		n.tech_queue = [e.id]
+		n.set(e.cat, float(g.bal.power_cap) - 1.0)
+		if n.get(e.cat) >= tr.cost(g, "FRA", e.id):
+			check(tr.queue_tick(g, n).is_empty(), "early tech waits below the cap")
+		n.set(e.cat, float(g.bal.power_cap))
+		if n.get(e.cat) >= tr.cost(g, "FRA", e.id):
+			check(tr.queue_tick(g, n).size() == 1, "early tech taken at the cap")
+
+
 func test_tech_ahead() -> void:
 	var g = new_game("FRA")
 	var tr = g.tree

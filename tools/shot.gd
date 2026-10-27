@@ -49,6 +49,14 @@ func _run(m) -> void:
 	m._close_modal()
 	m.tech_screen._select("mil")
 	await _shot("04c_tech_mil")
+	for id in ["mil_bajonett", "fra_ordonnance"]:
+		m.game.tree.queue_add(m.game, "FRA", id)
+	m._refresh()
+	await _shot("04q_tech_plan_tiles")
+	m.tech_screen._plan()
+	await _shot("04q_tech_plan")
+	m._close_modal()
+	m.game.nations.FRA.tech_queue.clear()
 	m.game.nations.FRA.gov.ages["humanisten"] = 1450
 	m.game.govt.refresh(m.game.nations.FRA)
 	m.tech_screen._ages()

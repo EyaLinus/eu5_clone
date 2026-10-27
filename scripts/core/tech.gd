@@ -215,6 +215,90 @@ func research_best(g, tag: String, cat: String) -> String:
 	return research(g, tag, id)
 
 
+# ---------------------------------------------------------------- research plan (player)
+# n.tech_queue lists tech ids in the order the player wants them. Every month the first planned tech
+# of each category is researched once it is open and affordable, without the early surcharge unless
+# the points sit at the cap (they would be wasted otherwise).
+
+## Adds `id` and its missing prerequisites (first) to the plan. "" on success, else the reason.
+func queue_add(g, tag: String, id: String) -> String:
+	var n = g.nations[tag]
+	var t: Dictionary = by_id.get(id, {})
+	if t.is_empty():
+		return "Unbekannte Technologie."
+	if n.techs.has(id):
+		return "Bereits erforscht."
+	if is_special(t) and t.tag != tag:
+		return "Nicht verfügbar."
+	if n.tech_queue.has(id):
+		return "Schon im Forschungsplan."
+	for r in t.get("req", []):
+		if not n.techs.has(r) and not n.tech_queue.has(r):
+			queue_add(g, tag, r)
+	n.tech_queue.append(id)
+	return ""
+
+
+## Removes `id` and every planned tech that needs it.
+func queue_remove(n, id: String) -> void:
+	n.tech_queue.erase(id)
+	for q in n.tech_queue.duplicate():
+		if by_id[q].get("req", []).has(id):
+			queue_remove(n, q)
+
+
+## Moves `id` to the front of its category (after its own planned prerequisites).
+func queue_first(n, id: String) -> void:
+	var i: int = n.tech_queue.find(id)
+	if i <= 0:
+		return
+	var reqs: Array = by_id[id].get("req", [])
+	var to := 0
+	for j in i:
+		if reqs.has(n.tech_queue[j]):
+			to = j + 1
+	n.tech_queue.remove_at(i)
+	n.tech_queue.insert(to, id)
+
+
+## Planned techs of `cat` in plan order.
+func queue_of(n, cat: String) -> Array:
+	return n.tech_queue.filter(func(q): return by_id[q].cat == cat)
+
+
+## Why the first planned tech of `cat` waits ("" when there is none or it is due now).
+func queue_wait(g, tag: String, id: String) -> String:
+	var n = g.nations[tag]
+	var t: Dictionary = by_id[id]
+	var err := block_reason(g, tag, id)
+	if err != "":
+		return err
+	var c := cost(g, tag, id)
+	if n.get(t.cat) < c:
+		return "wartet auf Punkte (%d/%d)" % [n.get(t.cat), c]
+	if years_ahead(g, id) > 0 and n.get(t.cat) < float(g.bal.power_cap):
+		return "wartet bis %d (ohne Frühaufschlag)" % (int(t.year) - early_years)
+	return ""
+
+
+## Monthly: researches what the plan allows. Returns the names researched.
+func queue_tick(g, n) -> Array:
+	var done := []
+	for q in n.tech_queue.duplicate():
+		if n.techs.has(q) or (is_special(by_id[q]) and by_id[q].tag != n.tag):
+			n.tech_queue.erase(q)
+	for cat in g.POWERS:
+		while true:
+			var lst := queue_of(n, cat)
+			if lst.is_empty() or queue_wait(g, n.tag, lst[0]) != "":
+				break
+			if research(g, n.tag, lst[0]) != "":
+				break
+			n.tech_queue.erase(lst[0])
+			done.append(by_id[lst[0]].name)
+	return done
+
+
 ## Recompute n.bonus["tech"] from the researched techs.
 func refresh(n) -> void:
 	var b := {}

@@ -76,6 +76,7 @@ class Nation:
 	var vassal_since: int = 0
 	var we: float = 0.0  # war exhaustion 0..we_max
 	var techs := {}  # researched tech id -> month (scripts/core/tech.gd)
+	var tech_queue: Array = []  # player research plan: tech ids, researched in order when affordable
 	var gov := {}  # advisors, companies, laws (scripts/core/government.gd)
 	# cached per month
 	var dev_total: int = 0
@@ -600,6 +601,8 @@ func tick() -> void:
 	if player != "" and nations[player].alive:
 		ai.control_armies(self, player)
 		Economy.autobuild(self, nations[player])
+		for t in tree.queue_tick(self, nations[player]):
+			log_msg("🔬 Forschungsplan: %s erforscht." % t, [player])
 	month += 1
 	if month % 12 == 0:
 		_yearly()
@@ -2690,7 +2693,7 @@ func to_dict() -> Dictionary:
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
 				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "religion": n.religion, "monuments": n.monuments.keys(), "monument_build": n.monument_build,
-				"techs": tree.to_save(n), "gov": govt.to_save(n)}
+				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n)}
 	d.nations = ns
 	var ar := []
 	for a in armies:
@@ -2827,6 +2830,7 @@ func from_dict(d: Dictionary) -> void:
 			n.loans.append(float(l))
 		n.autobuild_reserve = float(e.get("autobuild_reserve", 100.0))
 		tree.load_save(n, e.get("techs", {}))
+		n.tech_queue = Array(e.get("tech_queue", [])).filter(func(q): return tree.by_id.has(q))
 		govt.load_save(n, e.get("gov", {}))
 	armies.clear()
 	for e in d.armies:
