@@ -5,6 +5,10 @@
   Ernennungskosten in ihrer Punkteart). Jede Stufe steigert ihre Vorteile um 50 %, Nachteile bleiben gleich. Gewöhnliche
   Berater gehen nach 20+ Dienstjahren irgendwann in den Ruhestand; ein Schüler übernimmt eine Stufe tiefer. Ein Klick
   auf „Fördern“ im Hof zeigt Stufe, Dienstzeit und die nächste Stufe. Die KI fördert gelegentlich.
+- **Klügere Kriegserklärungen:** Die KI rechnet nur noch Verbündete ein, die wirklich mitkämpfen (früher zählten auch Freunde des Gegners), und zieht bei historischen Kriegsereignissen nur in aussichtsreiche Kriege. Die KI verliert nur noch etwa 4 % statt 13 % ihrer Angriffskriege; es gibt etwas weniger Kriege, Revolten und Bankrotte.
+- **💡 Ratgeber (neu):** Ein neuer Reiter links zeigt mit einer Zahl, wie viel gerade zu tun ist: drohende
+  Aufstände, Schulden, Koalitionen, erfüllte Missionen, lohnender Frieden, Technologie und Regierung, freie Händler,
+  Gold für Gebäude, sich stauende Macht, freie Missionare und das Hoffest. Jeder Eintrag führt direkt dorthin.
 - **Zeitalter-Ziele 🏆 (neu):** Jedes der vier Zeitalter (Renaissance, Entdeckungen, Reformation, Absolutismus) hat
   drei Ziele, etwa 10 Technologien, eine Kompanie auf Stufe 3, 90 % Glaubenseinheit oder alle Staatsreformen. Ein
   Ziel zählt nur in seinem Zeitalter und gibt dauerhaft einen Bonus. Zwei von drei bringen den Triumph des Zeitalters

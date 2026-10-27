@@ -19,6 +19,7 @@ func _init() -> void:
 		"test_separate_peace", "test_tired_ai_seeks_peace", "test_ai_marriage_and_generals", "test_ai_access_and_guarantee", "test_income_bonus_and_army_cost",
 		"test_difficulty",
 		"test_ai_peace_spending",
+		"test_ai_war_odds",
 		"test_military_access",
 		"test_guarantee",
 		"test_religion",
@@ -1875,6 +1876,32 @@ func test_ai_marriage_and_generals() -> void:
 		if a.general > 0:
 			led += 1
 	check(led == 1, "the largest army gets a general from a power surplus")
+
+
+func test_ai_war_odds() -> void:
+	var g = new_game("ENG")
+	for t in g.order:
+		g.nations[t].allies.clear()
+	var base: float = g.ai.war_odds(g, "TUR", "BYZ")
+	# a friend of both sides stays out, so it must not count for the attacker
+	g._ally("TUR", "HUN")
+	g._ally("BYZ", "HUN")
+	g.add_rel("TUR", "HUN", 100.0)
+	check(g.ai.war_odds(g, "TUR", "BYZ") <= base + 0.001, "an ally that defends the target does not count for the attacker")
+	g.nations.BYZ.allies.erase("HUN")
+	g.nations.HUN.allies.erase("BYZ")
+	check(g.ai.war_odds(g, "TUR", "BYZ") > base, "an ally that joins counts")
+	# a historic war event is (almost) never chosen when the war is hopeless
+	for a in g.armies_of("TUR"):
+		a.regs = 0.1
+	g.nations.TUR.allies.clear()
+	g.nations.HUN.allies.clear()
+	var e := {"options": [{"effects": {"war": "BYZ"}, "ai": 70}, {"effects": {"adm": 10}}]}
+	var wars := 0
+	for i in 200:
+		if g.ai.pick_event_option(g, g.nations.TUR, e) == 0:
+			wars += 1
+	check(wars < 40, "the AI avoids a hopeless event war (%d/200)" % wars)
 
 
 func test_ai_peace_spending() -> void:
