@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- **Geschichten für die neuen Regionen (26 Events, 7 Missionen):** Osmanen gegen Karaman, Candar und Trapezunt,
+  Uzun Hasan und die Weißen Hammel, Georgien und Schirwan, Qaitbay und der Gewürzhandel der Mamluken, Selims
+  Feldzug, Portugiesen vor Tanger, Wattasiden und Saadier in Marokko, Venedig und Zypern, die Belagerung von Rhodos.
+  Neue Missionen für Osmanen (Anatolien, Ostgrenze), Mamluken (Syrien, Gewürzweg, Dulkadir) und Marokko (Küste, Häfen).
 - **Karte nach Süden und Osten erweitert (67 neue Provinzen):** Anatolien, Kaukasus, Levante, Ägypten und die
   ganze nordafrikanische Küste bis Marokko, dazu Kreta, Zypern und Rhodos. 15 neue Länder im Stand von 1444:
   Karaman, Candar, Dulkadir, Trapezunt, Aq Qoyunlu, Qara Qoyunlu (Täbris), Georgien, Schirwan, Tscherkessien,
