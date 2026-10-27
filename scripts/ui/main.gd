@@ -12,7 +12,9 @@ const Faith = preload("res://scripts/core/religion.gd")
 const Monuments = preload("res://scripts/core/monuments.gd")
 const GovScreen = preload("res://scripts/ui/gov_screen.gd")
 const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
-const SAVE_PATH := "user://save.json"
+const SAVE_PATH := "user://save.json"  # the autosave, also what "Weiterspielen" loads
+const SAVE_META_PATH := "user://saves.json"  # nation, date and score per slot, so the slot list needs no full parse
+const SAVE_SLOTS := ["auto", "1", "2", "3"]
 const SETTINGS_PATH := "user://settings.json"
 const UI_SCALES := [0.85, 1.0, 1.2, 1.4]
 const SPEEDS := [0.0, 1.2, 0.6, 0.3, 0.12, 0.04]
@@ -551,7 +553,9 @@ func _show_start_menu() -> void:
 	modal_box.add_child(_lbl("1444 – 1644 · Ziel: am Ende die höchste Punktzahl (Entwicklung + Prestige + Technologie).", 16, Color(0.8, 0.8, 0.8)))
 	var top := []
 	if FileAccess.file_exists(SAVE_PATH):
-		top.append(_btn("💾 Weiterspielen", _load_game))
+		top.append(_btn("💾 Weiterspielen", _load_game.bind("auto")))
+	if _has_manual_save():
+		top.append(_btn("📂 Laden", _show_slots.bind(false)))
 	top.append(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
 	if top.size() % 2 == 1:
 		top.append(Control.new())
@@ -618,8 +622,28 @@ func _start_game(tag: String) -> void:
 	_show_intro()
 
 
-func _load_game() -> void:
-	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
+func _slot_path(slot: String) -> String:
+	return SAVE_PATH if slot == "auto" else "user://slot%s.json" % slot
+
+
+func _save_meta() -> Dictionary:
+	var f := FileAccess.open(SAVE_META_PATH, FileAccess.READ)
+	if f:
+		var d = JSON.parse_string(f.get_as_text())
+		if d is Dictionary:
+			return d
+	return {}
+
+
+func _has_manual_save() -> bool:
+	for s in SAVE_SLOTS:
+		if s != "auto" and FileAccess.file_exists(_slot_path(s)):
+			return true
+	return false
+
+
+func _load_game(slot: String = "auto") -> void:
+	var f := FileAccess.open(_slot_path(slot), FileAccess.READ)
 	if f == null:
 		_toast("❌ Kein Spielstand gefunden.")
 		return
@@ -634,12 +658,50 @@ func _load_game() -> void:
 	_close_modal()
 
 
-func _save_game() -> void:
+## Writes the running game into a slot ("auto" = the yearly autosave) and notes what is in it.
+func _save_game(slot: String = "auto") -> bool:
 	if game == null or game.game_over:
-		return
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if f:
-		f.store_string(JSON.stringify(game.to_dict()))
+		return false
+	var f := FileAccess.open(_slot_path(slot), FileAccess.WRITE)
+	if f == null:
+		return false
+	f.store_string(JSON.stringify(game.to_dict()))
+	f.close()
+	var meta := _save_meta()
+	meta[slot] = {"name": game.nations[game.player].name, "date": game.date_string(), "score": game.score(game.player),
+			"difficulty": game.difficulty}
+	var mf := FileAccess.open(SAVE_META_PATH, FileAccess.WRITE)
+	if mf:
+		mf.store_string(JSON.stringify(meta))
+	return true
+
+
+## Slot list for saving (three manual slots) or loading (autosave and the three slots).
+func _show_slots(saving: bool) -> void:
+	_open_modal()
+	modal_box.add_child(_lbl("💾 Speichern" if saving else "📂 Laden", 30))
+	var meta := _save_meta()
+	for slot in SAVE_SLOTS:
+		if saving and slot == "auto":
+			continue
+		var exists := FileAccess.file_exists(_slot_path(slot))
+		var m: Dictionary = meta.get(slot, {})
+		var info := "leer"
+		var tip := ""
+		if exists:
+			info = "%s · %s" % [m.get("name", "?"), m.get("date", "?")] if not m.is_empty() else "belegt"
+			if not m.is_empty():
+				tip = "%d Punkte · %s" % [int(m.get("score", 0)), Game.DIFFICULTY_NAMES.get(m.get("difficulty", "normal"), "Normal")]
+		if slot == "auto":
+			tip += ("\n" if tip != "" else "") + "Wird jedes Jahr und beim Verlassen überschrieben."
+		var text := "%s: %s" % ["💾 Autosave" if slot == "auto" else "💾 Platz " + slot, info]
+		if saving:
+			modal_box.add_child(_btn(text, func():
+				_toast(("💾 Gespeichert in Platz %s." % slot) if _save_game(slot) else "❌ Speichern fehlgeschlagen.")
+				_close_modal(), tip + ("\nWird überschrieben." if exists else "")))
+		else:
+			modal_box.add_child(_btn(text, _load_game.bind(slot), tip, not exists))
+	modal_box.add_child(_btn("◀ Zurück", _show_menu if game != null else _show_start_menu))
 
 
 func _after_game_loaded() -> void:
@@ -1143,8 +1205,8 @@ func _show_menu() -> void:
 	modal_box.add_child(_lbl("☰ Menü", 30))
 	modal_box.add_child(_btn("▶ Weiter", _close_modal))
 	var acts := [
-		_btn("💾 Speichern", func(): _save_game(); _toast("💾 Gespeichert."); _close_modal()),
-		_btn("📂 Laden", _load_game),
+		_btn("💾 Speichern", _show_slots.bind(true), "Drei Speicherplätze; dazu speichert das Spiel jedes Jahr automatisch."),
+		_btn("📂 Laden", _show_slots.bind(false)),
 		_btn("🏠 Hauptmenü", func(): _save_game(); game = null; _show_start_menu(), "Speichert und kehrt zum Startmenü zurück."),
 	]
 	if OS.get_name() != "Android" and OS.get_name() != "Web":
@@ -2545,58 +2607,66 @@ func _panel_hre() -> void:
 	var count := {}
 	for e in votes:
 		count[votes[e]] = count.get(votes[e], 0) + 1
-	side_box.add_child(_lbl("Kurfürsten (Stimme, wenn jetzt gewählt würde):", 18, Color(0.7, 0.8, 0.9)))
+	side_box.add_child(_lbl("Kurfürsten (Flagge) → ihre Stimme jetzt:", 16, Color(0.7, 0.8, 0.9)))
 	var els := []
 	for e in game.current_electors():
 		var v: String = votes.get(e, "")
 		var b := _nation_btn(e, "", _open_panel.bind("other", e) if e != me else _open_panel.bind("nation"))
 		b.tooltip_text = "%s würde %s wählen.%s" % [game.nations[e].name, game.nations[v].name if v != "" else "niemanden",
 				("\nBeziehung zu dir: %d" % int(game.get_rel(me, e))) if e != me else ""]
-		b.text = "%s → %s" % [e, v if v != "" else "–"]  # the flag names the elector; full names in the tooltip
+		b.text = "→ %s" % (v if v != "" else "–")  # the flag names the elector; full names in the tooltip
+		b.clip_text = true
 		els.append(b)
-	if els.size() % 2 == 1:
-		els.append(Control.new())
-	side_box.add_child(_grid(els))
+	side_box.add_child(_grid(els, 3))
+	var tip_votes := "Bessere Beziehungen, Bündnisse und Prestige bringen Stimmen."
+	var chips := [_chip("👥 %d Mitglieder" % game.hre_members().size(), "Reichsmitglieder")]
 	if game.hre.has(me):
-		var mine: int = count.get(me, 0)
-		side_box.add_child(_lbl("Du hättest %d von %d Stimmen. Bessere Beziehungen, Bündnisse und Prestige bringen Stimmen." % [mine, votes.size()], 16, Color(1, 0.9, 0.6)))
+		chips.append(_chip("👑 Du: %d / %d" % [count.get(me, 0), votes.size()], "So viele Kurfürsten würden dich jetzt wählen. " + tip_votes, "gold"))
 	else:
-		side_box.add_child(_lbl("Du bist kein Reichsmitglied und kannst nicht gewählt werden.", 16))
-	side_box.add_child(_lbl("Mitglieder: %d" % game.hre_members().size(), 15, Color(0.75, 0.75, 0.75)))
-	_hre_reforms_box(me)
+		chips.append(_chip("👑 Kein Mitglied", "Du bist kein Reichsmitglied und kannst nicht gewählt werden."))
+	_hre_reforms_box(me, chips)
 
 
 ## Imperial authority and the reform ladder; the player as emperor passes the next reform here.
-func _hre_reforms_box(me: String) -> void:
+## `chips` are the panel's status chips; the reform chips join them in one grid.
+func _hre_reforms_box(me: String, chips: Array) -> void:
 	var gv = game.govt
 	if gv.empire_reforms().is_empty():
+		side_box.add_child(_grid(chips))
 		return
-	side_box.add_child(_lbl("📜 Reichsreformen", 18, Color(0.7, 0.8, 0.9)))
 	var gain: float = gv.authority_gain(game)
-	side_box.add_child(_lbl("Kaiserliche Autorität: %d  (%s%.1f pro Jahr)" % [int(game.hre_authority), "+" if gain >= 0.0 else "", gain], 16, Color(1, 0.9, 0.6)))
-	side_box.add_child(_lbl("Wächst mit der Zahl der Mitglieder, sinkt durch Kriege zwischen ihnen und beim Wechsel des Kaiserhauses.", 14, Color(0.75, 0.75, 0.75)))
 	var nxt: Dictionary = gv.next_empire_reform(game)
-	# passed and later reforms are one line each (details on hover); only the next one is spelled out
+	var s0: Array = gv.reform_support(game) if not nxt.is_empty() else [0, 0]
+	chips.append(_chip("📜 Autorität %d (%s%.1f/J.)" % [int(game.hre_authority), "+" if gain >= 0.0 else "", gain],
+			"Kaiserliche Autorität wächst mit der Zahl der Mitglieder und sinkt durch Kriege zwischen ihnen und beim Wechsel des Kaiserhauses.", "gold"))
+	if not nxt.is_empty():
+		chips.append(_chip("👑 Kurfürsten %d/%d" % [s0[0], s0[1]], "Kurfürsten hinter dem Kaiser. Mehr als die Hälfte ist für eine Reform nötig.", "good" if s0[0] * 2 > s0[1] else "bad"))
+	# passed and locked reforms collapse into one line each (details on hover); only the next one is spelled out
+	var done_tip := []
+	var later_tip := []
 	for r in gv.empire_reforms():
-		var done: bool = game.hre_reforms.has(r.id)
-		var is_next: bool = r.id == nxt.get("id", "")
-		var head := "%s %s" % ["✅" if done else ("👉" if is_next else "🔒"), r.name]
-		if not done:
-			head += "  (ab %d, %d Autorität)" % [int(r.year), int(r.cost)]
-		var hl := _lbl(head, 16, Color(0.6, 1, 0.6) if done else (Color(1, 0.9, 0.6) if is_next else Color(0.8, 0.8, 0.8)))
-		hl.tooltip_text = "%s\nAlle Mitglieder: %s\nKaiser zusätzlich: %s" % [r.text, effects_text({"mods": r.members}), effects_text({"mods": r.emperor})]
+		var line := "%s: %s" % [r.name, effects_text({"mods": r.members})]
+		if game.hre_reforms.has(r.id):
+			done_tip.append("✅ " + line)
+		elif r.id != nxt.get("id", ""):
+			later_tip.append("🔒 %s (ab %d, %d Autorität)" % [line, int(r.year), int(r.cost)])
+	if not done_tip.is_empty():
+		chips.append(_chip("✅ %d beschlossen" % done_tip.size(), "\n".join(done_tip), "good"))
+	if not later_tip.is_empty():
+		chips.append(_chip("🔒 %d später" % later_tip.size(), "\n".join(later_tip)))
+	if chips.size() % 2 == 1:
+		chips.append(Control.new())
+	side_box.add_child(_grid(chips))
+	if not nxt.is_empty():
+		var r: Dictionary = nxt
+		var hl := _lbl("👉 %s  (ab %d, %d Autorität)" % [r.name, int(r.year), int(r.cost)], 16, Color(1, 0.9, 0.6))
+		hl.tooltip_text = r.text
 		hl.mouse_filter = Control.MOUSE_FILTER_STOP
 		side_box.add_child(hl)
-		if not is_next:
-			continue
-		side_box.add_child(_lbl(r.text, 14, Color(0.75, 0.75, 0.75)))
-		var eff := _grid([_lbl("Alle Mitglieder:", 14, Color(0.75, 0.75, 0.75)), _lbl("Kaiser zusätzlich:", 14, Color(0.75, 0.75, 0.75)),
-				TechScreen.effects_rich(r.members, 14), TechScreen.effects_rich(r.emperor, 14)])
-		side_box.add_child(eff)
+		side_box.add_child(_grid([_lbl("Alle Mitglieder:", 14, Color(0.75, 0.75, 0.75)), _lbl("Kaiser zusätzlich:", 14, Color(0.75, 0.75, 0.75)),
+				TechScreen.effects_rich(r.members, 14), TechScreen.effects_rich(r.emperor, 14)]))
 	if nxt.is_empty():
 		return
-	var s: Array = gv.reform_support(game)
-	side_box.add_child(_lbl("Kurfürsten hinter dem Kaiser: %d von %d (mehr als die Hälfte nötig)" % [s[0], s[1]], 15))
 	if me == game.emperor:
 		var err: String = gv.empire_reform_block(game, me)
 		side_box.add_child(_btn("👑 %s verabschieden" % nxt.name, func():

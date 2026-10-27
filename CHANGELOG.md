@@ -3,6 +3,12 @@
 ## Unreleased
 - **Schnellere Monatsberechnung:** Die KI und die Wirtschaft rechnen pro Spielmonat rund 20–25 % schneller
   (wichtig für die Browser-Version). Das Spielgeschehen bleibt exakt gleich.
+- **Reichsfenster (HRE) kompakt:** Kurfürsten in drei Spalten (Flagge → Stimme), Mitglieder, deine Stimmen,
+  Autorität und Rückhalt als Kacheln. Beschlossene und spätere Reformen stehen je in einer Kachel (Details im
+  Tooltip), nur die nächste Reform wird ausgeschrieben. Etwa 40 % kürzer.
+- **Drei Speicherplätze:** „Speichern“ im Menü bietet drei Plätze, „Laden“ zeigt dazu den Autosave, jeweils mit
+  Nation und Datum. Das Startmenü hat „Laden“, sobald ein Platz belegt ist. Der Autosave überschreibt keine
+  manuellen Stände mehr.
 - **Berater mit Stufen ⭐:** Berater starten auf Stufe 1 und lassen sich bis Stufe 3 fördern (Kosten: 1,5× bzw. 3×
   Ernennungskosten in ihrer Punkteart). Jede Stufe steigert ihre Vorteile um 50 %, Nachteile bleiben gleich. Gewöhnliche
   Berater gehen nach 20+ Dienstjahren irgendwann in den Ruhestand; ein Schüler übernimmt eine Stufe tiefer. Ein Klick

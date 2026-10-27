@@ -46,6 +46,16 @@ func _run(tags: Array, years: int) -> void:
 				opened += _all_panels(m, g, tag, month)
 			if g.game_over:
 				break
+		if not g.game_over:  # save slots: save, list, load back
+			var mo: int = g.month
+			if not m._save_game("3"):
+				push_error("SMOKE save to slot 3 failed")
+			m._show_slots(true)
+			m._show_slots(false)
+			m._load_game("3")
+			if m.game.month != mo or m.game.player != tag or not m._save_meta().has("3"):
+				push_error("SMOKE slot 3 round trip broken")
+			g = m.game
 		m._show_game_over()
 		m._close_modal()
 		print("SMOKE %s ok: %s, alive=%s, panels=%d" % [tag, g.date_string(), g.nations[tag].alive, opened])
