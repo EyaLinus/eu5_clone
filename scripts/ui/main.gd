@@ -2332,46 +2332,68 @@ func _panel_peace(war_id: int) -> void:
 	var dev_sel := 0
 	for pid in peace_selection:
 		dev_sel += game.provinces[pid].dev
-	side_box.add_child(_lbl("Kriegspunkte: %+d · Forderung kostet: %d\nIntegration kostet %d 📜 Admin (du hast %d)" % [
-			int(ws), int(cost), int(dev_sel * float(game.bal.core_cost_per_dev)), int(game.nations[me].adm)], 18))
+	var core_cost: int = int(dev_sel * float(game.bal.core_cost_per_dev))
+	side_box.add_child(_grid([
+		_chip("🏆 Punkte %+d" % int(ws), "Kriegspunkte: aus Schlachten und besetzten Provinzen.", "good" if ws > 0 else ("bad" if ws < 0 else "")),
+		_chip("📜 Forderung %d" % int(cost), "Was die ausgewählten Provinzen an Kriegspunkten kosten.", "bad" if cost > ws else ""),
+		_chip("📜 Integration %d / %d" % [core_cost, int(game.nations[me].adm)], "Die Integration der Forderung kostet so viel Verwaltungsmacht (du hast %d)." % int(game.nations[me].adm),
+				"bad" if core_cost > game.nations[me].adm else ""),
+		_chip("🏘️ %d Prov. · %d Entw." % [peace_selection.size(), dev_sel], "Ausgewählte Provinzen und ihre Entwicklung."),
+	]))
 	var cands: Array = game.demandable(w, att)
 	if cands.is_empty():
 		side_box.add_child(_lbl("Keine besetzten Feindprovinzen. Besetze Provinzen, um sie fordern zu können.", 16))
+	# occupied provinces as toggle tiles, grouped by owner; picked ones are framed in gold
+	var by_owner := {}
 	for pid in cands:
-		var p = game.provinces[pid]
-		var cb := CheckBox.new()
-		cb.text = "%s (%s) – %d Punkte" % [p.name, game.nations[p.owner].name, int(game.peace_cost([pid]))]
-		cb.button_pressed = peace_selection.has(pid)
-		cb.focus_mode = Control.FOCUS_NONE
-		cb.toggled.connect(_toggle_peace.bind(pid))
-		side_box.add_child(cb)
+		var o: String = game.provinces[pid].owner
+		if not by_owner.has(o):
+			by_owner[o] = []
+		by_owner[o].append(pid)
+	for o in by_owner:
+		side_box.add_child(_lbl(nname(o), 15, Color(0.7, 0.8, 0.9)))
+		var tiles := []
+		for pid in by_owner[o]:
+			var p = game.provinces[pid]
+			var on: bool = peace_selection.has(pid)
+			var tb := _btn(("✅ " if on else "") + "%s %d" % [p.name, int(game.peace_cost([pid]))], _toggle_peace.bind(not on, pid),
+					"%s: Entwicklung %d, kostet %d Kriegspunkte." % [p.name, p.dev, int(game.peace_cost([pid]))])
+			tb.clip_text = true
+			if on:
+				tb.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
+			tiles.append(tb)
+		if tiles.size() % 2 == 1:
+			tiles.append(Control.new())
+		side_box.add_child(_grid(tiles))
+	var acts := []
 	if not cands.is_empty() and ws > 0:
-		side_box.add_child(_btn("✨ Beste Auswahl (für %d Punkte)" % int(ws), func():
+		acts.append(_btn("✨ Beste Auswahl", func():
 			peace_selection = {}
 			for pid in game.ai.pick_demands(game, w, att, ws):
 				peace_selection[pid] = true
-			_refresh()))
-	side_box.add_child(_btn("📜 Forderung stellen", func():
+			_refresh(), "Wählt die wertvollsten Provinzen, die deine %d Kriegspunkte hergeben." % int(ws)))
+	acts.append(_btn("📜 Fordern", func():
 		var ok: bool = game.offer_peace(me, w, peace_selection.keys(), true)
-		_after_peace(ok)))
+		_after_peace(ok), "Frieden mit den ausgewählten Provinzen anbieten. Der Gegner nimmt an, wenn die Kriegspunkte reichen."))
 	var target: String = game.side_tags(w, not att)[0]
 	var why: String = game.vassal_block_reason(w, att)
-	if why == "":
-		side_box.add_child(_btn("⛓️ Vasallisieren (%d Punkte)" % int(game.vassal_cost(w, att)), func():
+	if why == "" or target != me:
+		acts.append(_btn("⛓️ Vasall %d" % int(game.vassal_cost(w, att)) if why == "" else "⛓️ Vasall", func():
 			var ok: bool = game.offer_peace(me, w, [], true, true)
-			_after_peace(ok)))
-	elif target != me:
-		side_box.add_child(_lbl("⛓️ Vasallisieren nicht möglich: " + why, 15, Color(0.7, 0.7, 0.7)))
-	side_box.add_child(_btn("🏳️ Weißer Frieden anbieten", func():
+			_after_peace(ok), ("Den Gegner zum Vasallen machen (%d Kriegspunkte). Er zahlt Tribut und kämpft an deiner Seite." % int(game.vassal_cost(w, att))) if why == "" else ("❌ " + why), why != ""))
+	acts.append(_btn("🏳️ Weißer Frieden", func():
 		var ok: bool = game.offer_peace(me, w, [], true)
-		_after_peace(ok)))
+		_after_peace(ok), "Frieden ohne Forderungen: alle besetzten Provinzen gehen zurück."))
 	if ws < 0:
-		side_box.add_child(_btn("🙇 Provinzen abtreten (Kapitulation)", func():
+		acts.append(_btn("🙇 Kapitulieren", func():
 			var give: Array = game.ai.pick_demands(game, w, not att, -ws * 0.9)
 			var ok: bool = game.offer_peace(me, w, give, false)
 			if not ok:
 				ok = game.offer_peace(me, w, [], true)
-			_after_peace(ok)))
+			_after_peace(ok), "Provinzen abtreten, um den verlorenen Krieg zu beenden."))
+	if acts.size() % 2 == 1:
+		acts.append(Control.new())
+	side_box.add_child(_grid(acts))
 
 
 func _set_all_auto(on: bool) -> void:

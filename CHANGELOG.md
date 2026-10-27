@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- **Friedensfenster kompakt:** Kacheln für Kriegspunkte, Forderung und Integrationskosten. Die besetzten Provinzen
+  stehen nach Besitzer sortiert als Kacheln im Raster (antippen = auswählen), die Aktionen in zwei Spalten.
 - **Neues Startmenü:** Schwierigkeit als vier Knöpfe (Erklärung im Tooltip), Nationen im Raster. Antippen zeigt
   den Nationalgeist, gestartet wird mit „Los geht's“. Alles passt ohne Scrollen auf einen Bildschirm. Das Menü im
   Spiel ist ebenfalls kompakter.
