@@ -1641,7 +1641,7 @@ func test_reforms() -> void:
 	var g = new_game("FRA")
 	var n = g.nations.FRA
 	var gv = g.govt
-	check(gv.reforms.size() == 4, "four reform tiers")
+	check(gv.reforms.size() == 5, "five reform tiers")
 	for t in gv.reforms:
 		for o in t.options:
 			var good := false

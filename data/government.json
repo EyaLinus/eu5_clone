@@ -398,6 +398,45 @@
      "text": "Der Fürst als erster Diener des Landes."
     }
    ]
+  },
+  {
+   "id": "herrschaft",
+   "name": "Herrschaftsform",
+   "year": 1610,
+   "options": [
+    {
+     "id": "absolutismus",
+     "name": "Absolutismus",
+     "effects": {
+      "adm": 1,
+      "force_limit": 2,
+      "estate_adel": -10,
+      "estate_buerger": -5
+     },
+     "text": "Der König regiert ohne Stände, die Stände murren."
+    },
+    {
+     "id": "parlament",
+     "name": "Parlamentarische Krone",
+     "effects": {
+      "tax": 0.1,
+      "unrest": -0.5,
+      "estate_buerger": 15,
+      "adm": -0.5
+     },
+     "text": "Ein Parlament bewilligt Steuern und redet mit."
+    },
+    {
+     "id": "aufgeklaert",
+     "name": "Aufgeklärte Herrschaft",
+     "effects": {
+      "tech_cost": -0.05,
+      "production": 0.05,
+      "estate_klerus": -15
+     },
+     "text": "Vernunft statt Tradition, zum Ärger der Kirche."
+    }
+   ]
   }
  ],
  "reform_cost": 100,
@@ -641,7 +680,7 @@
     {
      "id": "staatsraison",
      "name": "Vollendeter Staat",
-     "text": "Alle vier Stufen der Staatsreformen besetzen.",
+     "text": "Vier Stufen der Staatsreformen besetzen.",
      "cond": {
       "reforms": 4
      },
