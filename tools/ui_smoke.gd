@@ -89,6 +89,8 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 		m._open_panel("tech")
 		m.tech_screen._overview()
 		m._close_modal()
+		m.tech_screen._ages()
+		m._close_modal()
 	m.gov_screen._pick_advisor()
 	m._close_modal()
 	m.gov_screen._pick_company()
