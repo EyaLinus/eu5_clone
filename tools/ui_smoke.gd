@@ -44,6 +44,9 @@ func _run(tags: Array, years: int) -> void:
 			m._close_modal()
 			if month % 36 == 0:
 				opened += _all_panels(m, g, tag, month)
+				# let a frame pass: closed panels are queue_free()d and only freed between frames; without this
+				# the message queue fills up over the whole run and Godot stalls ("Message queue out of memory")
+				await process_frame
 			if g.game_over:
 				break
 		if not g.game_over:  # save slots: save, list, load back
