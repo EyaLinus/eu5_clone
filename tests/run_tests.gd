@@ -28,6 +28,7 @@ func _init() -> void:
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_empire_reforms",
 		"test_religion_modifiers",
+		"test_age_goals",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1758,6 +1759,51 @@ func test_religion_modifiers() -> void:
 	check(Religion.unrest(g, p) > base, "zeal angers other faiths")
 	check(Religion.convert_months(g, n) < months, "zeal speeds up missionaries")
 	check(gv.adv_by_id.has("hofprediger"), "court preacher advisor exists")
+
+
+## Age goals: count only in their age, give permanent rewards, two of three win the triumph.
+func test_age_goals() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	var gv = g.govt
+	check(gv.ages().size() == 4, "four ages")
+	for a in gv.ages():
+		check(a.goals.size() == 3, "%s has three goals" % a.id)
+	check(gv.age_of_year(1444).id == "renaissance" and gv.age_of_year(1555).id == "reformation", "ages by year")
+	var p: Array = gv.goal_progress(g, n, {"techs": 10})
+	check(p[0] == n.techs.size() and p[1] == 10, "tech goal progress")
+	n.gov.advisors.clear()
+	for a in gv.advisors.slice(0, 3):
+		n.gov.advisors.append(a.id)
+	gv.ages_yearly(g, n)
+	check(n.gov.ages.has("gelehrtenhof"), "three advisors reach Hof der Gelehrten")
+	check(not n.gov.ages.has("renaissance"), "one goal is no triumph")
+	check(n.bonus.gov.get("prestige", 0.0) >= 0.5 - 0.001, "goal reward applies")
+	for t in g.tree.defs:
+		if n.techs.size() >= 10:
+			break
+		if not Tech.is_special(t):
+			n.techs[t.id] = 0
+	gv.ages_yearly(g, n)
+	check(n.gov.ages.has("humanisten") and n.gov.ages.has("renaissance"), "two goals win the triumph")
+	check(n.bonus.gov.get("adm", 0.0) >= 0.5 - 0.001, "triumph reward applies")
+	g.month = (1500 - 1444) * 12
+	n.gov.companies = ["lombarden"]
+	n.gov.invest["lombarden"] = 3
+	gv.ages_yearly(g, n)
+	check(not n.gov.ages.has("bankhaeuser"), "Renaissance goals no longer count in 1500")
+	var text := JSON.stringify(g.to_dict())
+	var g2 = new_game("FRA", 3)
+	g2.from_dict(JSON.parse_string(text))
+	check(g2.nations.FRA.gov.ages.has("renaissance"), "age goals survive save/load")
+	check(g2.nations.FRA.bonus.gov.get("tech_cost", 0.0) < 0.0, "rewards restored on load")
+	var ai_hits := 0
+	var g3 = new_game("FRA")
+	for i in 12 * 10:
+		g3.tick()
+	for t in g3.order:
+		ai_hits += g3.nations[t].gov.ages.size()
+	check(ai_hits > 0, "AI nations reach age goals too (%d)" % ai_hits)
 
 
 func test_ai_marriage_and_generals() -> void:

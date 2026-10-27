@@ -2,6 +2,17 @@
 
 ## Unreleased
 - **Klügere Kriegserklärungen:** Die KI rechnet nur noch Verbündete ein, die wirklich mitkämpfen (früher zählten auch Freunde des Gegners), und zieht bei historischen Kriegsereignissen nur in aussichtsreiche Kriege. Die KI verliert nur noch etwa 4 % statt 13 % ihrer Angriffskriege; es gibt etwas weniger Kriege, Revolten und Bankrotte.
+- **Zeitalter-Ziele 🏆 (neu):** Jedes der vier Zeitalter (Renaissance, Entdeckungen, Reformation, Absolutismus) hat
+  drei Ziele, etwa 10 Technologien, eine Kompanie auf Stufe 3, 90 % Glaubenseinheit oder alle Staatsreformen. Ein
+  Ziel zählt nur in seinem Zeitalter und gibt dauerhaft einen Bonus. Zwei von drei bringen den Triumph des Zeitalters
+  (z. B. Renaissancefürst: +0,5 Verwaltung/Monat). Der 🏆-Knopf im Technologie-Fenster zeigt Fortschritt und
+  Belohnungen. Die KI verfolgt die Ziele ebenfalls.
+- **Noch weniger Scrollen:** Armee-, Kriegs- und Reichsfenster zeigen ihre Werte als Kacheln, Befehle stehen im
+  Raster. Das Armeefenster passt jetzt auf einen Bildschirm. Im Reichsfenster sind erledigte und spätere Reformen
+  einzeilig (Details im Tooltip), nur die nächste Reform steht ausführlich da. Die Chronik ist nach Jahren
+  gruppiert, nur das aktuelle Jahr ist aufgeklappt.
+
+## v0.9.0 – 2026-10-27
 - Die KI gibt überschüssiges Gold im Frieden für Missionare, Hoffeste (gegen Kriegsmüdigkeit) und Großprojekte aus, statt es zu horten.
 - Technologiebaum noch kompakter: Jeder Reiter zeigt nur seine eigenen Nationaltechs. Erforschbare stehen oben,
   gesperrte unter dem Baum, sodass die nächsten drei Stufen ohne Scrollen sichtbar sind.

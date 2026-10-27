@@ -404,6 +404,33 @@ REFORMS = [
     ]),
 ]
 
+# Age goals (EU4-like age objectives): every age has three goals that only count while the age lasts.
+# Each reached goal gives a permanent reward, two of three also the age's triumph.
+# (age id, name, from, to, [(goal id, name, text, condition, reward)], (triumph name, reward))
+# Conditions are evaluated in Government.goal_progress.
+AGES = [
+    ("renaissance", "Renaissance", 1444, 1499, [
+        ("humanisten", "Humanisten", "10 Technologien erforschen.", {"techs": 10}, {"tech_cost": -0.03}),
+        ("gelehrtenhof", "Hof der Gelehrten", "3 Berater gleichzeitig im Rat.", {"advisors": 3}, {"prestige": 0.5}),
+        ("bankhaeuser", "Bankhäuser", "Eine Kompanie auf Stufe 3 ausbauen.", {"company_level": 3}, {"income": 0.03}),
+    ], ("Renaissancefürst", {"adm": 0.5})),
+    ("entdeckungen", "Entdeckungen", 1500, 1549, [
+        ("weltkenntnis", "Weltkenntnis", "8 Diplomatie-Technologien erforschen.", {"tech_cat": ["dip", 8]}, {"trade": 0.05}),
+        ("reformer", "Reformer", "2 Staatsreformen einführen.", {"reforms": 2}, {"unrest": -0.25}),
+        ("grossmacht", "Großmacht", "250 Entwicklung erreichen.", {"dev": 250}, {"force_limit": 2}),
+    ], ("Weltgewandt", {"dip": 0.5})),
+    ("reformation", "Reformation", 1550, 1599, [
+        ("staendefrieden", "Ständefrieden", "2 Stände gleichzeitig treu.", {"estates_loyal": 2}, {"prestige": 0.5}),
+        ("glaubensfest", "Glaubensfest", "90 % deiner Entwicklung teilen deinen Glauben.", {"faith_share": 90}, {"religious_unrest": -0.25}),
+        ("kriegskunst", "Kriegskunst", "14 Militär-Technologien erforschen.", {"tech_cat": ["mil", 14]}, {"army_power": 0.05}),
+    ], ("Glaubensstreiter", {"mil": 0.5})),
+    ("absolutismus", "Absolutismus", 1600, 1821, [
+        ("staatsraison", "Vollendeter Staat", "Alle vier Stufen der Staatsreformen besetzen.", {"reforms": 4}, {"adm": 0.5}),
+        ("gelehrtenstaat", "Gelehrtenstaat", "45 Technologien erforschen.", {"techs": 45}, {"tech_cost": -0.05}),
+        ("ruhm", "Ewiger Ruhm", "50 Prestige erreichen.", {"prestige": 50}, {"income": 0.03}),
+    ], ("Sonnenkönig", {"combat": 0.05})),
+]
+
 # Imperial reforms (Holy Roman Empire light): the emperor passes them in order with imperial authority,
 # if more than half of the other electors like him. (id, name, year, authority, emperor effects,
 # member effects, text). "landfriede" also forbids wars between members (Government.landfriede).
@@ -502,6 +529,10 @@ def build():
                       "authority_member_war": 3.0, "authority_new_emperor": 0.75,
                       "reforms": [{"id": i, "name": nm, "year": y, "cost": c, "emperor": ee, "members": me, "text": tx}
                                   for i, nm, y, c, ee, me, tx in EMPIRE_REFORMS]},
+           "ages": [{"id": i, "name": nm, "from": y0, "to": y1,
+                     "goals": [{"id": gi, "name": gn, "text": gt, "cond": gc, "reward": gr} for gi, gn, gt, gc, gr in goals],
+                     "triumph": {"name": tr[0], "reward": tr[1]}} for i, nm, y0, y1, goals, tr in AGES],
+           "age_triumph_goals": 2,
            "law_cost": 60, "law_cooldown_years": 10, "forms": GOV_FORMS,
            "advisors": adv, "companies": comp, "laws": laws}
     json.dump(gov, open(os.path.join(ROOT, "data/government.json"), "w"), ensure_ascii=False, indent=1)

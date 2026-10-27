@@ -478,6 +478,203 @@
    }
   ]
  },
+ "ages": [
+  {
+   "id": "renaissance",
+   "name": "Renaissance",
+   "from": 1444,
+   "to": 1499,
+   "goals": [
+    {
+     "id": "humanisten",
+     "name": "Humanisten",
+     "text": "10 Technologien erforschen.",
+     "cond": {
+      "techs": 10
+     },
+     "reward": {
+      "tech_cost": -0.03
+     }
+    },
+    {
+     "id": "gelehrtenhof",
+     "name": "Hof der Gelehrten",
+     "text": "3 Berater gleichzeitig im Rat.",
+     "cond": {
+      "advisors": 3
+     },
+     "reward": {
+      "prestige": 0.5
+     }
+    },
+    {
+     "id": "bankhaeuser",
+     "name": "Bankhäuser",
+     "text": "Eine Kompanie auf Stufe 3 ausbauen.",
+     "cond": {
+      "company_level": 3
+     },
+     "reward": {
+      "income": 0.03
+     }
+    }
+   ],
+   "triumph": {
+    "name": "Renaissancefürst",
+    "reward": {
+     "adm": 0.5
+    }
+   }
+  },
+  {
+   "id": "entdeckungen",
+   "name": "Entdeckungen",
+   "from": 1500,
+   "to": 1549,
+   "goals": [
+    {
+     "id": "weltkenntnis",
+     "name": "Weltkenntnis",
+     "text": "8 Diplomatie-Technologien erforschen.",
+     "cond": {
+      "tech_cat": [
+       "dip",
+       8
+      ]
+     },
+     "reward": {
+      "trade": 0.05
+     }
+    },
+    {
+     "id": "reformer",
+     "name": "Reformer",
+     "text": "2 Staatsreformen einführen.",
+     "cond": {
+      "reforms": 2
+     },
+     "reward": {
+      "unrest": -0.25
+     }
+    },
+    {
+     "id": "grossmacht",
+     "name": "Großmacht",
+     "text": "250 Entwicklung erreichen.",
+     "cond": {
+      "dev": 250
+     },
+     "reward": {
+      "force_limit": 2
+     }
+    }
+   ],
+   "triumph": {
+    "name": "Weltgewandt",
+    "reward": {
+     "dip": 0.5
+    }
+   }
+  },
+  {
+   "id": "reformation",
+   "name": "Reformation",
+   "from": 1550,
+   "to": 1599,
+   "goals": [
+    {
+     "id": "staendefrieden",
+     "name": "Ständefrieden",
+     "text": "2 Stände gleichzeitig treu.",
+     "cond": {
+      "estates_loyal": 2
+     },
+     "reward": {
+      "prestige": 0.5
+     }
+    },
+    {
+     "id": "glaubensfest",
+     "name": "Glaubensfest",
+     "text": "90 % deiner Entwicklung teilen deinen Glauben.",
+     "cond": {
+      "faith_share": 90
+     },
+     "reward": {
+      "religious_unrest": -0.25
+     }
+    },
+    {
+     "id": "kriegskunst",
+     "name": "Kriegskunst",
+     "text": "14 Militär-Technologien erforschen.",
+     "cond": {
+      "tech_cat": [
+       "mil",
+       14
+      ]
+     },
+     "reward": {
+      "army_power": 0.05
+     }
+    }
+   ],
+   "triumph": {
+    "name": "Glaubensstreiter",
+    "reward": {
+     "mil": 0.5
+    }
+   }
+  },
+  {
+   "id": "absolutismus",
+   "name": "Absolutismus",
+   "from": 1600,
+   "to": 1821,
+   "goals": [
+    {
+     "id": "staatsraison",
+     "name": "Vollendeter Staat",
+     "text": "Alle vier Stufen der Staatsreformen besetzen.",
+     "cond": {
+      "reforms": 4
+     },
+     "reward": {
+      "adm": 0.5
+     }
+    },
+    {
+     "id": "gelehrtenstaat",
+     "name": "Gelehrtenstaat",
+     "text": "45 Technologien erforschen.",
+     "cond": {
+      "techs": 45
+     },
+     "reward": {
+      "tech_cost": -0.05
+     }
+    },
+    {
+     "id": "ruhm",
+     "name": "Ewiger Ruhm",
+     "text": "50 Prestige erreichen.",
+     "cond": {
+      "prestige": 50
+     },
+     "reward": {
+      "income": 0.03
+     }
+    }
+   ],
+   "triumph": {
+    "name": "Sonnenkönig",
+    "reward": {
+     "combat": 0.05
+    }
+   }
+  }
+ ],
+ "age_triumph_goals": 2,
  "law_cost": 60,
  "law_cooldown_years": 10,
  "forms": {
