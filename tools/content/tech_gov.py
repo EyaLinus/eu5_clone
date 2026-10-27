@@ -9,10 +9,11 @@ import os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Every branch has 9 techs; the n-th tech of a branch becomes available around BRANCH_YEARS[n].
-BRANCH_YEARS = [1444, 1462, 1484, 1506, 1528, 1550, 1572, 1594, 1616]
+# Every branch has 10 techs; the n-th tech of a branch becomes available around BRANCH_YEARS[n].
+# The last tier (1638, open from 1618) keeps research going until the game ends in 1644.
+BRANCH_YEARS = [1444, 1462, 1484, 1506, 1528, 1550, 1572, 1594, 1616, 1638]
 
-# category -> [(branch_id, branch_name, [(id, name, effects), ...9])]
+# category -> [(branch_id, branch_name, [(id, name, effects), ...10])]
 TREE = {
     "adm": [
         ("staat", "Staat & Recht", [
@@ -25,6 +26,7 @@ TREE = {
             ("adm_kameral", "Kameralistik", {"tax": 0.08}),
             ("adm_policey", "Policey-Ordnungen", {"unrest": -0.5}),
             ("adm_absolut", "Absolute Verwaltung", {"adm": 1}),
+            ("adm_kabinett", "Kabinettsregierung", {"income": 0.03, "unrest": -0.25}),
         ]),
         ("wirtschaft", "Gewerbe & Bau", [
             ("adm_zuenfte", "Zunftordnungen", {"production": 0.05}),
@@ -36,6 +38,7 @@ TREE = {
             ("adm_manufaktur", "Manufakturen", {"production": 0.1}),
             ("adm_polder", "Trockenlegung & Polder", {"develop_cost": -0.1}),
             ("adm_merkantil", "Merkantile Wirtschaftslehre", {"production": 0.08, "trade": 0.05}),
+            ("adm_colbert", "Colbertismus", {"production": 0.08, "build_cost": -0.05}),
         ]),
         ("wissen", "Wissen & Glaube", [
             ("adm_universitaet", "Universitäten", {"tech_cost": -0.03}),
@@ -47,6 +50,7 @@ TREE = {
             ("adm_naturphil", "Naturphilosophie", {"tech_cost": -0.05}),
             ("adm_wissenschaft", "Wissenschaftliche Revolution", {"tech_cost": -0.04, "income": 0.02}),
             ("adm_aufklaerung", "Frühe Aufklärung", {"adm": 1, "unrest": -0.25}),
+            ("adm_akademie", "Akademie der Wissenschaften", {"tech_cost": -0.03, "prestige": 0.5}),
         ]),
     ],
     "dip": [
@@ -60,6 +64,7 @@ TREE = {
             ("dip_kongresse", "Friedenskongresse", {"ae_gen": -0.05, "ae_decay": 0.05}),
             ("dip_dienst", "Diplomatischer Dienst", {"dip": 1}),
             ("dip_gleichgewicht", "Gleichgewicht der Mächte", {"ae_decay": 0.15}),
+            ("dip_westfalen", "Westfälisches System", {"ae_decay": 0.1, "ae_gen": -0.05}),
         ]),
         ("handel", "Handel & Geld", [
             ("dip_messen", "Handelsmessen", {"trade": 0.05}),
@@ -71,6 +76,7 @@ TREE = {
             ("dip_aktien", "Aktiengesellschaften", {"trade": 0.05, "company_slots": 1}),
             ("dip_fernhandel", "Fernhandelsrouten", {"trade": 0.1}),
             ("dip_handelsbilanz", "Handelsbilanzlehre", {"trade": 0.08, "income": 0.02}),
+            ("dip_ostindien", "Ostindische Kompanien", {"trade": 0.1}),
         ]),
         ("recht", "Integration & Herrschaft", [
             ("dip_lehnsrecht", "Lehnsrecht", {"coring": -0.05}),
@@ -82,6 +88,7 @@ TREE = {
             ("dip_kammergericht", "Reichskammergericht", {"ae_gen": -0.05, "coring": -0.05}),
             ("dip_flugschriften", "Flugschriften & Propaganda", {"unrest": -0.25, "prestige": 0.5}),
             ("dip_staatsraison", "Staatsräson", {"coring": -0.15, "advisor_slots": 1}),
+            ("dip_souveraenitaet", "Souveränität", {"coring": -0.1, "unrest": -0.25}),
         ]),
     ],
     "mil": [
@@ -95,6 +102,7 @@ TREE = {
             ("mil_salven", "Salvenfeuer", {"combat": 0.05}),
             ("mil_brigade", "Schwedische Brigade", {"combat": 0.05}),
             ("mil_lineartaktik", "Lineartaktik", {"combat": 0.06}),
+            ("mil_bajonett", "Bajonett", {"combat": 0.05}),
         ]),
         ("belagerung", "Artillerie & Festungen", [
             ("mil_bombarden", "Bombarden", {"siege": 0.05}),
@@ -106,6 +114,7 @@ TREE = {
             ("mil_moerser", "Mörser", {"siege": 0.1}),
             ("mil_ingenieure", "Ingenieurskorps", {"siege": 0.1}),
             ("mil_sternfestungen", "Sternfestungen", {"siege": 0.1, "combat": 0.02}),
+            ("mil_vauban", "Vauban-Festungsbau", {"siege": 0.1}),
         ]),
         ("heerwesen", "Heerwesen", [
             ("mil_lehnsaufgebot", "Lehnsaufgebot", {"manpower": 0.05}),
@@ -117,6 +126,7 @@ TREE = {
             ("mil_garnisonen", "Stehende Garnisonen", {"unrest": -0.25, "force_limit": 1}),
             ("mil_kasernen", "Kasernen", {"manpower": 0.1, "force_limit": 2}),
             ("mil_stehendes_heer", "Stehendes Heer", {"mil": 1, "army_power": 0.1}),
+            ("mil_kommissariat", "Generalkriegskommissariat", {"maintenance": -0.05, "force_limit": 2}),
         ]),
     ],
 }
