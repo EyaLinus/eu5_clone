@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.9.2 – 2026-10-27
 - **🎓 Erste Schritte:** Sechs kleine Einstiegsziele oben im 💡 Ratgeber (entwickeln, bauen, forschen, Berater,
   Regiment, Bündnis oder Heirat). Antippen führt hin, erledigte Ziele bringen je +25 💰 und +5 ⭐. Der Zähler am
   Ratgeber-Tab zeigt wartende Belohnungen. Verschwindet, sobald alle abgeholt sind.
