@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- **18 Ereignisse zu Großprojekten, Hoffesten und Heiraten:** Berühmte Baumeister und Steinfunde beschleunigen
+  deine Baustelle, jedes fertige Großprojekt bringt ein eigenes Ereignis (Domweihe, Kadetten der Kriegsakademie,
+  Hochbetrieb an der Börse ...). Nach einem Hoffest gibt es Duelle, Dichter und plaudernde Gesandte, und
+  verschwägerte Höfe schicken Geschenke oder bitten um Hilfe.
 - Technologiebaum noch kompakter: Jeder Reiter zeigt nur seine eigenen Nationaltechs. Erforschbare stehen oben,
   gesperrte unter dem Baum, sodass die nächsten drei Stufen ohne Scrollen sichtbar sind.
 - **Kirchenpolitik wirkt auf den Glauben:** Toleranz senkt die Unruhe durch Andersgläubige um 75 % (die allgemeine

@@ -2596,6 +2596,12 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["🏦 Kredit erlassen", 1])
 		elif k == "merc_ready":
 			parts.append(["⚔️ Söldner sofort verfügbar", 1])
+		elif k == "monument_progress":
+			parts.append(["🏗️ Großprojekt %d Monate schneller" % int(v), 1])
+		elif k == "feast_ready":
+			parts.append(["🍷 Nächstes Hoffest sofort möglich", 1])
+		elif k == "spouse_rel":
+			parts.append(["❤️ Verschwägerte %+d" % int(v), sgn.call(float(v))])
 		elif k == "convert_random":
 			parts.append(["⛪ %d Provinzen nehmen deinen Glauben an" % int(v), 1])
 	return parts
@@ -2690,6 +2696,14 @@ func conditions_text(c: Dictionary) -> String:
 				lines.append(mark + "Höchstens %d%% des Landes teilen deinen Glauben" % int(float(v) * 100))
 			"religion":
 				lines.append(mark + "Staatsglaube: " + game.Religion.faith_name(v))
+			"monument":
+				lines.append(mark + "Großprojekt vollendet: " + game.monument_defs[v].name)
+			"monuments_min":
+				lines.append(mark + "Mindestens %d Großprojekte vollendet" % int(v))
+			"monument_building":
+				lines.append(mark + ("Ein Großprojekt wird gebaut" if v else "Kein Großprojekt im Bau"))
+			"married":
+				lines.append(mark + ("Königliche Heirat besteht" if v else "Keine königliche Heirat"))
 			"province_faith":
 				lines.append(mark + "Eine deiner Provinzen ist %s" % game.Religion.faith_name(v).to_lower())
 			_:

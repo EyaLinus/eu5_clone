@@ -2325,6 +2325,16 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 						n.loans.pop_back()
 			"merc_ready":
 				n.flags.erase("merc_month")
+			"monument_progress":
+				# months the current great work is brought forward (never finishes it outright)
+				if not n.monument_build.is_empty():
+					n.monument_build.months = maxi(1, int(n.monument_build.months) - int(v))
+			"feast_ready":
+				n.flags.erase("feast_month")
+			"spouse_rel":
+				for t in n.marriages:
+					if nations.has(t):
+						add_rel(tag, t, float(v))
 			"convert_random":
 				# provinces of another faith take up the state religion (largest first)
 				var other := []
@@ -2527,6 +2537,21 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 						return false
 			"gold_max":
 				if n.gold > float(v):
+					return false
+			"monument":
+				if not n.monuments.has(v):
+					return false
+			"monuments_min":
+				if n.monuments.size() < int(v):
+					return false
+			"monument_building":
+				if n.monument_build.is_empty() == bool(v):
+					return false
+			"feast_recent":
+				if month - int(n.flags.get("feast_month", -9999)) > int(v):
+					return false
+			"married":
+				if n.marriages.is_empty() == bool(v):
 					return false
 			"faith_share_max":
 				# at most this share of the realm's development follows the state religion
