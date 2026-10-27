@@ -5,6 +5,10 @@
   Uzun Hasan und die Weißen Hammel, Georgien und Schirwan, Qaitbay und der Gewürzhandel der Mamluken, Selims
   Feldzug, Portugiesen vor Tanger, Wattasiden und Saadier in Marokko, Venedig und Zypern, die Belagerung von Rhodos.
   Neue Missionen für Osmanen (Anatolien, Ostgrenze), Mamluken (Syrien, Gewürzweg, Dulkadir) und Marokko (Küste, Häfen).
+- **Berater mit Stufen ⭐:** Berater starten auf Stufe 1 und lassen sich bis Stufe 3 fördern (Kosten: 1,5× bzw. 3×
+  Ernennungskosten in ihrer Punkteart). Jede Stufe steigert ihre Vorteile um 50 %, Nachteile bleiben gleich. Gewöhnliche
+  Berater gehen nach 20+ Dienstjahren irgendwann in den Ruhestand; ein Schüler übernimmt eine Stufe tiefer. Ein Klick
+  auf „Fördern“ im Hof zeigt Stufe, Dienstzeit und die nächste Stufe. Die KI fördert gelegentlich.
 - **Karte nach Süden und Osten erweitert (67 neue Provinzen):** Anatolien, Kaukasus, Levante, Ägypten und die
   ganze nordafrikanische Küste bis Marokko, dazu Kreta, Zypern und Rhodos. 15 neue Länder im Stand von 1444:
   Karaman, Candar, Dulkadir, Trapezunt, Aq Qoyunlu, Qara Qoyunlu (Täbris), Georgien, Schirwan, Tscherkessien,
