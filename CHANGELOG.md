@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+- **Browser-Version (neu):** Jedes Release enthält jetzt `RiseOfEU-web.zip`, das Spiel läuft damit direkt im
+  Browser, auch eingebettet in andere Seiten. Spielstände bleiben im Browser gespeichert.
+
 ## v0.9.1 – 2026-10-27
 - **Weitere Fenster entschlackt:** Kartenmodi und Rangliste stehen in zwei Spalten (Details im Tooltip), offene
   Missionen zeigen nur ihre Bedingungen (Belohnung im Tooltip, die ersten fünf sichtbar), lange Diplomatiegruppen
