@@ -64,8 +64,9 @@ func build() -> void:
 	var age_txt := "🏆 %d/%d" % [gv.age_goals_done(n, age), age.goals.size()] if not age.is_empty() else "🏆"
 	var goals: Button = m._btn(age_txt, _ages, "Zeitalter-Ziele: erreichte Ziele geben dauerhafte Boni")
 	var sum: Button = m._btn("📈 Gesamt", _overview, "Gesamtwirkung deiner Technologien")
-	m.side_box.add_child(m._row([il, goals, sum]))
-	for b in [goals, sum]:
+	var plan: Button = m._btn("📜 Plan %d" % n.tech_queue.size(), _plan, "Forschungsplan: vorgemerkte Technologien werden automatisch erforscht")
+	m.side_box.add_child(m._row([il, goals, plan, sum]))
+	for b in [goals, plan, sum]:
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		b.size_flags_horizontal = Control.SIZE_SHRINK_END
 		b.clip_text = false
@@ -212,6 +213,9 @@ func _cell(g, me: String, t: Dictionary, special: bool) -> Button:
 		foot += " · früh"
 	if not done and reason != "" and g.year() >= from:
 		foot = "🔒 " + foot
+	var qi: int = g.tree.queue_of(n, t.cat).find(t.id)
+	if qi >= 0:
+		foot = "📜 %d · %s" % [qi + 1, foot]
 	var tip: String = "%s\n%s\n%s" % [t.name, Tech.effects_text(t.effects), "Erforscht" if done else (reason if reason != "" else "Kosten %d" % cost)]
 	var b: Button = m._btn("", _detail.bind(t.id), tip)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -307,7 +311,67 @@ func _detail(id: String) -> void:
 		m._close_modal()
 		m._act(err, "🔬 %s erforscht!" % t.name)
 	var research: Button = m._btn("🔬 Erforschen (%d)" % cost, go, "", reason != "" or n.get(t.cat) < cost)
-	box.add_child(m._row([research, m._btn("Schließen", m._close_modal)]))
+	var row := [research]
+	if not n.techs.has(id):
+		var planned: bool = n.tech_queue.has(id)
+		var toggle := func():
+			if planned:
+				g.tree.queue_remove(n, id)
+			else:
+				g.tree.queue_add(g, me, id)
+			m._close_modal()
+		row.append(m._btn("✖ Aus dem Plan" if planned else "📜 Vormerken", toggle,
+				"Aus dem Forschungsplan nehmen (auch was darauf aufbaut)" if planned else
+				"In den Forschungsplan: wird automatisch erforscht, sobald die Punkte reichen (fehlende Vorgänger kommen mit)"))
+		if planned:
+			box.add_child(m._lbl("📜 Im Forschungsplan: %s" % _wait_text(g, me, id), 15, Color(0.8, 0.85, 1.0)))
+	row.append(m._btn("Schließen", m._close_modal))
+	box.add_child(m._row(row))
+
+
+func _wait_text(g, me: String, id: String) -> String:
+	var n = g.nations[me]
+	var lst: Array = g.tree.queue_of(n, g.tree.by_id[id].cat)
+	var i: int = lst.find(id)
+	if i > 0:
+		return "Platz %d, nach %s" % [i + 1, g.tree.by_id[lst[i - 1]].name]
+	var w: String = g.tree.queue_wait(g, me, id)
+	return w if w != "" else "wird nächsten Monat erforscht"
+
+
+## Popup with the research plan per category: order, why the first one waits, remove / move up.
+func _plan() -> void:
+	var g = m.game
+	var me: String = g.player
+	var n = g.nations[me]
+	m._open_modal()
+	var box: VBoxContainer = m.modal_box
+	box.add_child(m._lbl("📜 Forschungsplan", 26))
+	box.add_child(m._lbl("Vorgemerkte Technologien werden der Reihe nach erforscht, sobald die Punkte reichen. Frühe Technologien warten auf ihr reguläres Jahr, außer deine Punkte sind voll. Vormerken im Detailfenster einer Technologie.", 15, Color(0.72, 0.75, 0.82)))
+	for k in g.POWERS:
+		var lst: Array = g.tree.queue_of(n, k)
+		box.add_child(m._lbl("%s%s" % [Icons.prefix(k), CAT_NAMES[k]], 19, Color(1.0, 0.9, 0.6)))
+		if lst.is_empty():
+			box.add_child(m._lbl("nichts vorgemerkt", 14, Color(0.6, 0.62, 0.68)))
+			continue
+		for i in lst.size():
+			var id: String = lst[i]
+			var l: Label = m._lbl("%d. %s · %s" % [i + 1, g.tree.by_id[id].name, _wait_text(g, me, id) if i == 0 else "%d %s" % [g.tree.cost(g, me, id), Icons.emoji(k)]], 15)
+			l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			var up: Button = m._btn("👆", func():
+				g.tree.queue_first(n, id)
+				_plan(), "Nach vorne (hinter die eigenen Vorgänger)", i == 0)
+			var rm: Button = m._btn("✖", func():
+				g.tree.queue_remove(n, id)
+				_plan(), "Entfernen (auch was darauf aufbaut)")
+			box.add_child(m._row([l, up, rm]))
+			for b in [up, rm]:  # after _row, which makes every button expand
+				b.size_flags_horizontal = Control.SIZE_SHRINK_END
+				b.custom_minimum_size.x = 72
+	var clear: Button = m._btn("Plan leeren", func():
+		n.tech_queue.clear()
+		_plan(), "", n.tech_queue.is_empty())
+	box.add_child(m._row([clear, m._btn("Schließen", m._close_modal)]))
 
 
 static func effects_rich(eff: Dictionary, fs: int = 16, compact: bool = false) -> RichTextLabel:
