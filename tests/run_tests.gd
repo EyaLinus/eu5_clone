@@ -1893,6 +1893,7 @@ func test_court_content() -> void:
 	g.apply_effects("FRA", {"feast_ready": true})
 	check(g.feast_ready_in("FRA") == 0, "feast_ready resets the cooldown")
 	check(not g.check_conditions("FRA", {"married": true}), "not married at start")
+	check(g.check_conditions("FRA", {"is_player": true}) and not g.check_conditions("ENG", {"is_player": true}), "is_player only for the player")
 	n.marriages.append("ENG")
 	g.nations.ENG.marriages.append("FRA")
 	var r0: float = g.get_rel("FRA", "ENG")

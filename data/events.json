@@ -2154,19 +2154,19 @@
      {"text": "Ein neues Fest im Frühjahr ankündigen.", "effects": {"feast_ready": true, "prestige": 2}, "ai": 5},
      {"text": "Nur zuhören.", "effects": {"adm": 20}}]},
   {"id": "court_wedding_gifts", "once": false, "tag": "*", "title": "Geschenke der Verschwägerten", "text": "Der Hof deiner verschwägerten Familie schickt Geschenke: Pferde, Wandteppiche und einen Brief voller Freundschaft.", "image": "wedding",
-   "trigger": {"married": true},
+   "trigger": {"married": true, "is_player": true},
    "options": [
      {"text": "Mit gleichen Geschenken antworten.", "effects": {"spouse_rel": 15, "dip": -10}},
      {"text": "Dankbar annehmen.", "effects": {"gold": 30, "prestige": 2}},
      {"text": "Ein Besuch der Familie.", "effects": {"spouse_rel": 25, "gold": -25}, "ai": 2}]},
   {"id": "court_heir_born", "tag": "*", "title": "Ein Erbe ist geboren", "text": "Aus der königlichen Ehe ist ein gesunder Sohn hervorgegangen. Das Volk jubelt.", "image": "heir",
-   "trigger": {"married": true, "at_peace": true},
+   "trigger": {"married": true, "at_peace": true, "is_player": true},
    "options": [
      {"text": "Glocken läuten im ganzen Land.", "effects": {"prestige": 6, "spouse_rel": 10}},
      {"text": "Eine Amnestie zur Taufe.", "effects": {"estate": {"buerger": 4, "adel": 2}, "adm": -10}},
      {"text": "Ein Taufgeschenk für die Kirche.", "effects": {"estate": {"klerus": 6}}}]},
   {"id": "court_in_laws_ask", "once": false, "tag": "*", "title": "Die Verschwägerten bitten um Hilfe", "text": "Deine verschwägerte Familie steckt in Geldnot und bittet um einen Kredit unter Verwandten.", "image": "treaty",
-   "trigger": {"married": true, "year_min": 1460},
+   "trigger": {"married": true, "year_min": 1460, "is_player": true},
    "options": [
      {"text": "Freundliche Worte, kein Geld.", "effects": {"spouse_rel": -5, "dip": 10}},
      {"text": "Einen Kredit gewähren.", "effects": {"gold": -50, "spouse_rel": 30, "dip": 20}, "ai": 2},

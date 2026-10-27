@@ -2550,6 +2550,10 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"feast_recent":
 				if month - int(n.flags.get("feast_month", -9999)) > int(v):
 					return false
+			"is_player":
+				# flavor that would only dilute the AI's event pool (and cost it gold, see court_events.py)
+				if (tag == player) != bool(v):
+					return false
 			"married":
 				if n.marriages.is_empty() == bool(v):
 					return false

@@ -1,7 +1,7 @@
 """Court content for v0.8.4-v0.8.9: great works (monuments), court feasts and royal marriages.
 Generic events, id prefix "court_". Run: python3 tools/content/court_events.py (idempotent, see events_io.py).
 
-Conditions: monument, monuments_min, monument_building, feast_recent, married.
+Conditions: monument, monuments_min, monument_building, feast_recent, married, is_player.
 Effects: monument_progress (months), feast_ready, spouse_rel.
 The AI builds no great works and holds no feasts, so most of these are player events: they lean towards
 rewards for using the new systems. Rules as in eco_events.py (first option gold-free, gold options AI weight 2).
@@ -119,22 +119,23 @@ EVENTS = [
        [("Gute Beziehungen pflegen.", {"dip": 30}),
         ("Ein neues Fest im Frühjahr ankündigen.", {"feast_ready": True, "prestige": 2}, 5),
         ("Nur zuhören.", {"adm": 20})], once=False),
-    # --- royal marriages
+    # --- royal marriages (player only: for the ~45 married AI realms they crowded out other events and pushed
+    # bankrupt months up by ~25 % in 2x16 balance runs)
     ev("wedding_gifts", "Geschenke der Verschwägerten",
        "Der Hof deiner verschwägerten Familie schickt Geschenke: Pferde, Wandteppiche und einen Brief voller Freundschaft.", "wedding",
-       {"married": True},
+       {"married": True, "is_player": True},
        [("Mit gleichen Geschenken antworten.", {"spouse_rel": 15, "dip": -10}),
         ("Dankbar annehmen.", {"gold": 30, "prestige": 2}),
         ("Ein Besuch der Familie.", {"spouse_rel": 25, "gold": -25})], once=False),
     ev("heir_born", "Ein Erbe ist geboren",
        "Aus der königlichen Ehe ist ein gesunder Sohn hervorgegangen. Das Volk jubelt.", "heir",
-       {"married": True, "at_peace": True},
+       {"married": True, "at_peace": True, "is_player": True},
        [("Glocken läuten im ganzen Land.", {"prestige": 6, "spouse_rel": 10}),
         ("Eine Amnestie zur Taufe.", {"estate": {"buerger": 4, "adel": 2}, "adm": -10}),
         ("Ein Taufgeschenk für die Kirche.", {"estate": {"klerus": 6}})]),
     ev("in_laws_ask", "Die Verschwägerten bitten um Hilfe",
        "Deine verschwägerte Familie steckt in Geldnot und bittet um einen Kredit unter Verwandten.", "treaty",
-       {"married": True, "year_min": 1460},
+       {"married": True, "year_min": 1460, "is_player": True},
        [("Freundliche Worte, kein Geld.", {"spouse_rel": -5, "dip": 10}),
         ("Einen Kredit gewähren.", {"gold": -50, "spouse_rel": 30, "dip": 20}),
         ("Truppen statt Gold.", {"mil": -20, "spouse_rel": 15})], once=False),
