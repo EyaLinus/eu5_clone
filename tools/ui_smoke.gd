@@ -44,6 +44,9 @@ func _run(tags: Array, years: int) -> void:
 			m._close_modal()
 			if month % 36 == 0:
 				opened += _all_panels(m, g, tag, month)
+				# let a frame pass: closed panels are queue_free()d and only freed between frames; without this
+				# the message queue fills up over the whole run and Godot stalls ("Message queue out of memory")
+				await process_frame
 			if g.game_over:
 				break
 		if not g.game_over:  # save slots: save, list, load back
@@ -67,6 +70,13 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "missions", "log", "ranking", "hre", "advice"]:
 		m._open_panel(mode)
 		n += 1
+	if month % 108 == 36:  # beginner goals, a few passes only: every jump opens, finished ones get claimed
+		for it in m.FirstSteps.steps(g, tag):
+			m._first_step_go(it.id, it.mode)
+			if it.done and not it.claimed:
+				m.FirstSteps.claim(g, tag, it.id)
+			n += 1
+		m._open_panel("advice")
 	for it in m._advice():  # every advisor entry must lead to a panel that opens
 		m._open_panel(it.mode, it.arg)
 		n += 1

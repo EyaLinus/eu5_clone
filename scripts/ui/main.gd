@@ -10,6 +10,7 @@ const TechScreen = preload("res://scripts/ui/tech_screen.gd")
 const Tech = preload("res://scripts/core/tech.gd")
 const Faith = preload("res://scripts/core/religion.gd")
 const Monuments = preload("res://scripts/core/monuments.gd")
+const FirstSteps = preload("res://scripts/core/first_steps.gd")
 const GovScreen = preload("res://scripts/ui/gov_screen.gd")
 const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
 const SAVE_PATH := "user://save.json"  # the autosave, also what "Weiterspielen" loads
@@ -1141,7 +1142,7 @@ func _update_badges() -> void:
 		if not best.is_empty() and n.gold >= Eco.building_cost(game, me, best[0], best[1]) + 50.0:
 			why = "Genug Gold für ein neues Gebäude (oder Autobau einschalten)."
 	tab_badges.economy.visible = why != ""
-	var c: int = _advice().size()
+	var c: int = _advice().size() + FirstSteps.claimable(game, me)
 	tab_badges.advice.text = str(c)
 	tab_badges.advice.visible = c > 0
 	tab_badges.economy.get_parent().tooltip_text = "Wirtschaft" + (("\n● " + why) if why != "" else "")
@@ -2774,8 +2775,49 @@ func _advice() -> Array:
 	return out
 
 
+## Beginner goals (scripts/core/first_steps.gd) on top of the advisor until every reward is claimed.
+func _first_steps_box() -> void:
+	var me: String = game.player
+	if FirstSteps.all_claimed(game, me):
+		return
+	var st: Array = FirstSteps.steps(game, me)
+	var got := 0
+	for it in st:
+		got += 1 if it.claimed else 0
+	if not _section("first_steps", "🎓 Erste Schritte %d/%d" % [got, st.size()], true,
+			"Kleine Ziele für den Einstieg. Jedes bringt +%d 💰 und +%d ⭐." % [int(FirstSteps.REWARD_GOLD), FirstSteps.REWARD_PRESTIGE]):
+		return
+	var tiles := []
+	for it in st:
+		if it.claimed:
+			continue
+		var b: Button
+		if it.done:
+			b = _btn("✅ " + it.text.substr(it.text.find(" ") + 1), func():
+				_act(FirstSteps.claim(game, me, it.id), "🎓 +%d 💰, +%d ⭐" % [int(FirstSteps.REWARD_GOLD), FirstSteps.REWARD_PRESTIGE]),
+				"Erledigt! Antippen holt die Belohnung ab (+%d 💰, +%d ⭐)." % [int(FirstSteps.REWARD_GOLD), FirstSteps.REWARD_PRESTIGE])
+			b.add_theme_color_override("font_color", Color(0.6, 1.0, 0.55))
+		else:
+			b = _btn(it.text, _first_step_go.bind(it.id, it.mode), it.tip)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.clip_text = true
+		tiles.append(b)
+	if tiles.size() % 2 == 1:
+		tiles.append(Control.new())
+	side_box.add_child(_grid(tiles))
+
+
+func _first_step_go(id: String, mode: String) -> void:
+	if mode == "province":
+		prov_tab = {"build": "build", "army": "army"}.get(id, "info")
+		_open_panel(mode, game.nations[game.player].capital)
+	else:
+		_open_panel(mode)
+
+
 func _panel_advice() -> void:
 	side_title.text = "💡 Ratgeber"
+	_first_steps_box()
 	var items: Array = _advice()
 	if items.is_empty():
 		side_box.add_child(_lbl("Alles im Griff. Nichts Dringendes zu tun. ✅", 17))
