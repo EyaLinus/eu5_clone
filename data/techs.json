@@ -171,6 +171,20 @@
    ]
   },
   {
+   "id": "adm_kabinett",
+   "cat": "adm",
+   "branch": "staat",
+   "name": "Kabinettsregierung",
+   "year": 1638,
+   "effects": {
+    "income": 0.03,
+    "unrest": -0.25
+   },
+   "req": [
+    "adm_absolut"
+   ]
+  },
+  {
    "id": "adm_zuenfte",
    "cat": "adm",
    "branch": "wirtschaft",
@@ -283,6 +297,20 @@
    },
    "req": [
     "adm_polder"
+   ]
+  },
+  {
+   "id": "adm_colbert",
+   "cat": "adm",
+   "branch": "wirtschaft",
+   "name": "Colbertismus",
+   "year": 1638,
+   "effects": {
+    "production": 0.08,
+    "build_cost": -0.05
+   },
+   "req": [
+    "adm_merkantil"
    ]
   },
   {
@@ -405,6 +433,20 @@
    ]
   },
   {
+   "id": "adm_akademie",
+   "cat": "adm",
+   "branch": "wissen",
+   "name": "Akademie der Wissenschaften",
+   "year": 1638,
+   "effects": {
+    "tech_cost": -0.03,
+    "prestige": 0.5
+   },
+   "req": [
+    "adm_aufklaerung"
+   ]
+  },
+  {
    "id": "dip_gesandte",
    "cat": "dip",
    "branch": "hof",
@@ -517,6 +559,20 @@
    },
    "req": [
     "dip_dienst"
+   ]
+  },
+  {
+   "id": "dip_westfalen",
+   "cat": "dip",
+   "branch": "hof",
+   "name": "Westfälisches System",
+   "year": 1638,
+   "effects": {
+    "ae_decay": 0.1,
+    "ae_gen": -0.05
+   },
+   "req": [
+    "dip_gleichgewicht"
    ]
   },
   {
@@ -634,6 +690,19 @@
    },
    "req": [
     "dip_fernhandel"
+   ]
+  },
+  {
+   "id": "dip_ostindien",
+   "cat": "dip",
+   "branch": "handel",
+   "name": "Ostindische Kompanien",
+   "year": 1638,
+   "effects": {
+    "trade": 0.1
+   },
+   "req": [
+    "dip_handelsbilanz"
    ]
   },
   {
@@ -757,6 +826,20 @@
    ]
   },
   {
+   "id": "dip_souveraenitaet",
+   "cat": "dip",
+   "branch": "recht",
+   "name": "Souveränität",
+   "year": 1638,
+   "effects": {
+    "coring": -0.1,
+    "unrest": -0.25
+   },
+   "req": [
+    "dip_staatsraison"
+   ]
+  },
+  {
    "id": "mil_pikenhaufen",
    "cat": "mil",
    "branch": "taktik",
@@ -869,6 +952,19 @@
    },
    "req": [
     "mil_brigade"
+   ]
+  },
+  {
+   "id": "mil_bajonett",
+   "cat": "mil",
+   "branch": "taktik",
+   "name": "Bajonett",
+   "year": 1638,
+   "effects": {
+    "combat": 0.05
+   },
+   "req": [
+    "mil_lineartaktik"
    ]
   },
   {
@@ -990,6 +1086,19 @@
    ]
   },
   {
+   "id": "mil_vauban",
+   "cat": "mil",
+   "branch": "belagerung",
+   "name": "Vauban-Festungsbau",
+   "year": 1638,
+   "effects": {
+    "siege": 0.1
+   },
+   "req": [
+    "mil_sternfestungen"
+   ]
+  },
+  {
    "id": "mil_lehnsaufgebot",
    "cat": "mil",
    "branch": "heerwesen",
@@ -1105,6 +1214,20 @@
    },
    "req": [
     "mil_kasernen"
+   ]
+  },
+  {
+   "id": "mil_kommissariat",
+   "cat": "mil",
+   "branch": "heerwesen",
+   "name": "Generalkriegskommissariat",
+   "year": 1638,
+   "effects": {
+    "maintenance": -0.05,
+    "force_limit": 2
+   },
+   "req": [
+    "mil_stehendes_heer"
    ]
   }
  ],

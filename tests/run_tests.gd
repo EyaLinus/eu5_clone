@@ -1079,7 +1079,7 @@ func test_tech_data() -> void:
 		for r in t.get("req", []):
 			check(ids.has(r), "tech %s requirement %s exists" % [t.id, r])
 	for c in per_cat:
-		check(per_cat[c] == 27, "27 generic %s techs" % c)
+		check(per_cat[c] == 30, "30 generic %s techs" % c)
 	for tag in data.nations:
 		if data.nations[tag].get("playable", false):
 			var n := 0
