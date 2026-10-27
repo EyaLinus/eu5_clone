@@ -341,6 +341,12 @@ LAWS = [
         ("glaubenseifer", "Glaubenseifer", "", {"prestige": 1.0, "combat": 0.03, "ae_gen": 0.1, "conversion": 0.5, "religious_unrest": 0.25, "estate_klerus": 20, "estate_buerger": -5}, "Für den wahren Glauben, gegen die Ketzer."),
         ("saekularisierung", "Säkularisierung", "adm_kirchenreform", {"income": 0.08, "unrest": 1.0, "prestige": -0.5, "estate_klerus": -30}, "Kirchengüter fallen an die Krone."),
     ]),
+    ("aussen", "Außenpolitik", "dip", [
+        ("zurueckhaltung", "Zurückhaltung", "", {}, "Man hält sich aus fremden Händeln heraus."),
+        ("expansion", "Expansionsdrang", "", {"coring": -0.1, "prestige": 0.5, "ae_gen": 0.15, "estate_adel": 10}, "Neue Länder für die Krone, die Nachbarn sehen es mit Sorge."),
+        ("heiratspolitik", "Heiratspolitik", "dip_heiratspolitik", {"dip": 0.5, "prestige": 0.5, "manpower": -0.05, "estate_adel": -5}, "Bella gerant alii, tu felix Austria nube."),
+        ("gleichgewicht", "Gleichgewichtspolitik", "dip_kongresse", {"ae_decay": 0.15, "ae_gen": -0.05, "force_limit": -1}, "Keine Macht soll übermächtig werden, auch die eigene nicht."),
+    ]),
 ]
 
 # Estates: (id, name, text, loyal effects (>= 60), angry effects (< 30))
@@ -413,7 +419,7 @@ REFORMS = [
         ("gemeinwohl", "Gemeines Bestes", {"production": 0.1, "estate_buerger": 10, "estate_adel": -10}, "Der Fürst als erster Diener des Landes."),
     ]),
     ("herrschaft", "Herrschaftsform", 1610, [
-        ("absolutismus", "Absolutismus", {"adm": 1, "force_limit": 2, "estate_adel": -10, "estate_buerger": -5}, "Der König regiert ohne Stände, die Stände murren."),
+        ("alleinherrschaft", "Alleinherrschaft der Krone", {"adm": 1, "force_limit": 2, "estate_adel": -10, "estate_buerger": -5}, "Der König regiert ohne Stände, die Stände murren."),
         ("parlament", "Parlamentarische Krone", {"tax": 0.1, "unrest": -0.5, "estate_buerger": 15, "adm": -0.5}, "Ein Parlament bewilligt Steuern und redet mit."),
         ("aufgeklaert", "Aufgeklärte Herrschaft", {"tech_cost": -0.05, "production": 0.05, "estate_klerus": -15}, "Vernunft statt Tradition, zum Ärger der Kirche."),
     ]),
