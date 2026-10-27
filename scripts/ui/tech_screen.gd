@@ -59,13 +59,20 @@ func build() -> void:
 	il.tooltip_text = "Gold umrandet: jetzt erforschbar · 🔒 Vorgänger fehlt · Antippen zeigt Details"
 	il.mouse_filter = Control.MOUSE_FILTER_STOP
 	il.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var gv = g.govt
+	var age: Dictionary = gv.age_of_year(g.year())
+	var age_txt := "🏆 %d/%d" % [gv.age_goals_done(n, age), age.goals.size()] if not age.is_empty() else "🏆"
+	var goals: Button = m._btn(age_txt, _ages, "Zeitalter-Ziele: erreichte Ziele geben dauerhafte Boni")
 	var sum: Button = m._btn("📈 Gesamt", _overview, "Gesamtwirkung deiner Technologien")
-	sum.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	m.side_box.add_child(m._row([il, sum]))
-	sum.size_flags_horizontal = Control.SIZE_SHRINK_END
-	sum.clip_text = false
-	sum.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
-	sum.add_theme_font_size_override("font_size", 15)
+	m.side_box.add_child(m._row([il, goals, sum]))
+	for b in [goals, sum]:
+		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		b.size_flags_horizontal = Control.SIZE_SHRINK_END
+		b.clip_text = false
+		b.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+		b.add_theme_font_size_override("font_size", 15)
+	if not age.is_empty() and _age_goal_ready(g, n, age):
+		goals.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
 	# national techs of this category only: researchable ones above the tree, locked ones below it
 	var specials: Array = g.tree.specials_of(me).filter(func(t): return t.cat == cat and not n.techs.has(t.id))
 	var open_sp: Array = specials.filter(func(t): return g.tree.block_reason(g, me, t.id) == "")
@@ -118,6 +125,51 @@ func build() -> void:
 		m.side_box.add_child(m._btn(more, func():
 			show_all = not show_all
 			m._refresh()))
+
+
+## True when a goal of the running age is met but not yet counted (it counts at the turn of the year).
+func _age_goal_ready(g, n, age: Dictionary) -> bool:
+	for goal in age.goals:
+		if not n.gov.ages.has(goal.id) and g.govt.goal_met(g, n, goal.cond):
+			return true
+	return false
+
+
+## Popup with the age goals: the running age in full, past ones as results, later ones as a preview.
+func _ages() -> void:
+	var g = m.game
+	var gv = g.govt
+	var n = g.nations[g.player]
+	var y: int = g.year()
+	m._open_modal()
+	var box: VBoxContainer = m.modal_box
+	box.add_child(m._lbl("🏆 Zeitalter-Ziele", 26))
+	box.add_child(m._lbl("Jedes Ziel zählt nur in seinem Zeitalter und gibt dauerhaft seinen Bonus. %d von 3 Zielen bringen zusätzlich den Triumph des Zeitalters. Geprüft wird zum Jahreswechsel." % int(gv.cfg.get("age_triumph_goals", 2)), 15, Color(0.72, 0.75, 0.82)))
+	for age in gv.ages():
+		var running: bool = y >= int(age.from) and y <= int(age.to)
+		var past: bool = y > int(age.to)
+		var head := "%s (%d–%d)" % [age.name, int(age.from), mini(int(age.to), int(g.bal.start_year) + 200)]
+		if running:
+			head = "▶ " + head
+		box.add_child(m._lbl(head, 20, Color(1.0, 0.9, 0.6) if running else Color(0.75, 0.78, 0.85)))
+		if not running and not past:
+			box.add_child(m._lbl(", ".join(age.goals.map(func(x): return x.name)), 14, Color(0.6, 0.62, 0.68)))
+			continue
+		for goal in age.goals:
+			var done: bool = n.gov.ages.has(goal.id)
+			var p: Array = gv.goal_progress(g, n, goal.cond)
+			var line := "%s %s: %s" % ["✅" if done else ("❌" if past else "·"), goal.name, goal.text]
+			if running and not done:
+				line += " (%d/%d)" % [mini(p[0], p[1]), p[1]]
+			box.add_child(m._lbl(line, 15, Color(0.7, 0.95, 0.7) if done else Color(0.9, 0.9, 0.9)))
+			if running or done:
+				box.add_child(effects_rich(goal.reward, 14))
+		var won: bool = n.gov.ages.has(age.id)
+		var tl := "%s Triumph: %s" % ["✅" if won else ("❌" if past else "·"), age.triumph.name]
+		box.add_child(m._lbl(tl, 16, Color(1.0, 0.85, 0.4) if won else Color(0.85, 0.85, 0.85)))
+		if running or won:
+			box.add_child(effects_rich(age.triumph.reward, 14))
+	box.add_child(m._btn("Schließen", m._close_modal))
 
 
 ## Popup with the summed effects of all researched techs.

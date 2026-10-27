@@ -10,6 +10,7 @@ extends RefCounted
 ## `g` is the game (scripts/core/game.gd); untyped to avoid a cyclic preload.
 
 const Tech = preload("res://scripts/core/tech.gd")
+const Religion = preload("res://scripts/core/religion.gd")
 
 var cfg := {}
 var advisors: Array = []
@@ -60,7 +61,7 @@ func init_nation(n) -> void:
 	var bu := {}
 	for b in budget:
 		bu[b.id] = budget_default()
-	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}, "invest": {}, "estates": es, "estate_month": {}, "budget": bu, "reforms": {}, "reform_month": {}}
+	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}, "invest": {}, "estates": es, "estate_month": {}, "budget": bu, "reforms": {}, "reform_month": {}, "ages": {}}
 	refresh(n)
 	refresh_estates(n)
 
@@ -310,6 +311,13 @@ func refresh(n) -> void:
 			effs.append(law_option(law_id, n.gov.laws[law_id]).get("effects", {}))
 	for tier in n.gov.get("reforms", {}):
 		effs.append(reform_option(tier, n.gov.reforms[tier]).get("effects", {}))
+	var done: Dictionary = n.gov.get("ages", {})
+	for age in ages():
+		for goal in age.goals:
+			if done.has(goal.id):
+				effs.append(goal.reward)
+		if done.has(age.id):
+			effs.append(age.triumph.reward)
 	for e in effs:
 		for k in e:
 			b[k] = b.get(k, 0.0) + float(e[k])
@@ -565,6 +573,93 @@ func yearly(g, n) -> void:
 			g.log_msg("🎓 %s verlässt den Hof." % a.name, [n.tag])
 			_changed(g, n)
 	_estate_crisis(g, n)
+	ages_yearly(g, n)
+
+
+# ---------------------------------------------------------------- age goals (EU4-like age objectives)
+# Every age has three goals that count only while the age lasts. A reached goal gives its reward for good,
+# age_triumph_goals of them also the age's triumph. Reached ids (goal ids and age ids) -> year in n.gov.ages.
+
+func ages() -> Array:
+	return cfg.get("ages", [])
+
+
+func age_of_year(y: int) -> Dictionary:
+	for a in ages():
+		if y >= int(a.from) and y <= int(a.to):
+			return a
+	return {}
+
+
+## [have, need] for a goal condition.
+func goal_progress(g, n, cond: Dictionary) -> Array:
+	var k: String = cond.keys()[0]
+	var v = cond[k]
+	match k:
+		"techs":
+			return [n.techs.size(), int(v)]
+		"tech_cat":
+			var c := 0
+			for id in n.techs:
+				if g.tree.by_id.has(id) and g.tree.by_id[id].cat == v[0]:
+					c += 1
+			return [c, int(v[1])]
+		"advisors":
+			return [n.gov.advisors.size(), int(v)]
+		"company_level":
+			var best := 0
+			for id in n.gov.companies:
+				best = maxi(best, invest_level(n, id))
+			return [best, int(v)]
+		"reforms":
+			return [n.gov.reforms.size(), int(v)]
+		"dev":
+			return [n.dev_total, int(v)]
+		"estates_loyal":
+			var c := 0
+			for e in estates:
+				if estate_tier(n, e.id) == "loyal":
+					c += 1
+			return [c, int(v)]
+		"faith_share":
+			return [roundi(Religion.share(g, n.tag, n.religion) * 100.0), int(v)]
+		"prestige":
+			return [int(n.prestige), int(v)]
+	return [0, 1]
+
+
+func goal_met(g, n, cond: Dictionary) -> bool:
+	var p := goal_progress(g, n, cond)
+	return p[0] >= p[1]
+
+
+func age_goals_done(n, age: Dictionary) -> int:
+	var c := 0
+	for goal in age.goals:
+		if n.gov.ages.has(goal.id):
+			c += 1
+	return c
+
+
+## Yearly: goals of the running age that are met now are reached for good; enough of them win the triumph.
+func ages_yearly(g, n) -> void:
+	var age := age_of_year(g.year())
+	if age.is_empty():
+		return
+	var changed := false
+	for goal in age.goals:
+		if not n.gov.ages.has(goal.id) and goal_met(g, n, goal.cond):
+			n.gov.ages[goal.id] = g.year()
+			changed = true
+			if n.tag == g.player:
+				g.log_msg("🏆 Zeitalter-Ziel erreicht: %s (%s)." % [goal.name, Tech.effects_text(goal.reward)], [n.tag])
+	if not n.gov.ages.has(age.id) and age_goals_done(n, age) >= int(cfg.get("age_triumph_goals", 2)):
+		n.gov.ages[age.id] = g.year()
+		changed = true
+		if n.tag == g.player:
+			g.log_msg("🏆 Triumph der %s: %s (%s)." % [age.name, age.triumph.name, Tech.effects_text(age.triumph.reward)], [n.tag])
+	if changed:
+		_changed(g, n)
 
 
 # ---------------------------------------------------------------- estates
@@ -726,6 +821,9 @@ func load_save(n, d) -> void:
 	var rm: Dictionary = d.get("reform_month", {})
 	for k in rm:
 		n.gov.reform_month[k] = int(rm[k])
+	var ag: Dictionary = d.get("ages", {})
+	for k in ag:
+		n.gov.ages[k] = int(ag[k])
 	var bu: Dictionary = d.get("budget", {})
 	for k in bu:
 		if budget_by_id.has(k):

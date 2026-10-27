@@ -346,11 +346,6 @@ func _consider_war(g, n) -> void:
 	var aggression: float = n.aggression * g.diff("ai_aggression")
 	if g.rng.randf() > float(g.bal.ai_war_chance) * aggression:
 		return
-	var mine: float = g.strength(tag)
-	for ally in n.allies:
-		mine += g.strength(ally) * 0.7
-	for v in g.vassals_of(tag):
-		mine += g.strength(v)
 	var best := ""
 	var best_score := 0.0
 	for t in g.neighbors_of(tag):
@@ -360,10 +355,7 @@ func _consider_war(g, n) -> void:
 		var claim: bool = g.has_claim_on(tag, t)
 		if not claim and n.dip < float(g.bal.nocb_war_dip) + 10.0:
 			continue
-		var theirs: float = g.strength(t)
-		for ally in g.defenders_for(tag, t):
-			theirs += g.strength(ally)
-		var ratio: float = mine / maxf(theirs, 0.5)
+		var ratio := war_odds(g, tag, t)
 		var need: float = float(g.bal.ai_war_ratio) / aggression * (0.85 if claim else 1.0)
 		if t == g.player:
 			need /= g.diff("ai_vs_player")
@@ -375,6 +367,24 @@ func _consider_war(g, n) -> void:
 			best = t
 	if best != "":
 		g.declare_war(tag, best)
+
+
+## Expected strength ratio of a war `tag` declares on `t`, with the same sides declare_war builds:
+## only allies that will really join count (not those allied to or defending `t`), at 70 %.
+func war_odds(g, tag: String, t: String) -> float:
+	var defs: Array = g.defenders_for(tag, t)
+	var theirs: float = g.strength(t)
+	for d in defs:
+		theirs += g.strength(d)
+	var mine: float = 0.0
+	for v in g.vassals_of(tag):
+		if not defs.has(v):
+			mine += g.strength(v)
+	mine += g.strength(tag)
+	for ally in g.nations[tag].allies:
+		if not defs.has(ally) and not g.is_allied(ally, t) and g.get_rel(tag, ally) >= 20.0 and g.nations[ally].alive:
+			mine += g.strength(ally) * 0.7
+	return mine / maxf(theirs, 0.5)
 
 
 # ---------------------------------------------------------------- peace
@@ -619,6 +629,11 @@ func pick_event_option(g, n, e: Dictionary) -> int:
 	var weights := []
 	for i in e.options.size():
 		var w := float(e.options[i].get("ai", 50.0 if i == 0 else 25.0))
+		# historic war events: only march when the war looks winnable
+		var foe = e.options[i].get("effects", {}).get("war", "")
+		if foe != "" and g.nations.has(foe) and g.nations[foe].alive and foe != n.tag \
+				and war_odds(g, n.tag, foe) < float(g.bal.ai_event_war_ratio):
+			w *= 0.05
 		weights.append(w)
 		total += w
 	var r: float = g.rng.randf() * total
