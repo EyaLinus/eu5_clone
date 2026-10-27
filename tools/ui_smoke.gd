@@ -60,6 +60,9 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 	for it in m._advice():  # every advisor entry must lead to a panel that opens
 		m._open_panel(it.mode, it.arg)
 		n += 1
+	for w in g.wars_of(tag):
+		m._open_panel("peace", w.id)
+		n += 1
 	for t in ["trade", "goods", "overview"]:
 		m.econ_tab = t
 		m._open_panel("economy")
