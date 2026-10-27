@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- **Karte nach Süden und Osten erweitert (67 neue Provinzen):** Anatolien, Kaukasus, Levante, Ägypten und die
+  ganze nordafrikanische Küste bis Marokko, dazu Kreta, Zypern und Rhodos. 15 neue Länder im Stand von 1444:
+  Karaman, Candar, Dulkadir, Trapezunt, Aq Qoyunlu, Qara Qoyunlu (Täbris), Georgien, Schirwan, Tscherkessien,
+  Mamluken, Hafsiden (Tunis), Tlemcen, Marokko, Zypern und die Johanniter auf Rhodos. Die Osmanen besitzen jetzt
+  auch Westanatolien. Neue Märkte in Alexandria, Tunis und Täbris; Taurus, Kaukasus und Atlas auf der Karte.
 - **Browser-Version (neu):** Jedes Release enthält jetzt `RiseOfEU-web.zip`, das Spiel läuft damit direkt im
   Browser, auch eingebettet in andere Seiten. Spielstände bleiben im Browser gespeichert.
 

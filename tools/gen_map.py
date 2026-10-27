@@ -10,10 +10,10 @@ import math
 import sys
 
 from shapely import voronoi_polygons
-from shapely.geometry import MultiPoint, Point, Polygon, box, shape
+from shapely.geometry import MultiPoint, Point, box, shape
 from shapely.ops import unary_union
 
-# (key, name, lon, lat, owner, dev)
+# (key, name, lon, lat, owner, dev[, max radius in degrees for desert provinces])
 PROVINCES = [
     # England
     ("london", "London", -0.1, 51.5, "ENG", 13),
@@ -187,6 +187,79 @@ PROVINCES = [
     ("wallachia", "Walachei", 25.6, 44.6, "WAL", 7),
     ("moldavia", "Moldau", 27.2, 47.0, "MOL", 6),
     ("albania", "Albanien", 20.0, 41.1, "ALB", 4),
+    # --- the south and east (added after the first 161 provinces so their ids stay stable) ---
+    # Anatolia
+    ("bursa", "Bursa", 29.06, 40.18, "TUR", 10),
+    ("izmit", "Kocaeli", 30.1, 40.75, "TUR", 6),
+    ("saruhan", "Saruhan", 27.6, 38.75, "TUR", 6),
+    ("aydin", "Aydın", 28.0, 37.85, "TUR", 7),
+    ("mentese", "Menteşe", 28.6, 37.05, "TUR", 4),
+    ("germiyan", "Germiyan", 30.0, 39.4, "TUR", 5),
+    ("hamid", "Hamid", 30.7, 37.9, "TUR", 4),
+    ("teke", "Teke", 30.7, 36.95, "TUR", 5),
+    ("ankara", "Ankara", 32.85, 39.93, "TUR", 7),
+    ("amasya", "Amasya", 35.83, 40.65, "TUR", 6),
+    ("sivas", "Sivas", 37.0, 39.75, "TUR", 5),
+    ("kastamonu", "Kastamonu", 33.78, 41.38, "CND", 5),
+    ("sinop", "Sinope", 35.15, 42.0, "CND", 4),
+    ("konya", "Konya", 32.48, 37.87, "KAR", 8),
+    ("larende", "Larende", 33.3, 37.0, "KAR", 4),
+    ("aksaray", "Aksaray", 34.0, 38.4, "KAR", 4),
+    ("kayseri", "Kayseri", 35.48, 38.73, "KAR", 6),
+    ("icel", "İçel", 33.9, 36.4, "KAR", 3),
+    ("marash", "Maraş", 36.93, 37.58, "DUL", 5),
+    ("adana", "Adana", 35.32, 37.0, "MAM", 6),
+    ("malatya", "Malatya", 38.3, 38.35, "MAM", 5),
+    ("trebizond", "Trapezunt", 39.72, 41.0, "TRE", 7),
+    ("diyarbakir", "Diyarbakır", 40.22, 37.91, "AKK", 7),
+    ("urfa", "Urfa", 38.8, 37.15, "AKK", 4),
+    ("erzincan", "Erzincan", 39.5, 39.75, "AKK", 4),
+    ("erzurum", "Erzurum", 41.27, 39.9, "QAR", 4),
+    ("van", "Van", 43.38, 38.5, "QAR", 5),
+    ("mosul", "Mossul", 43.13, 36.34, "QAR", 6, 2.2),
+    ("yerevan", "Eriwan", 44.5, 40.18, "QAR", 5),
+    ("tabriz", "Täbris", 46.3, 38.08, "QAR", 10, 2.2),
+    # Caucasus
+    ("tbilisi", "Tiflis", 44.8, 41.7, "GEO", 8),
+    ("imereti", "Imeretien", 42.7, 42.27, "GEO", 5),
+    ("kakheti", "Kachetien", 46.0, 41.95, "GEO", 4),
+    ("abkhazia", "Abchasien", 41.0, 43.0, "GEO", 3),
+    ("shamakhi", "Schemacha", 48.64, 40.63, "SHI", 7),
+    ("derbent", "Derbent", 48.29, 42.06, "SHI", 5),
+    ("circassia", "Tscherkessien", 39.5, 44.6, "CIR", 4),
+    ("kabarda", "Kabarda", 43.6, 43.5, "CIR", 3),
+    # Levant, Egypt, Cyrenaica (Mamluks)
+    ("aleppo", "Aleppo", 37.16, 36.2, "MAM", 9),
+    ("tripoli_sy", "Tripolis (Syrien)", 35.85, 34.43, "MAM", 6),
+    ("damascus", "Damaskus", 36.3, 33.5, "MAM", 10, 2.2),
+    ("jerusalem", "Jerusalem", 35.2, 31.78, "MAM", 7, 2.2),
+    ("cairo", "Kairo", 31.24, 30.04, "MAM", 16, 2.2),
+    ("alexandria", "Alexandria", 29.92, 31.2, "MAM", 10),
+    ("damietta", "Damiette", 31.8, 31.42, "MAM", 6),
+    ("upper_egypt", "Oberägypten", 30.8, 28.3, "MAM", 5, 2.2),
+    ("marmarica", "Marmarika", 25.0, 31.6, "MAM", 2, 2.2),
+    ("barqa", "Barka", 20.07, 32.1, "MAM", 3, 2.2),
+    # Maghreb
+    ("sirte", "Syrte", 16.6, 31.2, "TUN", 2, 2.2),
+    ("tripoli", "Tripolis", 13.18, 32.9, "TUN", 6, 2.2),
+    ("gabes", "Gabès", 10.1, 33.9, "TUN", 3, 2.2),
+    ("kairouan", "Kairouan", 10.1, 35.68, "TUN", 6, 2.2),
+    ("tunis", "Tunis", 10.18, 36.8, "TUN", 12),
+    ("constantine", "Konstantine", 6.61, 36.36, "TUN", 6),
+    ("bejaia", "Bejaia", 5.08, 36.75, "TUN", 5),
+    ("algiers", "Algier", 3.06, 36.75, "TLE", 6),
+    ("oran", "Oran", -0.63, 35.7, "TLE", 5),
+    ("tlemcen", "Tlemcen", -1.32, 34.88, "TLE", 8, 2.2),
+    ("rif", "Rif", -3.9, 35.1, "MOR", 3),
+    ("tangier", "Tanger", -5.8, 35.77, "MOR", 5),
+    ("fez", "Fès", -5.0, 34.03, "MOR", 12),
+    ("rabat", "Salé", -6.84, 34.02, "MOR", 5),
+    ("marrakesh", "Marrakesch", -8.0, 31.63, "MOR", 9, 2.2),
+    ("sous", "Sous", -9.4, 30.2, "MOR", 3, 2.2),
+    # Eastern Mediterranean islands
+    ("crete", "Kreta", 24.9, 35.25, "VEN", 6),
+    ("cyprus", "Zypern", 33.36, 35.1, "CYP", 6),
+    ("rhodes", "Rhodos", 28.0, 36.2, "KNI", 4),
 ]
 
 # Extra sea/strait connections (province keys)
@@ -197,19 +270,15 @@ STRAITS = [
     ("stockholm", "turku"), ("turku", "reval"), ("constantinople", "edirne"),
     ("cornwall", "brest"), ("sardinia", "barcelona"), ("sicily", "napoli"),
     ("crimea", "zaporozhia"), ("dalmatia", "ancona"), ("morea", "thessaly"),
+    ("constantinople", "izmit"), ("edirne", "bursa"), ("crimea", "circassia"), ("sevilla", "tangier"),
+    ("granada", "tangier"), ("sicily", "tunis"), ("sardinia", "tunis"), ("crete", "morea"),
+    ("crete", "rhodes"), ("rhodes", "mentese"), ("cyprus", "icel"), ("cyprus", "tripoli_sy"),
 ]
 
 SCALE = 48.0  # pixels per degree latitude
 LON0, LAT0 = -11.0, 63.0
 COSLAT = math.cos(math.radians(50))
-MIN_LAT = 34.0
-# lon/lat boxes cut out of the land mask (Anatolia, Caucasus, Tunisia)
-EXCLUDE = [(37.6, 30.0, 52.0, 45.6), (7.5, 30.0, 11.6, 37.6),
-           (-2.0, 30.0, 7.6, 37.2), (-12.0, 30.0, -2.0, 36.0)]
-# Asia Minor, cut along the Dardanelles and the Bosporus
-ANATOLIA = Polygon([(25.9, 30.0), (25.9, 39.9), (26.15, 39.95), (26.4, 40.2), (26.7, 40.4),
-                    (27.5, 40.5), (28.9, 40.95), (29.05, 41.1), (29.15, 41.25), (29.4, 42.3), (52.0, 42.3),
-                    (52.0, 30.0)])
+MIN_LAT = 27.0
 
 
 def proj(lon, lat):
@@ -232,9 +301,6 @@ def main(land_path):
             land_parts.append(g.intersection(window))
     land_ll = unary_union(land_parts)
     full_land = project_geom(land_ll).buffer(0)
-    for ex in EXCLUDE:
-        land_ll = land_ll.difference(box(*ex))
-    land_ll = land_ll.difference(ANATOLIA)
     land = project_geom(land_ll).buffer(0)
 
     pts = [proj(p[2], p[3]) for p in PROVINCES]
@@ -251,7 +317,7 @@ def main(land_path):
     shapes = []
     for i, p in enumerate(PROVINCES):
         cell = cells_by_idx[i]
-        disc = Point(pts[i]).buffer(max_r, 24)
+        disc = Point(pts[i]).buffer(p[6] * SCALE if len(p) > 6 else max_r, 24)
         g = cell.intersection(disc).intersection(land)
         g = g.simplify(1.2, preserve_topology=True)
         if g.geom_type == "MultiPolygon":
@@ -300,7 +366,7 @@ def main(land_path):
             bg.append([[round(x, 1), round(y, 1)] for x, y in list(q.exterior.coords)[:-1]])
 
     minx, miny, maxx, maxy = land.bounds
-    out = {"size": [round(maxx, 1), round(min(maxy, (LAT0 - 35.5) * SCALE), 1)], "provinces": provinces, "background": bg}
+    out = {"size": [round(maxx, 1), round(min(maxy, (LAT0 - MIN_LAT - 0.5) * SCALE), 1)], "provinces": provinces, "background": bg}
     with open("data/map.json", "w") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
     print(len(provinces), "provinces, bg polys:", len(bg), "size", out["size"])
