@@ -66,6 +66,66 @@ func init_nation(n) -> void:
 	refresh_estates(n)
 
 
+# ---------------------------------------------------------------- heir
+# n.gov.heir = {adm, dip, mil, name, edu}: takes the throne when the ruler's years run out (game._yearly).
+# Educating (once a year, power of that kind) raises one of the heir's skills by one up to ruler_max.
+
+func ensure_heir(g, n) -> void:
+	if n.gov.get("heir", {}).is_empty():
+		var h: Dictionary = g.roll_person(n)
+		h.erase("years")
+		h["edu"] = 0
+		n.gov.heir = h
+
+
+## "Erbe" for hereditary rule, "Nachfolger" for republics, theocracies, orders and elective monarchies.
+func heir_title(tag: String) -> String:
+	return "Nachfolger" if cfg.get("elective_forms", []).has(form_name(tag)) else "Erbe"
+
+
+## The ruler's years are over: the heir takes the throne (fresh reign length), a new heir is named.
+func succession(g, n) -> void:
+	var h: Dictionary = n.gov.get("heir", {})
+	if h.is_empty():
+		g._new_ruler(n)
+	else:
+		n.ruler = {"adm": int(h.adm), "dip": int(h.dip), "mil": int(h.mil), "years": g.rng.randi_range(8, 35)}
+		n.ruler_name = str(h.name)
+	n.gov.heir = {}
+	ensure_heir(g, n)
+
+
+func educate_cost(g, n, kind: String) -> float:
+	var h: Dictionary = n.gov.get("heir", {})
+	return round(float(cfg.get("heir_edu_cost", 60)) * (1.0 + float(cfg.get("heir_edu_step", 0.5)) * int(h.get(kind, 0))))
+
+
+func educate_block(g, tag: String, kind: String) -> String:
+	var n = g.nations[tag]
+	var h: Dictionary = n.gov.get("heir", {})
+	if h.is_empty():
+		return "Kein %s." % heir_title(tag)
+	if int(h.get(kind, 0)) >= int(g.bal.ruler_max):
+		return "Schon voll ausgebildet."
+	if int(h.get("edu", 0)) == g.year():
+		return "Dieses Jahr schon unterrichtet."
+	var c := educate_cost(g, n, kind)
+	if n.get(kind) < c:
+		return "Zu wenig Punkte (%d benötigt)." % c
+	return ""
+
+
+func educate(g, tag: String, kind: String) -> String:
+	var err := educate_block(g, tag, kind)
+	if err != "":
+		return err
+	var n = g.nations[tag]
+	n.set(kind, n.get(kind) - educate_cost(g, n, kind))
+	n.gov.heir[kind] = int(n.gov.heir[kind]) + 1
+	n.gov.heir.edu = g.year()
+	return ""
+
+
 func form_name(tag: String) -> String:
 	return forms.get(tag, forms.get("default", "Monarchie"))
 
@@ -653,6 +713,7 @@ func yearly(g, n) -> void:
 			g.log_msg("🎓 %s verlässt den Hof." % a.name, [n.tag])
 			_changed(g, n)
 	_advisor_careers(g, n)
+	ensure_heir(g, n)
 	_estate_crisis(g, n)
 	ages_yearly(g, n)
 
@@ -911,6 +972,10 @@ func load_save(n, d) -> void:
 	for k in bu:
 		if budget_by_id.has(k):
 			n.gov.budget[k] = clampi(int(bu[k]), 0, budget_max())
+	var h: Dictionary = d.get("heir", {})
+	if not h.is_empty():
+		n.gov.heir = {"adm": int(h.get("adm", 0)), "dip": int(h.get("dip", 0)), "mil": int(h.get("mil", 0)),
+				"name": str(h.get("name", "")), "edu": int(h.get("edu", 0))}
 	refresh(n)
 	refresh_estates(n)
 
@@ -933,6 +998,20 @@ func ai_think(g, n) -> void:
 		_ai_budget(g, n)
 	elif slot == 6:
 		_ai_reforms(g, n)
+	elif slot == 10:
+		_ai_heir(g, n)
+
+
+## AI educates its heir only with power to spare (ai_heir_share of the cap), in the kind it has most of.
+func _ai_heir(g, n) -> void:
+	var best := ""
+	var best_left := float(g.bal.power_cap) * float(cfg.get("ai_heir_share", 0.6))
+	for k in g.POWERS:
+		if educate_block(g, n.tag, k) == "" and n.get(k) - educate_cost(g, n, k) > best_left:
+			best_left = n.get(k) - educate_cost(g, n, k)
+			best = k
+	if best != "":
+		educate(g, n.tag, best)
 
 
 func _ai_laws(g, n) -> void:
