@@ -25,7 +25,7 @@ func _init() -> void:
 		"test_religion",
 		"test_monuments_and_feast",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_empire_reforms",
 		"test_religion_modifiers",
 		"test_age_goals",
@@ -1991,3 +1991,37 @@ func test_income_bonus_and_army_cost() -> void:
 	check(absf(g.regiment_cost("FRA") - c0 - 5 * float(g.bal.army_cost_per_mil_tech) * float(g.bal.regiment_cost)) < 0.001,
 			"regiments get dearer with military tech")
 	check(g.regiment_upkeep("FRA") > float(g.bal.regiment_maintenance), "and so does their upkeep")
+
+
+## court_ events (tools/content/court_events.py): great works, feasts and marriages as conditions and effects.
+func test_court_content() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	var cnt := 0
+	for e in data.events:
+		if e.id.begins_with("court_"):
+			cnt += 1
+			g.check_conditions("FRA", e.trigger)  # must not crash
+			for key in ["monument"]:
+				check(not e.trigger.has(key) or g.monument_defs.has(e.trigger[key]), "%s names a known great work" % e.id)
+	check(cnt >= 15, "court events present (%d)" % cnt)
+	check(not g.check_conditions("FRA", {"monument_building": true}) and g.check_conditions("FRA", {"monument_building": false}), "nothing under construction at start")
+	n.monument_build = {"id": "cathedral", "months": 10}
+	g.apply_effects("FRA", {"monument_progress": 6})
+	check(int(n.monument_build.months) == 4 and g.check_conditions("FRA", {"monument_building": true}), "monument_progress brings the work forward")
+	g.apply_effects("FRA", {"monument_progress": 99})
+	check(int(n.monument_build.months) == 1, "monument_progress never finishes the work outright")
+	n.monuments["cathedral"] = true
+	check(g.check_conditions("FRA", {"monument": "cathedral", "monuments_min": 1}) and not g.check_conditions("FRA", {"monuments_min": 2}), "finished great works")
+	n.flags["feast_month"] = g.month
+	check(g.check_conditions("FRA", {"feast_recent": 6}) and g.feast_ready_in("FRA") > 0, "feast held recently")
+	g.apply_effects("FRA", {"feast_ready": true})
+	check(g.feast_ready_in("FRA") == 0, "feast_ready resets the cooldown")
+	check(not g.check_conditions("FRA", {"married": true}), "not married at start")
+	check(g.check_conditions("FRA", {"is_player": true}) and not g.check_conditions("ENG", {"is_player": true}), "is_player only for the player")
+	n.marriages.append("ENG")
+	g.nations.ENG.marriages.append("FRA")
+	var r0: float = g.get_rel("FRA", "ENG")
+	g.apply_effects("FRA", {"spouse_rel": 20})
+	check(g.check_conditions("FRA", {"married": true}) and g.get_rel("FRA", "ENG") > r0, "spouse_rel improves relations with in-laws")
+

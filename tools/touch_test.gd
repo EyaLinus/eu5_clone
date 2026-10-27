@@ -40,8 +40,8 @@ func _run() -> void:
 	var fails := []
 	# find a button in the lower half of the scroll area
 	var target: Button = null
-	for c in m.side_box.get_children():
-		if c is Button and c.get_global_rect().position.y > m.side_scroll.get_global_rect().position.y + 150:
+	for c in m.side_box.find_children("*", "Button", true, false):
+		if c.get_global_rect().position.y > m.side_scroll.get_global_rect().position.y + 150:
 			target = c
 			break
 	if target == null:
