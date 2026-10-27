@@ -91,6 +91,8 @@ Siehe [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/ROADMAP.md](docs/ROADM
   spielt parallele KI-Partien über 200 Jahre, misst Auslöschungen, Größe der stärksten Nation,
   Überleben der Großmächte, Koalitionskriege, Kriegs-Timeouts und Bankrotte und passt
   `data/balance.json` an. Ergebnis: `tools/balance_report.md`.
+- **Changelog:** Jeder PR legt seinen Eintrag als eigene Datei in `changelog.d/` ab (nicht in `CHANGELOG.md`),
+  beim Release fügt `python3 tools/changelog_collect.py --version vX.Y.Z` sie zusammen. Details: [changelog.d/README.md](changelog.d/README.md).
 - Build: `tools/build.sh` (lokal) oder GitHub Actions (`.github/workflows/build.yml`: Tests → EXE/APK →
   Release bei Tag `v*`).
 
