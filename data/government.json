@@ -711,7 +711,112 @@
   "BRA": "Kurfürstentum",
   "NUR": "Freie Reichsstadt",
   "BRI": "Herzogtum",
-  "BAV": "Herzogtum"
+  "BAV": "Herzogtum",
+  "MAM": "Sultanat",
+  "TUN": "Sultanat",
+  "TLE": "Sultanat",
+  "MOR": "Sultanat",
+  "KNI": "Ordensstaat",
+  "TRE": "Kaiserreich",
+  "KAR": "Beylik",
+  "CND": "Beylik",
+  "DUL": "Beylik",
+  "AKK": "Stammesföderation",
+  "QAR": "Stammesföderation",
+  "CIR": "Stammesföderation"
+ },
+ "form_effects": {
+  "Feudalmonarchie": {
+   "manpower": 0.1,
+   "estate_adel": 5
+  },
+  "Wahlmonarchie": {
+   "dip": 0.5,
+   "estate_adel": 15,
+   "tax": -0.05
+  },
+  "Kaufmannsrepublik": {
+   "trade": 0.15,
+   "estate_buerger": 10,
+   "manpower": -0.1
+  },
+  "Stadtrepublik": {
+   "trade": 0.1,
+   "production": 0.05,
+   "force_limit": -1
+  },
+  "Städtebund": {
+   "trade": 0.15,
+   "estate_buerger": 10,
+   "force_limit": -2
+  },
+  "Eidgenossenschaft": {
+   "combat": 0.05,
+   "manpower": 0.15,
+   "trade": -0.05
+  },
+  "Freie Reichsstadt": {
+   "production": 0.1,
+   "estate_buerger": 10,
+   "force_limit": -1
+  },
+  "Theokratie": {
+   "conversion": 0.5,
+   "estate_klerus": 10,
+   "manpower": -0.1
+  },
+  "Ordensstaat": {
+   "combat": 0.05,
+   "estate_klerus": 5,
+   "tax": -0.05
+  },
+  "Kurfürstliches Erzstift": {
+   "conversion": 0.25,
+   "estate_klerus": 10,
+   "force_limit": -1
+  },
+  "Sultanat": {
+   "force_limit": 2,
+   "manpower": 0.1,
+   "estate_adel": -5
+  },
+  "Beylik": {
+   "manpower": 0.1,
+   "army_power_regen": 0.1,
+   "tax": -0.05
+  },
+  "Stammesföderation": {
+   "manpower": 0.15,
+   "army_power_regen": 0.1,
+   "tax": -0.1
+  },
+  "Khanat": {
+   "army_power_regen": 0.2,
+   "manpower": 0.1,
+   "tax": -0.1
+  },
+  "Kaiserreich": {
+   "prestige": 0.5,
+   "adm": 0.5,
+   "unrest": 0.25
+  },
+  "Erzherzogtum": {
+   "dip": 0.5,
+   "estate_adel": 5
+  },
+  "Herzogtum": {
+   "tax": 0.05,
+   "estate_adel": 5
+  },
+  "Großfürstentum": {
+   "manpower": 0.15,
+   "tech_cost": 0.03
+  },
+  "Kurfürstentum": {
+   "prestige": 0.25,
+   "tax": 0.05,
+   "estate_adel": 5
+  }
  },
  "advisors": [
   {
