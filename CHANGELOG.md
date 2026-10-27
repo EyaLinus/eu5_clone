@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- **🎓 Erste Schritte:** Sechs kleine Einstiegsziele oben im 💡 Ratgeber (entwickeln, bauen, forschen, Berater,
+  Regiment, Bündnis oder Heirat). Antippen führt hin, erledigte Ziele bringen je +25 💰 und +5 ⭐. Der Zähler am
+  Ratgeber-Tab zeigt wartende Belohnungen. Verschwindet, sobald alle abgeholt sind.
 - **Staatsformen wirken:** Jede Staatsform bringt jetzt einen kleinen dauerhaften Vor- und Nachteil, etwa
   Kaufmannsrepublik +15 % Handel (−10 % Truppen), Sultanat +2 Truppenlimit, Theokratie schnellere Bekehrung,
   Wahlmonarchie +0,5 Diplomatie bei mächtigerem Adel. Die Wirkung steht unter dem Kopf des Regierungsfensters.
