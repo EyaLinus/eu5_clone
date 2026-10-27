@@ -25,8 +25,16 @@ static func setup(g, data: Dictionary) -> void:
 		p.religion = g.nations[p.owner].religion
 
 
+## Unrest from a province of another faith; laws like Toleranz lower it (modifier religious_unrest).
 static func unrest(g, p) -> float:
-	return float(g.bal.religion_unrest) if p.religion != g.nations[p.owner].religion else 0.0
+	if p.religion == g.nations[p.owner].religion:
+		return 0.0
+	return float(g.bal.religion_unrest) * maxf(0.0, 1.0 + g.mod(g.nations[p.owner], "religious_unrest"))
+
+
+## Months a missionary needs; the conversion modifier (e.g. Glaubenseifer) shortens it.
+static func convert_months(g, n) -> int:
+	return maxi(1, roundi(float(g.bal.convert_months) / maxf(0.3, 1.0 + g.mod(n, "conversion"))))
 
 
 ## Share (0..1) of a nation's development that follows religion r.
@@ -77,7 +85,7 @@ static func send_missionary(g, tag: String, pid: int) -> String:
 		return r
 	var p = g.provinces[pid]
 	g.nations[tag].gold -= convert_cost(g, p)
-	p.convert_months = int(g.bal.convert_months)
+	p.convert_months = convert_months(g, g.nations[tag])
 	return ""
 
 
@@ -138,7 +146,8 @@ static func yearly(g) -> void:
 	# people slowly take up the faith of their rulers
 	for p in g.provinces:
 		var own: String = g.nations[p.owner].religion
-		if p.religion != own and p.convert_months == 0 and p.controller == p.owner and g.rng.randf() < float(g.bal.religion_drift):
+		if p.religion != own and p.convert_months == 0 and p.controller == p.owner \
+				and g.rng.randf() < float(g.bal.religion_drift) * maxf(0.0, 1.0 + g.mod(g.nations[p.owner], "conversion")):
 			p.religion = own
 	if y >= int(g.bal.reformation_year) and y <= int(g.bal.reformation_end):
 		_reformation(g, y)

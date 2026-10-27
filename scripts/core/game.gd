@@ -156,6 +156,8 @@ var govt = Government.new()  # government definitions + logic
 var hre: Array = []
 var emperor: String = ""
 var electors: Array = []
+var hre_authority: float = 0.0  # imperial authority, spent by the emperor on reforms (govt.empire_*)
+var hre_reforms: Array = []  # passed imperial reform ids, in order
 var history: Array = []  # player's yearly snapshot: [year, dev, rank, provinces]
 # economy (scripts/core/economy.gd)
 var goods_def := {}
@@ -284,6 +286,8 @@ func _apply_start_diplomacy(d: Dictionary) -> void:
 	hre = d.get("hre", [])
 	emperor = d.get("emperor", "")
 	electors = d.get("electors", [])
+	hre_authority = float(govt.empire_cfg().get("authority_start", 10))
+	hre_reforms = []
 	for pair in d.get("alliances", []):
 		_ally(pair[0], pair[1])
 		add_rel(pair[0], pair[1], 60)
@@ -818,6 +822,7 @@ func _yearly() -> void:
 	_record_history()
 	if emperor == "" or not nations[emperor].alive or nations[emperor].overlord != "":
 		hre_election()
+	govt.empire_yearly(self)
 
 
 func rank_of(tag: String) -> int:
@@ -903,6 +908,8 @@ func hre_election() -> void:
 	emperor = winner
 	if winner != old:
 		stats.emperor_changes = stats.get("emperor_changes", 0) + 1
+		if old != "":
+			govt.on_new_emperor(self)
 		log_msg("👑 Kaiserwahl: %s wird mit %d von %d Stimmen Kaiser des Heiligen Römischen Reiches!" % [nations[winner].name, count[winner], votes.size()],
 				[winner] + ([old] if old != "" else []))
 	else:
@@ -1303,6 +1310,8 @@ func declare_war(att: String, def: String, coalition_members: Array = []) -> Str
 		return "Es besteht ein Waffenstillstand."
 	if nations[att].overlord != "" and coalition_members.is_empty():
 		return "Vasallen dürfen keine Kriege erklären."
+	if coalition_members.is_empty() and govt.landfriede(self, att, def):
+		return "Der Ewige Landfriede verbietet Kriege zwischen Reichsmitgliedern."
 	var n: Nation = nations[att]
 	if n.marriages.has(def):
 		end_marriage(att, def)
@@ -2316,6 +2325,16 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 						n.loans.pop_back()
 			"merc_ready":
 				n.flags.erase("merc_month")
+			"convert_random":
+				# provinces of another faith take up the state religion (largest first)
+				var other := []
+				for pid in provinces_of(tag):
+					if provinces[pid].religion != n.religion:
+						other.append(pid)
+				other.sort_custom(func(x, y): return provinces[x].dev > provinces[y].dev)
+				for i in mini(int(v), other.size()):
+					provinces[other[i]].religion = n.religion
+					provinces[other[i]].convert_months = 0
 			"vassal":
 				# event-driven vassalization (dynastic deals), only for free, independent minors
 				if nations.has(v) and v != tag and v != player and nations[v].alive and nations[v].overlord == "" \
@@ -2509,6 +2528,18 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"gold_max":
 				if n.gold > float(v):
 					return false
+			"faith_share_max":
+				# at most this share of the realm's development follows the state religion
+				if Religion.share(self, tag, n.religion) > float(v):
+					return false
+			"province_faith":
+				var found := false
+				for pid in provinces_of(tag):
+					if provinces[pid].religion == v:
+						found = true
+						break
+				if not found:
+					return false
 			"religion":
 				if n.religion != str(v):
 					return false
@@ -2597,6 +2628,7 @@ func to_dict() -> Dictionary:
 	var d := {"month": month, "player": player, "difficulty": difficulty, "rng_state": str(rng.state), "rng_seed": str(rng.seed),
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
 			"pending_peace": pending_peace, "peace_offer_memo": peace_offer_memo, "log": log_lines, "stats": stats, "game_over": game_over, "emperor": emperor,
+			"hre_authority": hre_authority, "hre_reforms": hre_reforms,
 			"history": history, "prices": prices, "prev_prices": prev_prices, "shocks": shocks}
 	var ps := []
 	for p in provinces:
@@ -2654,6 +2686,11 @@ func from_dict(d: Dictionary) -> void:
 	log_lines = d.log
 	game_over = d.get("game_over", false)
 	emperor = d.get("emperor", emperor)
+	hre_authority = float(d.get("hre_authority", hre_authority))
+	hre_reforms = []
+	for id in d.get("hre_reforms", []):
+		if govt.empire_by_id.has(id):
+			hre_reforms.append(id)
 	history = []
 	for h in d.get("history", []):
 		history.append([int(h[0]), int(h[1]), int(h[2]), int(h[3])])
@@ -2777,6 +2814,7 @@ func from_dict(d: Dictionary) -> void:
 		wars.append(w)
 	_rebuild_owned()
 	for tag in order:
+		nations[tag].bonus["empire"] = govt.empire_effects(self, tag) if nations[tag].alive else {}
 		_update_cached(nations[tag])
 	Economy.refresh_goods_leaders(self)
 	Economy.update_markets(self)

@@ -24,7 +24,9 @@ func _init() -> void:
 		"test_religion",
 		"test_monuments_and_feast",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
+		"test_empire_reforms",
+		"test_religion_modifiers",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1669,6 +1671,94 @@ func test_tech_spread() -> void:
 	check(g.tree.spread_discount(g, "FRA", sp.id) == 0.0, "special techs never get cheaper")
 
 
+## Imperial reforms: authority, elector support, member/emperor effects, Ewiger Landfriede, save/load, AI.
+func test_empire_reforms() -> void:
+	var g = new_game("FRA")
+	var gv = g.govt
+	var emp: String = g.emperor
+	check(emp != "" and g.hre.has(emp), "there is an emperor")
+	check(gv.empire_reforms().size() == 5, "five imperial reforms")
+	check(absf(g.hre_authority - 10.0) < 0.01, "authority starts at 10")
+	check(gv.authority_gain(g) > 2.0, "authority grows with the members")
+	check(gv.empire_reform_block(g, "FRA") != "", "only the emperor passes reforms")
+	check(gv.empire_reform_block(g, emp).contains("1450"), "the first reform waits for 1450")
+	g.month = (1450 - 1444) * 12
+	g.hre_authority = 0.0
+	check(gv.empire_reform_block(g, emp).contains("Autorität"), "reforms cost authority")
+	for e in g.current_electors():
+		if e != emp:
+			g.add_rel(e, emp, 200.0)
+	g.hre_authority = 50.0
+	check(gv.pass_empire_reform(g, emp) == "", "the emperor passes the Reichstag")
+	check(g.hre_reforms == ["reichstag"] and absf(g.hre_authority - 10.0) < 0.01, "authority spent, reform recorded")
+	var member := ""
+	for t in g.hre_members():
+		if t != emp:
+			member = t
+			break
+	check(absf(g.nations[emp].bonus.empire.get("prestige", 0.0) - 1.0) < 0.001 and g.nations[emp].bonus.empire.get("unrest", 0.0) < 0.0, "emperor gets both effects")
+	check(g.nations[member].bonus.empire.get("unrest", 0.0) < 0.0 and not g.nations[member].bonus.empire.has("prestige"), "members get the member effects")
+	check(g.nations.FRA.bonus.get("empire", {}).is_empty(), "outsiders get nothing")
+	g.hre_authority = 1000.0
+	check(gv.empire_reform_block(g, emp).contains("1470"), "reforms unlock by year")
+	g.month = (1600 - 1444) * 12
+	for e in g.current_electors():
+		if e != emp:
+			g.add_rel(e, emp, -400.0)
+	check(gv.empire_reform_block(g, emp).contains("Kurfürsten"), "electors must back the emperor")
+	for e in g.current_electors():
+		if e != emp:
+			g.add_rel(e, emp, 400.0)
+	while gv.next_empire_reform(g).size() > 0:
+		check(gv.pass_empire_reform(g, emp) == "", "pass %s" % gv.next_empire_reform(g).get("id", "?"))
+	check(g.hre_reforms.size() == 5, "all reforms passed")
+	check(gv.landfriede(g, emp, member) and not gv.landfriede(g, "FRA", member), "Landfriede binds members only")
+	for a in g.hre_members():
+		for b in g.hre_members():
+			if a != b and not g.is_allied(a, b) and not g.has_truce(a, b) and not g.at_war(a, b) and g.nations[a].overlord == "":
+				check(g.declare_war(a, b).contains("Landfriede"), "no wars between members")
+				break
+		break
+	var text := JSON.stringify(g.to_dict())
+	var g2 = new_game("FRA", 3)
+	g2.from_dict(JSON.parse_string(text))
+	check(g2.hre_reforms.size() == 5 and absf(g2.hre_authority - g.hre_authority) < 0.01, "reforms survive save/load")
+	check(absf(g2.nations[emp].bonus.empire.get("tax", 0.0) - g.nations[emp].bonus.empire.get("tax", 0.0)) < 0.001, "effects restored on load")
+	g2.hre_authority = 100.0
+	gv.on_new_emperor(g2)
+	check(absf(g2.hre_authority - 75.0) < 0.01, "a new house keeps 75 % of the authority")
+	var g3 = new_game("FRA")
+	g3.month = (1450 - 1444) * 12
+	g3.hre_authority = 39.0
+	for e in g3.current_electors():
+		if e != g3.emperor:
+			g3.add_rel(e, g3.emperor, 200.0)
+	g3.govt.empire_yearly(g3)
+	check(g3.hre_reforms == ["reichstag"], "an AI emperor passes reforms on its own")
+
+
+## Church laws and advisors change religious unrest and conversion speed.
+func test_religion_modifiers() -> void:
+	var Religion = Game.Religion
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	var gv = g.govt
+	var pid: int = g.provinces_of("FRA")[0]
+	var p = g.provinces[pid]
+	p.religion = "orthodox"
+	var base: float = Religion.unrest(g, p)
+	check(base > 0.0, "another faith causes unrest")
+	n.dip = 500.0
+	check(gv.set_law(g, "FRA", "kirche", "toleranz") == "", "enact Toleranz")
+	check(absf(Religion.unrest(g, p) - base * 0.25) < 0.001, "Toleranz cuts religious unrest by 75 %")
+	var months: int = Religion.convert_months(g, n)
+	n.gov.law_month.erase("kirche")
+	check(gv.set_law(g, "FRA", "kirche", "glaubenseifer") == "", "enact Glaubenseifer")
+	check(Religion.unrest(g, p) > base, "zeal angers other faiths")
+	check(Religion.convert_months(g, n) < months, "zeal speeds up missionaries")
+	check(gv.adv_by_id.has("hofprediger"), "court preacher advisor exists")
+
+
 func test_ai_marriage_and_generals() -> void:
 	var g = new_game("ENG")
 	var fra = g.nations.FRA
@@ -1735,6 +1825,31 @@ func test_ai_access_and_guarantee() -> void:
 	g.bal.ai_guarantee_chance = 1.0
 	g.ai._guarantee(g, fra)
 	check(fra.guarantees.size() == 1, "a great power guarantees a small friendly neighbour")
+
+
+## rel_ events (tools/content/rel_events.py): faith conditions and the convert_random effect.
+func test_rel_content() -> void:
+	var g = new_game("BOH")
+	var n = g.nations.BOH
+	var cnt := 0
+	for e in data.events:
+		if e.id.begins_with("rel_"):
+			cnt += 1
+			g.check_conditions("BOH", e.trigger)  # must not crash
+	check(cnt >= 15, "religion events present (%d)" % cnt)
+	check(not g.check_conditions("BOH", {"province_faith": "protestant"}) and not g.check_conditions("BOH", {"faith_share_max": 0.9}), "united catholic realm at start")
+	var own: Array = g.provinces_of("BOH")
+	for pid in own:
+		g.provinces[pid].religion = "protestant"
+	check(g.check_conditions("BOH", {"province_faith": "protestant", "faith_share_max": 0.1}), "protestant provinces detected")
+	g.apply_effects("BOH", {"convert_random": 2})
+	var back := 0
+	for pid in own:
+		if g.provinces[pid].religion == n.religion:
+			back += 1
+	check(back == mini(2, own.size()), "convert_random returns two provinces to the state faith (%d)" % back)
+	g.apply_effects("BOH", {"convert_random": 99})
+	check(g.check_conditions("BOH", {"faith_share_max": 1.0}) and not g.check_conditions("BOH", {"province_faith": "protestant"}), "convert_random never overshoots")
 
 
 func test_income_bonus_and_army_cost() -> void:

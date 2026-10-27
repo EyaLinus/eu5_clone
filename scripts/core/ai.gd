@@ -355,7 +355,7 @@ func _consider_war(g, n) -> void:
 	var best_score := 0.0
 	for t in g.neighbors_of(tag):
 		var o = g.nations[t]
-		if not o.alive or g.is_allied(tag, t) or g.has_truce(tag, t) or g.at_war(tag, t):
+		if not o.alive or g.is_allied(tag, t) or g.has_truce(tag, t) or g.at_war(tag, t) or g.govt.landfriede(g, tag, t):
 			continue
 		var claim: bool = g.has_claim_on(tag, t)
 		if not claim and n.dip < float(g.bal.nocb_war_dip) + 10.0:
