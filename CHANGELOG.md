@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+- **Reichsfenster (HRE) kompakt:** Kurfürsten in drei Spalten (Flagge → Stimme), Mitglieder, deine Stimmen,
+  Autorität und Rückhalt als Kacheln. Beschlossene und spätere Reformen stehen je in einer Kachel (Details im
+  Tooltip), nur die nächste Reform wird ausgeschrieben. Etwa 40 % kürzer.
+
 ## v0.9.1 – 2026-10-27
 - **Weitere Fenster entschlackt:** Kartenmodi und Rangliste stehen in zwei Spalten (Details im Tooltip), offene
   Missionen zeigen nur ihre Bedingungen (Belohnung im Tooltip, die ersten fünf sichtbar), lange Diplomatiegruppen
