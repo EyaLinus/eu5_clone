@@ -6,6 +6,9 @@
   Ziel zählt nur in seinem Zeitalter und gibt dauerhaft einen Bonus. Zwei von drei bringen den Triumph des Zeitalters
   (z. B. Renaissancefürst: +0,5 Verwaltung/Monat). Der 🏆-Knopf im Technologie-Fenster zeigt Fortschritt und
   Belohnungen. Die KI verfolgt die Ziele ebenfalls.
+
+## v0.9.0 – 2026-10-27
+- Die KI gibt überschüssiges Gold im Frieden für Missionare, Hoffeste (gegen Kriegsmüdigkeit) und Großprojekte aus, statt es zu horten.
 - Technologiebaum noch kompakter: Jeder Reiter zeigt nur seine eigenen Nationaltechs. Erforschbare stehen oben,
   gesperrte unter dem Baum, sodass die nächsten drei Stufen ohne Scrollen sichtbar sind.
 - **Kirchenpolitik wirkt auf den Glauben:** Toleranz senkt die Unruhe durch Andersgläubige um 75 % (die allgemeine

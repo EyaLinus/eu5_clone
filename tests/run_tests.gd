@@ -18,6 +18,7 @@ func _init() -> void:
 		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_generals", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_separate_peace", "test_tired_ai_seeks_peace", "test_ai_marriage_and_generals", "test_ai_access_and_guarantee", "test_income_bonus_and_army_cost",
 		"test_difficulty",
+		"test_ai_peace_spending",
 		"test_military_access",
 		"test_guarantee",
 		"test_religion",
@@ -1822,6 +1823,27 @@ func test_ai_marriage_and_generals() -> void:
 		if a.general > 0:
 			led += 1
 	check(led == 1, "the largest army gets a general from a power surplus")
+
+
+func test_ai_peace_spending() -> void:
+	var g = new_game("ENG")
+	var fra = g.nations.FRA
+	fra.tech.adm = 3
+	fra.gold = 5000.0
+	fra.we = 5.0
+	var other: int = -1
+	for pid in g.provinces_of("FRA"):
+		if pid != fra.capital:
+			other = pid
+			break
+	g.provinces[other].religion = "protestant" if fra.religion != "protestant" else "catholic"
+	g.ai._peace_spending(g, fra, 100.0)
+	check(g.provinces[other].convert_months > 0, "the AI sends a missionary to a province of another faith")
+	check(fra.we < 5.0 and g.feast_ready_in("FRA") > 0, "the AI holds a feast against war exhaustion")
+	check(not fra.monument_build.is_empty(), "a rich AI starts a great work")
+	var gold: float = fra.gold
+	g.ai._peace_spending(g, fra, 100.0)
+	check(fra.gold == gold, "only one great work at a time, no second feast")
 
 
 func test_ai_access_and_guarantee() -> void:
