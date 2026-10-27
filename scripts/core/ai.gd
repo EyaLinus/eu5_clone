@@ -140,13 +140,42 @@ func _spend_gold(g, n) -> void:
 	if (g.month + n.capital) % 3 != 0:
 		return
 	var margin: float = 20.0 if (not war and regs >= want - 1.0) else 120.0
-	if n.gold <= reserve + margin + _cheapest_building_cost(g, n):
-		return  # nothing affordable: skip the expensive search
-	for i in 3:
-		var best: Array = g.Economy.best_building(g, n, war)
-		if best.is_empty() or n.gold <= g.Economy.building_cost(g, tag, best[0], best[1]) + reserve + margin:
-			break
-		g.construct(tag, best[0], best[1])
+	if n.gold > reserve + margin + _cheapest_building_cost(g, n):  # else nothing affordable: skip the expensive search
+		for i in 3:
+			var best: Array = g.Economy.best_building(g, n, war)
+			if best.is_empty() or n.gold <= g.Economy.building_cost(g, tag, best[0], best[1]) + reserve + margin:
+				break
+			g.construct(tag, best[0], best[1])
+	if not war:
+		_peace_spending(g, n, reserve + margin)
+
+
+## Gold left after army and buildings: missionaries for unrest, a feast against war exhaustion,
+## then great works (the late-game sink for rich realms).
+func _peace_spending(g, n, keep: float) -> void:
+	var tag: String = n.tag
+	var Rel = g.Religion
+	if Rel.missionaries(g, tag) < int(g.bal.max_missionaries):
+		var target := -1
+		for pid in g.provinces_of(tag):
+			var p = g.provinces[pid]
+			if p.religion != n.religion and (target < 0 or p.dev > g.provinces[target].dev) \
+					and Rel.convert_block_reason(g, tag, pid) == "":
+				target = pid
+		if target >= 0 and n.gold > Rel.convert_cost(g, g.provinces[target]) + keep:
+			Rel.send_missionary(g, tag, target)
+	if n.we >= float(g.bal.feast_we) and g.feast_ready_in(tag) == 0 and n.gold > g.feast_cost(tag) + keep:
+		g.hold_feast(tag)
+	if not n.monument_build.is_empty():
+		return
+	var M = g.Monuments
+	var best := ""
+	for id in g.monument_defs:
+		if M.block_reason(g, tag, id) == "" and n.gold > M.cost(g, tag, id) * float(g.bal.ai_monument_gold_mult) + keep \
+				and (best == "" or M.cost(g, tag, id) < M.cost(g, tag, best)):
+			best = id
+	if best != "":
+		M.start(g, tag, best)
 
 
 ## Lower bound for any building cost of `n` (Economy.building_cost never goes below it).
