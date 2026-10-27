@@ -1818,6 +1818,11 @@ func test_heir() -> void:
 	g.tick()
 	check(n.ruler_name == str(old.name) and int(n.ruler.adm) == int(old.adm) and int(n.ruler.mil) == int(old.mil), "heir takes the throne")
 	check(n.ruler.years >= 8 and not n.gov.heir.is_empty() and n.gov.heir.name != old.name, "new reign and a new heir")
+	# disinheriting: prestige for a new heir, then a cooldown
+	n.prestige = 30.0
+	var before: String = n.gov.heir.name
+	check(gv.disinherit(g, "FRA") == "" and n.gov.heir.name != before and is_equal_approx(n.prestige, 30.0 - float(gv.cfg.heir_disinherit_prestige)), "disinherit names a new heir for prestige")
+	check(gv.disinherit_block(g, "FRA") != "", "disinherit cooldown")
 	# old saves without heir get one at the next turn of the year
 	n.gov.erase("heir")
 	gv.yearly(g, n)

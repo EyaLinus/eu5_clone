@@ -10,6 +10,8 @@
  "heir_edu_cost": 60,
  "heir_edu_step": 0.5,
  "ai_heir_share": 0.6,
+ "heir_disinherit_prestige": 25,
+ "heir_disinherit_years": 10,
  "elective_forms": [
   "Kaufmannsrepublik",
   "Stadtrepublik",

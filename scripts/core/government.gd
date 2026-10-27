@@ -126,6 +126,32 @@ func educate(g, tag: String, kind: String) -> String:
 	return ""
 
 
+## Disinheriting names a new random heir for prestige, at most every heir_disinherit_years.
+func disinherit_block(g, tag: String) -> String:
+	var n = g.nations[tag]
+	if n.gov.get("heir", {}).is_empty():
+		return "Kein %s." % heir_title(tag)
+	var since: int = g.month - int(n.gov.get("disinherit_month", -100000))
+	var wait: int = int(cfg.get("heir_disinherit_years", 10)) * 12 - since
+	if wait > 0:
+		return "Erst wieder in %d Jahren." % ceili(wait / 12.0)
+	if n.prestige - float(cfg.get("heir_disinherit_prestige", 25)) < -50.0:
+		return "Zu wenig Prestige."
+	return ""
+
+
+func disinherit(g, tag: String) -> String:
+	var err := disinherit_block(g, tag)
+	if err != "":
+		return err
+	var n = g.nations[tag]
+	n.prestige -= float(cfg.get("heir_disinherit_prestige", 25))
+	n.gov.heir = {}
+	ensure_heir(g, n)
+	n.gov.disinherit_month = g.month
+	return ""
+
+
 func form_name(tag: String) -> String:
 	return forms.get(tag, forms.get("default", "Monarchie"))
 
@@ -972,6 +998,8 @@ func load_save(n, d) -> void:
 	for k in bu:
 		if budget_by_id.has(k):
 			n.gov.budget[k] = clampi(int(bu[k]), 0, budget_max())
+	if d.has("disinherit_month"):
+		n.gov.disinherit_month = int(d.disinherit_month)
 	var h: Dictionary = d.get("heir", {})
 	if not h.is_empty():
 		n.gov.heir = {"adm": int(h.get("adm", 0)), "dip": int(h.get("dip", 0)), "mil": int(h.get("mil", 0)),
