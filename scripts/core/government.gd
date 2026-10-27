@@ -61,7 +61,7 @@ func init_nation(n) -> void:
 	var bu := {}
 	for b in budget:
 		bu[b.id] = budget_default()
-	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}, "invest": {}, "estates": es, "estate_month": {}, "budget": bu, "reforms": {}, "reform_month": {}, "ages": {}}
+	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}, "invest": {}, "estates": es, "estate_month": {}, "budget": bu, "reforms": {}, "reform_month": {}, "ages": {}, "adv_skill": {}, "adv_since": {}}
 	refresh(n)
 	refresh_estates(n)
 
@@ -116,6 +116,8 @@ func hire(g, tag: String, id: String) -> String:
 	var a: Dictionary = adv_by_id[id]
 	n.set(a.type, n.get(a.type) - advisor_cost(g, n, id))
 	n.gov.advisors.append(id)
+	n.gov.adv_skill[id] = 1
+	n.gov.adv_since[id] = g.month
 	_changed(g, n)
 	return ""
 
@@ -123,7 +125,74 @@ func hire(g, tag: String, id: String) -> String:
 func dismiss(g, tag: String, id: String) -> void:
 	var n = g.nations[tag]
 	n.gov.advisors.erase(id)
+	n.gov.adv_skill.erase(id)
+	n.gov.adv_since.erase(id)
 	_changed(g, n)
+
+
+func max_skill() -> int:
+	return int(cfg.get("advisor_max_skill", 3))
+
+
+func advisor_skill(n, id: String) -> int:
+	return int(n.gov.get("adv_skill", {}).get(id, 1))
+
+
+## Effects of advisor `id` at `skill`: benefits grow by advisor_skill_step per level, drawbacks do not.
+func advisor_effects(id: String, skill: int) -> Dictionary:
+	return scaled_effects(adv_by_id.get(id, {}).get("effects", {}), 1.0 + float(cfg.get("advisor_skill_step", 0.5)) * (skill - 1))
+
+
+## Promoting to the next skill level costs advisor_cost × promote_mult × current level (75 → 113 → 225 at defaults).
+func promote_cost(_g, n, id: String) -> float:
+	return advisor_cost(null, n, id) * float(cfg.get("advisor_promote_mult", 1.5)) * advisor_skill(n, id)
+
+
+func promote_block(g, tag: String, id: String) -> String:
+	var n = g.nations[tag]
+	if not n.gov.advisors.has(id):
+		return "Nicht im Rat."
+	if advisor_skill(n, id) >= max_skill():
+		return "Höchste Stufe erreicht."
+	var c := promote_cost(g, n, id)
+	if n.get(adv_by_id[id].type) < c:
+		return "Zu wenig Punkte (%d benötigt)." % c
+	return ""
+
+
+func promote(g, tag: String, id: String) -> String:
+	var err := promote_block(g, tag, id)
+	if err != "":
+		return err
+	var n = g.nations[tag]
+	var t: String = adv_by_id[id].type
+	n.set(t, n.get(t) - promote_cost(g, n, id))
+	n.gov.adv_skill[id] = advisor_skill(n, id) + 1
+	_changed(g, n)
+	return ""
+
+
+## Years generic advisor `id` has served (national figures leave by date instead).
+func service_years(g, n, id: String) -> int:
+	return int((g.month - int(n.gov.get("adv_since", {}).get(id, g.month))) / 12)
+
+
+## Yearly: a generic advisor past retire_years retires with retire_chance; a pupil takes over one level lower.
+func _advisor_careers(g, n) -> void:
+	for id in n.gov.advisors:
+		var a: Dictionary = adv_by_id.get(id, {})
+		if a.has("to") or service_years(g, n, id) < int(cfg.get("advisor_retire_years", 20)):
+			continue
+		if g.rng.randf() > float(cfg.get("advisor_retire_chance", 0.15)):
+			continue
+		var lvl := advisor_skill(n, id)
+		n.gov.adv_skill[id] = maxi(1, lvl - 1)
+		n.gov.adv_since[id] = g.month
+		if lvl > 1:
+			g.log_msg("🎓 %s geht in den Ruhestand, ein Schüler folgt auf Stufe %d." % [a.name, lvl - 1], [n.tag])
+		else:
+			g.log_msg("🎓 %s geht in den Ruhestand, ein Nachfolger übernimmt." % a.name, [n.tag])
+		_changed(g, n)
 
 
 # ---------------------------------------------------------------- companies
@@ -197,7 +266,11 @@ func invest_level(n, id: String) -> int:
 ## Effects of company `id` at investment `level`: benefits grow by invest_step per level, drawbacks do not.
 func company_effects(id: String, level: int) -> Dictionary:
 	var base: Dictionary = comp_by_id.get(id, {}).get("effects", {})
-	var mult: float = 1.0 + float(cfg.get("invest_step", 0.5)) * (level - 1)
+	return scaled_effects(base, 1.0 + float(cfg.get("invest_step", 0.5)) * (level - 1))
+
+
+## `base` with its benefits multiplied by `mult`; drawbacks stay as they are.
+func scaled_effects(base: Dictionary, mult: float) -> Dictionary:
 	var r := {}
 	for k in base:
 		var v := float(base[k])
@@ -303,7 +376,7 @@ func refresh(n) -> void:
 	var b := {}
 	var effs := []
 	for id in n.gov.advisors:
-		effs.append(adv_by_id.get(id, {}).get("effects", {}))
+		effs.append(advisor_effects(id, advisor_skill(n, id)))
 	for id in n.gov.companies:
 		effs.append(company_effects(id, invest_level(n, id)))
 	for law_id in n.gov.laws:
@@ -570,8 +643,11 @@ func yearly(g, n) -> void:
 		var a: Dictionary = adv_by_id.get(id, {})
 		if a.has("to") and g.year() > int(a.to):
 			n.gov.advisors.erase(id)
+			n.gov.adv_skill.erase(id)
+			n.gov.adv_since.erase(id)
 			g.log_msg("🎓 %s verlässt den Hof." % a.name, [n.tag])
 			_changed(g, n)
+	_advisor_careers(g, n)
 	_estate_crisis(g, n)
 	ages_yearly(g, n)
 
@@ -796,6 +872,8 @@ func load_save(n, d) -> void:
 	for id in d.get("advisors", []):
 		if adv_by_id.has(id):
 			n.gov.advisors.append(id)
+			n.gov.adv_skill[id] = clampi(int(d.get("adv_skill", {}).get(id, 1)), 1, max_skill())
+			n.gov.adv_since[id] = int(d.get("adv_since", {}).get(id, 0))
 	for id in d.get("companies", []):
 		if comp_by_id.has(id):
 			n.gov.companies.append(id)
@@ -881,14 +959,14 @@ func _ai_advisor(g, n) -> void:
 		if v > best_v and n.get(a.type) >= advisor_cost(g, n, a.id):
 			best_v = v
 			best = a.id
-	if best == "":
+	if (full and _ai_promote(g, n)) or best == "":
 		return
 	if full:
 		# replace the weakest advisor only for a clearly better (usually national) one
 		var worst := ""
 		var worst_v := 1e9
 		for id in n.gov.advisors:
-			var v: float = Tech.effect_value(adv_by_id[id].effects, n.aggression)
+			var v: float = Tech.effect_value(advisor_effects(id, advisor_skill(n, id)), n.aggression)
 			if v < worst_v:
 				worst_v = v
 				worst = id
@@ -896,6 +974,22 @@ func _ai_advisor(g, n) -> void:
 			return
 		dismiss(g, n.tag, worst)
 	hire(g, n.tag, best)
+
+
+## Now and then (power competes with tech) promote the most valuable affordable advisor. True if promoted.
+func _ai_promote(g, n) -> bool:
+	if g.rng.randf() > float(cfg.get("ai_promote_chance", 0.3)):
+		return false
+	var best := ""
+	var best_v := 0.0
+	for id in n.gov.advisors:
+		if promote_block(g, n.tag, id) != "":
+			continue
+		var v: float = Tech.effect_value(adv_by_id[id].effects, n.aggression)
+		if v > best_v:
+			best_v = v
+			best = id
+	return best != "" and promote(g, n.tag, best) == ""
 
 
 func _ai_company(g, n) -> void:

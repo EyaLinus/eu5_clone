@@ -28,6 +28,7 @@ func _init() -> void:
 		"test_empire_reforms",
 		"test_religion_modifiers",
 		"test_age_goals",
+		"test_advisor_skill",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1761,6 +1762,57 @@ func test_religion_modifiers() -> void:
 
 
 ## Age goals: count only in their age, give permanent rewards, two of three win the triumph.
+func test_advisor_skill() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	var gv = g.govt
+	n.gov.advisors.clear()
+	var a: Dictionary = gv.advisors[0]
+	n.set(a.type, 1000.0)
+	check(gv.hire(g, "FRA", a.id) == "", "hire advisor")
+	check(gv.advisor_skill(n, a.id) == 1, "hired at skill 1")
+	var k: String = ""
+	for key in a.effects:
+		if (float(a.effects[key]) > 0.0) == Tech.LABELS.get(key, [key, false, true])[2]:
+			k = key
+	check(k != "", "advisor has a benefit")
+	var base: float = n.bonus.gov.get(k, 0.0)
+	var before: float = n.get(a.type)
+	check(gv.promote(g, "FRA", a.id) == "", "promote to 2")
+	check(is_equal_approx(before - n.get(a.type), gv.advisor_cost(g, n, a.id) * 1.5), "promotion cost")
+	check(gv.advisor_skill(n, a.id) == 2, "skill 2")
+	check(is_equal_approx(n.bonus.gov.get(k, 0.0) - base, float(a.effects[k]) * 0.5), "benefit +50 % at skill 2")
+	gv.promote(g, "FRA", a.id)
+	check(gv.promote_block(g, "FRA", a.id) != "", "skill 3 is the maximum")
+	var text := JSON.stringify(g.to_dict())
+	var g2 = new_game("FRA", 3)
+	g2.from_dict(JSON.parse_string(text))
+	check(g2.govt.advisor_skill(g2.nations.FRA, a.id) == 3, "skill survives save/load")
+	# retirement: after 20+ years a pupil takes over one level lower
+	g.month += 12 * 25
+	var cfg: Dictionary = gv.cfg
+	var old_chance = cfg.get("advisor_retire_chance")
+	cfg["advisor_retire_chance"] = 1.0
+	gv._advisor_careers(g, n)
+	cfg["advisor_retire_chance"] = old_chance
+	check(n.gov.advisors.has(a.id) and gv.advisor_skill(n, a.id) == 2, "retired advisor replaced one level lower")
+	check(gv.service_years(g, n, a.id) == 0, "successor starts fresh")
+	gv.dismiss(g, "FRA", a.id)
+	check(not n.gov.adv_skill.has(a.id), "dismiss clears skill")
+	# AI promotes with spare power once the council is full
+	var g3 = new_game("FRA")
+	var promoted := 0
+	for y in 10:
+		for mo in 12:
+			g3.tick()
+	for t in g3.order:
+		for id in g3.nations[t].gov.advisors:
+			if g3.govt.advisor_skill(g3.nations[t], id) > 1:
+				promoted += 1
+	print("  AI promoted advisors after 10 years: %d" % promoted)
+	check(promoted > 0, "AI promotes advisors")
+
+
 func test_age_goals() -> void:
 	var g = new_game("FRA")
 	var n = g.nations.FRA

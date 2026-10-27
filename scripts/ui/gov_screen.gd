@@ -133,10 +133,12 @@ func _build_court(g, gv, me: String, n) -> void:
 			"Kosten %d Punkte der jeweiligen Art. Historische Persönlichkeiten dienen nur zu ihren Lebzeiten." % gv.advisor_cost(g, n, ""))
 	for id in n.gov.advisors:
 		var a: Dictionary = gv.adv_by_id[id]
-		var sub: String = Icons.emoji(a.type) + " " + ("Historisch, bis %d" % int(a.to) if a.has("to") else "Berater")
-		m.side_box.add_child(_card(a.name, sub, a.effects, a.has("tag"), "Entlassen", func():
-			gv.dismiss(g, me, id)
-			m._act("", "🎓 %s entlassen" % a.name)))
+		var lvl: int = gv.advisor_skill(n, id)
+		var sub: String = "%s Stufe %d · %s" % [Icons.emoji(a.type), lvl, "historisch, bis %d" % int(a.to) if a.has("to") else "seit %d Jahren" % gv.service_years(g, n, id)]
+		var card := _card(a.name, sub, gv.advisor_effects(id, lvl), a.has("tag"), "Fördern", _advisor.bind(id))
+		if gv.promote_block(g, me, id) == "":
+			card.get_child(0).get_child(1).add_theme_color_override("font_color", UiTheme.GOLD)
+		m.side_box.add_child(card)
 	var free: int = gv.advisor_slots(g, n) - n.gov.advisors.size()
 	if free > 0:
 		m.side_box.add_child(m._btn("➕ Berater ernennen (%d frei, %d Punkte)" % [free, gv.advisor_cost(g, n, "")], _pick_advisor))
@@ -228,6 +230,44 @@ func _choice(title: String, sub: String, eff: Dictionary, national: bool, label:
 	if err != "":
 		card.get_child(0).get_child(0).add_child(m._lbl(err, 14, Color(0.95, 0.6, 0.55)))
 	return card
+
+
+## Advisor popup: current and next skill level, promote and dismiss.
+func _advisor(id: String) -> void:
+	var g = m.game
+	var gv = g.govt
+	var me: String = g.player
+	var n = g.nations[me]
+	var a: Dictionary = gv.adv_by_id[id]
+	var lvl: int = gv.advisor_skill(n, id)
+	m._open_modal()
+	var box: VBoxContainer = m.modal_box
+	box.add_child(m._lbl("🎓 " + a.name, 26))
+	var life: String = "Historische Persönlichkeit, dient bis %d." % int(a.to) if a.has("to") else \
+			"Dient seit %d Jahren. Ab %d Dienstjahren kann er in den Ruhestand gehen; ein Schüler übernimmt dann eine Stufe tiefer." % [gv.service_years(g, n, id), int(gv.cfg.get("advisor_retire_years", 20))]
+	box.add_child(m._lbl(life, 15, Color(0.72, 0.75, 0.82)))
+	box.add_child(m._lbl("Stufe %d von %d" % [lvl, gv.max_skill()], 20))
+	box.add_child(TechScreen.effects_rich(gv.advisor_effects(id, lvl), 18))
+	var go: Button
+	var err := ""
+	if lvl < gv.max_skill():
+		box.add_child(m._lbl("Stufe %d für %d %s: Vorteile +%d %%, Nachteile bleiben" % [lvl + 1, gv.promote_cost(g, n, id), Icons.emoji(a.type), roundi(float(gv.cfg.get("advisor_skill_step", 0.5)) * 100.0)], 20))
+		box.add_child(TechScreen.effects_rich(gv.advisor_effects(id, lvl + 1), 18))
+		err = gv.promote_block(g, me, id)
+		go = m._btn("⭐ Fördern", func():
+			var e: String = gv.promote(g, me, id)
+			m._close_modal()
+			m._act(e, "⭐ %s auf Stufe %d gefördert" % [a.name, lvl + 1]))
+		go.disabled = err != ""
+	if err != "":
+		box.add_child(m._lbl(err, 14, Color(0.95, 0.6, 0.55)))
+	var row := [m._btn("Entlassen", func():
+		gv.dismiss(g, me, id)
+		m._close_modal()
+		m._act("", "🎓 %s entlassen" % a.name)), m._btn("Schließen", m._close_modal)]
+	if go != null:
+		row.push_front(go)
+	box.add_child(m._row(row))
 
 
 func _pick_advisor() -> void:

@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- **Berater mit Stufen ⭐:** Berater starten auf Stufe 1 und lassen sich bis Stufe 3 fördern (Kosten: 1,5× bzw. 3×
+  Ernennungskosten in ihrer Punkteart). Jede Stufe steigert ihre Vorteile um 50 %, Nachteile bleiben gleich. Gewöhnliche
+  Berater gehen nach 20+ Dienstjahren irgendwann in den Ruhestand; ein Schüler übernimmt eine Stufe tiefer. Ein Klick
+  auf „Fördern“ im Hof zeigt Stufe, Dienstzeit und die nächste Stufe. Die KI fördert gelegentlich.
 - **Zeitalter-Ziele 🏆 (neu):** Jedes der vier Zeitalter (Renaissance, Entdeckungen, Reformation, Absolutismus) hat
   drei Ziele, etwa 10 Technologien, eine Kompanie auf Stufe 3, 90 % Glaubenseinheit oder alle Staatsreformen. Ein
   Ziel zählt nur in seinem Zeitalter und gibt dauerhaft einen Bonus. Zwei von drei bringen den Triumph des Zeitalters
