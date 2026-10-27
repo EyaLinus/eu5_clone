@@ -22,12 +22,12 @@ EXTRA = ["TUR", "POL", "BUR"]  # playable, tracked but not part of major_surviva
 
 # metric -> (low, high) acceptable range
 TARGETS = {
-    "eliminated": (15, 26),         # nations gone by 1644 (of 50; history: ~20)
+    "eliminated": (20, 34),         # nations gone by 1644 (of 66; history: ~30, incl. ~11 beyliks/Maghreb states)
     "top_share": (0.10, 0.22),      # largest nation's share of all development
     "major_survival": (0.8, 1.0),   # share of major nations alive at the end
     "coalition_wars": (0.3, 15.0),   # AE coalitions per game (AI self-limits AE)
     "timeout_share": (0.0, 0.12),   # wars ended by the hard timeout
-    "bankrupt_months": (0, 1500),   # summed over all 50 nations x 2400 months
+    "bankrupt_months": (0, 2000),   # summed over all 66 nations x 2400 months
     "wars": (50, 220),              # keep the world lively (vassals cannot declare wars since v0.3)
 }
 
