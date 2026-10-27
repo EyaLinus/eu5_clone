@@ -12,10 +12,13 @@ static func collect(g) -> Dictionary:
 	var top_share := 0.0
 	var top_tag := ""
 	var majors := {}
+	var dead: Array = []
 	for tag in g.order:
 		var n = g.nations[tag]
 		if n.alive:
 			alive += 1
+		else:
+			dead.append(tag)
 		var share: float = float(g.nation_dev(tag)) / total
 		if share > top_share:
 			top_share = share
@@ -29,7 +32,7 @@ static func collect(g) -> Dictionary:
 			negative_gold += 1
 	return {"alive": alive, "top_share": snappedf(top_share, 0.001), "top_tag": top_tag, "total_dev": total,
 			"stats": g.stats.duplicate(), "majors": majors, "open_wars": g.wars.size(), "negative_gold": negative_gold,
-			"month": g.month}
+			"month": g.month, "dead": dead}
 
 
 static func aggregate(rs: Array) -> Dictionary:

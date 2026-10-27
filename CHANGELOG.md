@@ -4,6 +4,10 @@
 - **Staatsformen wirken:** Jede Staatsform bringt jetzt einen kleinen dauerhaften Vor- und Nachteil, etwa
   Kaufmannsrepublik +15 % Handel (−10 % Truppen), Sultanat +2 Truppenlimit, Theokratie schnellere Bekehrung,
   Wahlmonarchie +0,5 Diplomatie bei mächtigerem Adel. Die Wirkung steht unter dem Kopf des Regierungsfensters.
+- **Geschichten für die neuen Regionen (26 Events, 7 Missionen):** Osmanen gegen Karaman, Candar und Trapezunt,
+  Uzun Hasan und die Weißen Hammel, Georgien und Schirwan, Qaitbay und der Gewürzhandel der Mamluken, Selims
+  Feldzug, Portugiesen vor Tanger, Wattasiden und Saadier in Marokko, Venedig und Zypern, die Belagerung von Rhodos.
+  Neue Missionen für Osmanen (Anatolien, Ostgrenze), Mamluken (Syrien, Gewürzweg, Dulkadir) und Marokko (Küste, Häfen).
 - **Schnellere Monatsberechnung:** Die KI und die Wirtschaft rechnen pro Spielmonat rund 20–25 % schneller
   (wichtig für die Browser-Version). Das Spielgeschehen bleibt exakt gleich.
 - **Reichsfenster (HRE) kompakt:** Kurfürsten in drei Spalten (Flagge → Stimme), Mitglieder, deine Stimmen,

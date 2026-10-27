@@ -25,7 +25,7 @@ func _init() -> void:
 		"test_religion",
 		"test_monuments_and_feast",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_empire_reforms",
 		"test_religion_modifiers",
 		"test_age_goals",
@@ -2012,6 +2012,26 @@ func test_income_bonus_and_army_cost() -> void:
 
 
 ## court_ events (tools/content/court_events.py): great works, feasts and marriages as conditions and effects.
+func test_south_content() -> void:
+	var g = new_game("FRA")
+	var cnt := 0
+	for e in data.events:
+		if e.id.begins_with("south_"):
+			cnt += 1
+			check(g.nations.has(e.tag), "%s belongs to a known nation" % e.id)
+			if g.nations.has(e.tag):
+				g.check_conditions(e.tag, e.trigger)  # must not crash (province keys resolve)
+	check(cnt >= 20, "south events present (%d)" % cnt)
+	for tag in ["TUR", "MAM", "MOR"]:
+		var found := 0
+		for m in data.missions.get(tag, []):
+			if "_south_" in m.id:
+				found += 1
+				g.check_conditions(tag, m.require)
+		check(found >= 2, "%s has south missions" % tag)
+	check(g.check_conditions("MAM", {"owns": ["aleppo", "damascus"]}), "Mamluks start with Syria")
+
+
 func test_court_content() -> void:
 	var g = new_game("FRA")
 	var n = g.nations.FRA

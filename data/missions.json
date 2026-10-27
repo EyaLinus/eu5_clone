@@ -201,7 +201,11 @@
     {"id": "tur_eco_arsenal", "title": "Das Arsenal", "desc": "Werften und Kasernen für ein Weltreich.",
      "require": {"building": {"harbor": 2, "barracks": 2}}, "reward": {"mil": 50, "mods": {"combat": 0.03}}},
     {"id": "tur_eco_bazaar", "after": "tur_eco_arsenal", "title": "Der Große Basar", "desc": "Konstantinopel, Markt zwischen Orient und Okzident.",
-     "require": {"building": {"marketplace": 3}, "trade_pacts_min": 1}, "reward": {"dip": 40, "mods": {"trade": 0.03}}}
+     "require": {"building": {"marketplace": 3}, "trade_pacts_min": 1}, "reward": {"dip": 40, "mods": {"trade": 0.03}}},
+    {"id": "tur_south_anatolia", "title": "Herr Anatoliens", "desc": "Die Beyliks von Karaman und Candar müssen sich dem Sultan beugen.",
+     "require": {"owns_any": ["konya", "kastamonu", "sinop"]}, "reward": {"prestige": 10, "adm": 40}},
+    {"id": "tur_south_east", "after": "tur_south_anatolia", "title": "Die Ostgrenze", "desc": "Trapezunt und die Pässe nach Armenien sichern das Reich gegen die Turkmenen.",
+     "require": {"owns_any": ["trebizond", "erzurum", "diyarbakir"]}, "reward": {"mods": {"manpower": 0.05}, "mil": 40}}
   ],
   "POL": [
     {"id": "pol_prussia", "title": "Königlich Preußen", "desc": "Die Städte an der Weichsel gehören zur Krone.",
@@ -352,5 +356,19 @@
      "require": {"year_min": 1450, "owns": ["riga", "reval"]}, "reward": {"mods": {"combat": 0.03}, "adm": 30}},
     {"id": "liv_walls", "title": "Mauern gegen Moskau", "desc": "Neue Festungen für den Krieg, der kommen wird.",
      "require": {"tech": {"mil": 6}, "regs": 10}, "reward": {"mods": {"manpower": 0.05}}}
+  ],
+  "MAM": [
+    {"id": "mam_south_syria", "title": "Syrien halten", "desc": "Aleppo und Damaskus sind die Bollwerke des Sultanats im Norden.",
+     "require": {"owns": ["aleppo", "damascus"], "year_min": 1480}, "reward": {"mil": 40, "prestige": 10}},
+    {"id": "mam_south_spices", "after": "mam_south_syria", "title": "Der Gewürzweg", "desc": "Märkte in Alexandria und Kairo halten den Indienhandel im Land.",
+     "require": {"building": {"marketplace": 2}}, "reward": {"mods": {"trade": 0.03}, "dip": 30}},
+    {"id": "mam_south_dulkadir", "title": "Freunde an der Grenze", "desc": "Dulkadir soll ein treuer Puffer gegen die Osmanen bleiben.",
+     "require": {"allied": "DUL", "year_min": 1470}, "reward": {"dip": 40, "prestige": 5}}
+  ],
+  "MOR": [
+    {"id": "mor_south_coast", "title": "Die Küste halten", "desc": "Tanger und Rabat dürfen nicht an die Portugiesen fallen.",
+     "require": {"owns": ["tangier", "rabat"], "year_min": 1490}, "reward": {"mil": 40, "prestige": 10}},
+    {"id": "mor_south_harbors", "after": "mor_south_coast", "title": "Häfen am Atlantik", "desc": "Ausgebaute Häfen bringen Zucker- und Saharahandel ins Land.",
+     "require": {"building": {"harbor": 2}}, "reward": {"mods": {"trade": 0.03}, "dip": 30}}
   ]
 }
