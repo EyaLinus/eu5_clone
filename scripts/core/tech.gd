@@ -59,12 +59,18 @@ var defs: Array = []
 var by_id := {}
 var branches: Array = []
 var early_years: int = 20
+var ahead_years: int = 0
+var ahead_penalty: float = 0.0
+var ai_ahead_reserve: float = 0.5
 var spread_max: float = 0.3
 var spread_factor: float = 0.5
 
 
 func _init(d: Dictionary = {}) -> void:
 	early_years = int(d.get("early_years", 20))
+	ahead_years = int(d.get("ahead_years", 0))
+	ahead_penalty = float(d.get("ahead_penalty", 0.0))
+	ai_ahead_reserve = float(d.get("ai_ahead_reserve", 0.5))
 	spread_max = float(d.get("spread_max", 0.3))
 	spread_factor = float(d.get("spread_factor", 0.5))
 	branches = d.get("branches", [])
@@ -122,14 +128,19 @@ func block_reason(g, tag: String, id: String) -> String:
 	for r in t.get("req", []):
 		if not n.techs.has(r):
 			return "Benötigt: %s." % by_id[r].name
-	var from: int = int(t.year) - early_years
+	var from: int = int(t.year) - early_years - ahead_years
 	if g.year() < from:
 		return "Verfügbar ab %d." % from
 	return ""
 
 
+## Years `id` is researched before its regular window (year - early_years); each costs ahead_penalty extra.
+func years_ahead(g, id: String) -> int:
+	return maxi(0, int(by_id[id].year) - early_years - g.year())
+
+
 func cost(g, tag: String, id: String) -> float:
-	return g.tech_cost(tag, by_id[id].cat) * (1.0 - spread_discount(g, tag, id))
+	return g.tech_cost(tag, by_id[id].cat) * (1.0 - spread_discount(g, tag, id)) * (1.0 + ahead_penalty * years_ahead(g, id))
 
 
 ## Knowledge spreads: the share of other living nations that already know a generic tech makes it cheaper
@@ -185,6 +196,9 @@ func best_choice(g, tag: String, cat: String) -> String:
 	var best := ""
 	var best_v := -1e9
 	for t in available(g, tag, cat):
+		# research ahead of time only with power to spare
+		if years_ahead(g, t.id) > 0 and n.get(cat) < cost(g, tag, t.id) * (1.0 + ai_ahead_reserve):
+			continue
 		var v: float = effect_value(t.effects, n.aggression) - 0.15 * (int(t.year) - g.year())
 		if is_special(t):
 			v += 1000.0

@@ -205,9 +205,11 @@ func _cell(g, me: String, t: Dictionary, special: bool) -> Button:
 	var reason: String = g.tree.block_reason(g, me, t.id)
 	var done: bool = n.techs.has(t.id)
 	var cost: float = g.tree.cost(g, me, t.id)
-	var from: int = int(t.year) - g.tree.early_years
+	var from: int = int(t.year) - g.tree.early_years - g.tree.ahead_years
 	var ready: bool = reason == "" and n.get(t.cat) >= cost
 	var foot := "✓ erforscht" if done else ("ab %d" % from if g.year() < from else "%d %s" % [cost, Icons.emoji(t.cat)])
+	if not done and g.year() >= from and g.tree.years_ahead(g, t.id) > 0:
+		foot += " · früh"
 	if not done and reason != "" and g.year() >= from:
 		foot = "🔒 " + foot
 	var tip: String = "%s\n%s\n%s" % [t.name, Tech.effects_text(t.effects), "Erforscht" if done else (reason if reason != "" else "Kosten %d" % cost)]
@@ -273,7 +275,7 @@ func _detail(id: String) -> void:
 			where += " · " + b.name
 	where += " · Zeitalter: %s" % Tech.age_name(int(t.year))
 	if int(t.year) - g.tree.early_years > g.year():
-		where += " (verfügbar ab %d)" % (int(t.year) - g.tree.early_years)
+		where += " (regulär ab %d)" % (int(t.year) - g.tree.early_years)
 	box.add_child(m._lbl(where, 16, Color(0.8, 0.82, 0.9)))
 	if t.has("text"):
 		box.add_child(m._lbl(t.text, 17, Color(0.85, 0.85, 0.75)))
@@ -292,6 +294,10 @@ func _detail(id: String) -> void:
 		box.add_child(m._lbl(reason, 17, Color(0.95, 0.6, 0.55)))
 	else:
 		box.add_child(m._lbl("Kosten: %d %s (du hast %d)" % [cost, Icons.emoji(t.cat), n.get(t.cat)], 18))
+		var ya: int = g.tree.years_ahead(g, id)
+		if ya > 0:
+			box.add_child(m._lbl("Vor der Zeit: %d Jahre früh, +%d %% Kosten. Ohne Aufschlag ab %d." % [
+					ya, roundi(g.tree.ahead_penalty * ya * 100.0), int(t.year) - g.tree.early_years], 15, Color(1.0, 0.75, 0.45)))
 		var sd: float = g.tree.spread_discount(g, me, id)
 		if sd >= 0.01:
 			box.add_child(m._lbl("Davon −%d %% durch Wissensverbreitung: %d %% der anderen Nationen kennen sie schon." % [
