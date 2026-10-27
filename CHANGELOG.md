@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- **Weitere Fenster entschlackt:** Kartenmodi und Rangliste stehen in zwei Spalten (Details im Tooltip), offene
+  Missionen zeigen nur ihre Bedingungen (Belohnung im Tooltip, die ersten fünf sichtbar), lange Diplomatiegruppen
+  starten zugeklappt, Kurfürsten zeigen kurz „BOH → HAB“.
 - **18 Ereignisse zu Großprojekten, Hoffesten und Heiraten:** Berühmte Baumeister und Steinfunde beschleunigen
   deine Baustelle, jedes fertige Großprojekt bringt ein eigenes Ereignis (Domweihe, Kadetten der Kriegsakademie,
   Hochbetrieb an der Börse ...). Nach einem Hoffest gibt es Duelle, Dichter und plaudernde Gesandte, und
@@ -21,8 +24,8 @@
   Belohnungen. Die KI verfolgt die Ziele ebenfalls.
 - **Noch weniger Scrollen:** Armee-, Kriegs- und Reichsfenster zeigen ihre Werte als Kacheln, Befehle stehen im
   Raster. Das Armeefenster passt jetzt auf einen Bildschirm. Im Reichsfenster sind erledigte und spätere Reformen
-  einzeilig (Details im Tooltip), nur die nächste Reform steht ausführlich da. Die Chronik ist nach Jahren
-  gruppiert, nur das aktuelle Jahr ist aufgeklappt.
+  einzeilig (Details im Tooltip), nur die nächste Reform steht ausführlich da. Die Chronik zeigt die
+  neuesten zehn Einträge mit Jahreszahl, ältere lassen sich aufklappen.
 
 ## v0.9.0 – 2026-10-27
 - Die KI gibt überschüssiges Gold im Frieden für Missionare, Hoffeste (gegen Kriegsmüdigkeit) und Großprojekte aus, statt es zu horten.
