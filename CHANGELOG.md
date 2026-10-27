@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- **Reichsfenster (HRE) kompakt:** Kurfürsten in drei Spalten (Flagge → Stimme), Mitglieder, deine Stimmen,
+  Autorität und Rückhalt als Kacheln. Beschlossene und spätere Reformen stehen je in einer Kachel (Details im
+  Tooltip), nur die nächste Reform wird ausgeschrieben. Etwa 40 % kürzer.
 - **Drei Speicherplätze:** „Speichern“ im Menü bietet drei Plätze, „Laden“ zeigt dazu den Autosave, jeweils mit
   Nation und Datum. Das Startmenü hat „Laden“, sobald ein Platz belegt ist. Der Autosave überschreibt keine
   manuellen Stände mehr.
