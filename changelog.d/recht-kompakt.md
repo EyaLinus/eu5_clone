@@ -1,0 +1,1 @@
+- **Recht-Tab kompakter:** Gesetzes- und Reformkarten sind etwa ein Viertel niedriger, so dass weniger gescrollt werden muss. Jede Gesetzeskarte zeigt jetzt, wie viele andere Optionen du gerade einführen könntest („2 weitere möglich“). Lange Sperrzeiten stehen in Jahren statt Monaten.
