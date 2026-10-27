@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- **Neues Startmenü:** Schwierigkeit als vier Knöpfe (Erklärung im Tooltip), Nationen im Raster. Antippen zeigt
+  den Nationalgeist, gestartet wird mit „Los geht's“. Alles passt ohne Scrollen auf einen Bildschirm. Das Menü im
+  Spiel ist ebenfalls kompakter.
 - **💡 Ratgeber (neu):** Ein neuer Reiter links zeigt mit einer Zahl, wie viel gerade zu tun ist: drohende
   Aufstände, Schulden, Koalitionen, erfüllte Missionen, lohnender Frieden, Technologie und Regierung, freie Händler,
   Gold für Gebäude, sich stauende Macht, freie Missionare und das Hoffest. Jeder Eintrag führt direkt dorthin.
