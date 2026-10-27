@@ -219,7 +219,9 @@ func _card(title: String, sub: String, eff: Dictionary, national: bool, action: 
 	v.add_child(m._lbl(("⭐ " if national else "") + title, 18))
 	if sub != "":
 		v.add_child(m._lbl(sub, 14, Color(0.72, 0.75, 0.82)))
-	v.add_child(TechScreen.effects_rich(eff, 15))
+	# a default option without effects needs no "keine Wirkung" line
+	if not eff.is_empty():
+		v.add_child(TechScreen.effects_rich(eff, 15))
 	var b: Button = m._btn(action, cb)
 	b.clip_text = false
 	b.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING

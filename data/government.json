@@ -405,8 +405,8 @@
    "year": 1610,
    "options": [
     {
-     "id": "absolutismus",
-     "name": "Absolutismus",
+     "id": "alleinherrschaft",
+     "name": "Alleinherrschaft der Krone",
      "effects": {
       "adm": 1,
       "force_limit": 2,
@@ -1833,6 +1833,53 @@
      },
      "text": "Kirchengüter fallen an die Krone.",
      "req": "adm_kirchenreform"
+    }
+   ]
+  },
+  {
+   "id": "aussen",
+   "name": "Außenpolitik",
+   "power": "dip",
+   "options": [
+    {
+     "id": "zurueckhaltung",
+     "name": "Zurückhaltung",
+     "effects": {},
+     "text": "Man hält sich aus fremden Händeln heraus."
+    },
+    {
+     "id": "expansion",
+     "name": "Expansionsdrang",
+     "effects": {
+      "coring": -0.1,
+      "prestige": 0.5,
+      "ae_gen": 0.15,
+      "estate_adel": 10
+     },
+     "text": "Neue Länder für die Krone, die Nachbarn sehen es mit Sorge."
+    },
+    {
+     "id": "heiratspolitik",
+     "name": "Heiratspolitik",
+     "effects": {
+      "dip": 0.5,
+      "prestige": 0.5,
+      "manpower": -0.05,
+      "estate_adel": -5
+     },
+     "text": "Bella gerant alii, tu felix Austria nube.",
+     "req": "dip_heiratspolitik"
+    },
+    {
+     "id": "gleichgewicht",
+     "name": "Gleichgewichtspolitik",
+     "effects": {
+      "ae_decay": 0.15,
+      "ae_gen": -0.05,
+      "force_limit": -1
+     },
+     "text": "Keine Macht soll übermächtig werden, auch die eigene nicht.",
+     "req": "dip_kongresse"
     }
    ]
   }
