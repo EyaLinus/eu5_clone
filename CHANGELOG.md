@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Die KI gibt überschüssiges Gold im Frieden für Missionare, Hoffeste (gegen Kriegsmüdigkeit) und Großprojekte aus, statt es zu horten.
 - Technologiebaum noch kompakter: Jeder Reiter zeigt nur seine eigenen Nationaltechs. Erforschbare stehen oben,
   gesperrte unter dem Baum, sodass die nächsten drei Stufen ohne Scrollen sichtbar sind.
 - **Kirchenpolitik wirkt auf den Glauben:** Toleranz senkt die Unruhe durch Andersgläubige um 75 % (die allgemeine
