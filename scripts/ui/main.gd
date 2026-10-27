@@ -1147,7 +1147,7 @@ func _show_menu() -> void:
 		_btn("📂 Laden", _load_game),
 		_btn("🏠 Hauptmenü", func(): _save_game(); game = null; _show_start_menu(), "Speichert und kehrt zum Startmenü zurück."),
 	]
-	if OS.get_name() != "Android":
+	if OS.get_name() != "Android" and OS.get_name() != "Web":
 		acts.append(_btn("🚪 Beenden", func(): _save_game(); get_tree().quit(), "Speichert und beendet das Spiel."))
 	if acts.size() % 2 == 1:
 		acts.append(Control.new())

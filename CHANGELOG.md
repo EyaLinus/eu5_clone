@@ -5,6 +5,13 @@
   Ernennungskosten in ihrer Punkteart). Jede Stufe steigert ihre Vorteile um 50 %, Nachteile bleiben gleich. Gewöhnliche
   Berater gehen nach 20+ Dienstjahren irgendwann in den Ruhestand; ein Schüler übernimmt eine Stufe tiefer. Ein Klick
   auf „Fördern“ im Hof zeigt Stufe, Dienstzeit und die nächste Stufe. Die KI fördert gelegentlich.
+- **Karte nach Süden und Osten erweitert (67 neue Provinzen):** Anatolien, Kaukasus, Levante, Ägypten und die
+  ganze nordafrikanische Küste bis Marokko, dazu Kreta, Zypern und Rhodos. 15 neue Länder im Stand von 1444:
+  Karaman, Candar, Dulkadir, Trapezunt, Aq Qoyunlu, Qara Qoyunlu (Täbris), Georgien, Schirwan, Tscherkessien,
+  Mamluken, Hafsiden (Tunis), Tlemcen, Marokko, Zypern und die Johanniter auf Rhodos. Die Osmanen besitzen jetzt
+  auch Westanatolien. Neue Märkte in Alexandria, Tunis und Täbris; Taurus, Kaukasus und Atlas auf der Karte.
+- **Browser-Version (neu):** Jedes Release enthält jetzt `RiseOfEU-web.zip`, das Spiel läuft damit direkt im
+  Browser, auch eingebettet in andere Seiten. Spielstände bleiben im Browser gespeichert.
 
 ## v0.9.1 – 2026-10-27
 - **Weitere Fenster entschlackt:** Kartenmodi und Rangliste stehen in zwei Spalten (Details im Tooltip), offene

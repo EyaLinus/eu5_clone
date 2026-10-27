@@ -27,6 +27,18 @@
     [
       "VEN",
       "TUS"
+    ],
+    [
+      "MAM",
+      "DUL"
+    ],
+    [
+      "GEO",
+      "TRE"
+    ],
+    [
+      "VEN",
+      "CYP"
     ]
   ],
   "rivals": [
@@ -81,6 +93,30 @@
     [
       "MLO",
       "VEN"
+    ],
+    [
+      "TUR",
+      "KAR"
+    ],
+    [
+      "AKK",
+      "QAR"
+    ],
+    [
+      "MAM",
+      "AKK"
+    ],
+    [
+      "MOR",
+      "POR"
+    ],
+    [
+      "TUN",
+      "TLE"
+    ],
+    [
+      "MAM",
+      "CYP"
     ]
   ],
   "claims": {
@@ -97,13 +133,25 @@
       "granada"
     ],
     "TUR": [
-      "constantinople"
+      "constantinople",
+      "konya",
+      "kastamonu"
     ],
     "RUS": [
       "novgorod"
     ],
     "POL": [
       "marienburg"
+    ],
+    "POR": [
+      "tangier"
+    ],
+    "KAR": [
+      "hamid",
+      "teke"
+    ],
+    "AKK": [
+      "erzurum"
     ]
   },
   "emperor": "HAB",
