@@ -623,13 +623,14 @@ func _economy(n: Nation) -> void:
 	_update_cached(n)
 	var tax := 0.0
 	var prod := 0.0
+	var nm: Dictionary = Economy.nation_mods(self, n)
 	for pid in provinces_of(n.tag):
 		var p: Province = provinces[pid]
 		if p.controller != n.tag:
 			continue
 		var um: float = Economy.uncored_mult(self, p)
-		tax += Economy.tax(self, p) * um
-		prod += Economy.production_value(self, p) * um
+		tax += Economy.tax(self, p, nm) * um
+		prod += Economy.production_value(self, p, nm) * um
 		if p.core_months > 0:
 			p.core_months -= 1
 			if p.core_months == 0 and n.tag == player:
@@ -695,6 +696,17 @@ func unrest(pid: int) -> float:
 	return unrest_parts(pid).total
 
 
+## Realm-wide part of a province's unrest (war exhaustion, techs, laws, estates).
+func unrest_base(n: Nation) -> float:
+	return n.we * float(bal.unrest_per_we) + mod(n, "unrest")
+
+
+## Cheap upper bound of unrest(p.id) given unrest_base of its owner: garrisons and suppression only lower it.
+func unrest_bound(p: Province, base: float) -> float:
+	return base + (float(bal.unrest_uncored) if p.core_months > 0 else 0.0) + Religion.unrest(self, p) \
+			+ maxf(0.0, Economy.local(self, p, "unrest"))
+
+
 func unrest_parts(pid: int) -> Dictionary:
 	var p: Province = provinces[pid]
 	var n: Nation = nations[p.owner]
@@ -716,11 +728,12 @@ func unrest_parts(pid: int) -> Dictionary:
 
 func _unrest_tick(n: Nation) -> void:
 	var thr := float(bal.revolt_threshold)
+	var base := unrest_base(n)
 	for pid in provinces_of(n.tag).duplicate():
 		var p: Province = provinces[pid]
 		if p.suppress_months > 0:
 			p.suppress_months -= 1
-		if p.controller != n.tag:
+		if p.controller != n.tag or unrest_bound(p, base) < thr:
 			continue
 		var u := unrest(pid)
 		if u < thr or rng.randf() > (u - thr + 1.0) * float(bal.revolt_chance):

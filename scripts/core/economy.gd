@@ -93,12 +93,18 @@ static func slots(g, p) -> int:
 
 
 ## Cost of the next level of `bid` in `pid` (level 1 = new building).
-static func building_cost(g, tag: String, pid: int, bid: String) -> float:
-	var n = g.nations[tag]
+## `nation_mult` is the realm's build cost factor (build_cost_mult), passed in by loops that price many buildings.
+static func building_cost(g, tag: String, pid: int, bid: String, nation_mult: float = -1.0) -> float:
 	var p = g.provinces[pid]
+	if nation_mult < 0.0:
+		nation_mult = build_cost_mult(g, g.nations[tag])
 	var dev_mult: float = 1.0 + p.dev * float(g.bal.building_cost_per_dev)
 	var lvl: int = level(p, bid) + 1
-	return round(float(g.buildings_def[bid].cost) * float(g.bal.building_cost_mult) * pow(lvl, float(g.bal.building_level_exp)) * dev_mult * maxf(0.3, 1.0 + g.mod(n, "build_cost")))
+	return round(float(g.buildings_def[bid].cost) * float(g.bal.building_cost_mult) * pow(lvl, float(g.bal.building_level_exp)) * dev_mult * nation_mult)
+
+
+static func build_cost_mult(g, n) -> float:
+	return maxf(0.3, 1.0 + g.mod(n, "build_cost"))
 
 
 static func max_level(g, bid: String) -> int:
@@ -113,7 +119,16 @@ static func level_dev(g, p, bid: String) -> int:
 
 ## "" if `tag` may start building `bid` in `pid`, else the reason.
 static func build_block_reason(g, tag: String, pid: int, bid: String) -> String:
-	var p = g.provinces[pid]
+	var r := _build_block_no_gold(g, tag, g.provinces[pid], bid)
+	if r != "":
+		return r
+	if g.nations[tag].gold < building_cost(g, tag, pid, bid):
+		return "Zu wenig Gold (%d benötigt)." % building_cost(g, tag, pid, bid)
+	return ""
+
+
+## Every rule of build_block_reason except the price.
+static func _build_block_no_gold(g, tag: String, p, bid: String) -> String:
 	var d: Dictionary = g.buildings_def.get(bid, {})
 	if d.is_empty():
 		return "Unbekanntes Gebäude."
@@ -133,8 +148,6 @@ static func build_block_reason(g, tag: String, pid: int, bid: String) -> String:
 		return "Braucht zuerst: %s." % g.buildings_def[d.requires].name
 	if p.dev < level_dev(g, p, bid):
 		return "Braucht Entwicklung %d." % level_dev(g, p, bid)
-	if g.nations[tag].gold < building_cost(g, tag, pid, bid):
-		return "Zu wenig Gold (%d benötigt)." % building_cost(g, tag, pid, bid)
 	return ""
 
 
@@ -235,15 +248,25 @@ static func units(g, p) -> float:
 	return p.dev * float(g.bal.production_per_dev) * maxf(0.1, m)
 
 
-static func production_value(g, p) -> float:
-	var n = g.nations[p.owner]
-	var m: float = 1.0 + local(g, p, "production") + g.mod(n, "production") + g.mod(n, "goods_" + p.good) + income_bonus(g, n)
+## `nm` (optional, from nation_mods) caches the owner's modifier sums for loops over many provinces.
+static func production_value(g, p, nm: Dictionary = {}) -> float:
+	if nm.is_empty():
+		nm = nation_mods(g, g.nations[p.owner])
+	var gk: String = "goods_" + p.good
+	if not nm.has(gk):
+		nm[gk] = g.mod(g.nations[p.owner], gk)
+	var m: float = 1.0 + local(g, p, "production") + nm.production + nm[gk] + nm.income
 	return p.dev * float(g.bal.production_per_dev) * maxf(0.1, m) * float(g.prices[p.good])
 
 
-static func tax(g, p) -> float:
-	var n = g.nations[p.owner]
-	return p.dev * float(g.bal.tax_per_dev) * maxf(0.1, 1.0 + local(g, p, "tax") + g.mod(n, "tax") + income_bonus(g, n))
+static func tax(g, p, nm: Dictionary = {}) -> float:
+	if nm.is_empty():
+		nm = nation_mods(g, g.nations[p.owner])
+	return p.dev * float(g.bal.tax_per_dev) * maxf(0.1, 1.0 + local(g, p, "tax") + nm.tax + nm.income)
+
+
+static func nation_mods(g, n) -> Dictionary:
+	return {"tax": g.mod(n, "tax"), "production": g.mod(n, "production"), "income": income_bonus(g, n)}
 
 
 ## Nation-wide income bonus (admin tech + income modifiers). It adds to the bonus of each income
@@ -597,14 +620,19 @@ static func autobuild(g, n) -> int:
 static func best_building(g, n, war: bool) -> Array:
 	var best: Array = []
 	var best_score := 0.0
+	var mult := build_cost_mult(g, n)
 	for pid in g.provinces_of(n.tag):
 		var p = g.provinces[pid]
 		if p.controller != n.tag or not p.constructing.is_empty():
 			continue
+		var ctx := {}  # per-province values shared by all building types (unrest, exposed border)
 		for bid in g.buildings_def:
-			if build_block_reason(g, n.tag, pid, bid) != "":
+			if _build_block_no_gold(g, n.tag, p, bid) != "":
 				continue
-			var s := _building_value(g, n, p, bid, war) / building_cost(g, n.tag, pid, bid)
+			var cost := building_cost(g, n.tag, pid, bid, mult)
+			if n.gold < cost:
+				continue
+			var s := _building_value(g, n, p, bid, war, ctx) / cost
 			if not p.buildings.has(bid):
 				s *= 0.8  # a new building uses up a slot
 			if s > best_score:
@@ -613,7 +641,13 @@ static func best_building(g, n, war: bool) -> Array:
 	return best
 
 
-static func _building_value(g, n, p, bid: String, war: bool) -> float:
+static func _ctx_unrest(g, p, ctx: Dictionary) -> float:
+	if not ctx.has("unrest"):
+		ctx.unrest = g.unrest(p.id)
+	return ctx.unrest
+
+
+static func _building_value(g, n, p, bid: String, war: bool, ctx: Dictionary = {}) -> float:
 	var d: Dictionary = g.buildings_def[bid]
 	var loc: Dictionary = d.get("local", {})
 	var v := 0.0
@@ -625,18 +659,21 @@ static func _building_value(g, n, p, bid: String, war: bool) -> float:
 	v += float(loc.get("manpower", 0.0)) * p.dev * 0.01
 	if p.core_months > 0:
 		v += float(loc.get("uncored_income", 0.0)) * prod + absf(float(loc.get("unrest", 0.0))) * 0.03
-	elif g.unrest(p.id) > 1.0:
+	elif _ctx_unrest(g, p, ctx) > 1.0:
 		v += absf(float(loc.get("unrest", 0.0))) * 0.03
 	v += float(d.get("nation", {}).get("force_limit", 0.0)) * (0.08 if war else 0.03)
 	if p.core_months == 0:  # roads in fresh conquests would crowd out courthouses
 		v += float(loc.get("supply", 0.0)) * (0.012 if war else 0.004)
 	if loc.has("fort"):
 		# forts only where it matters: the capital or a border province next to a strong neighbor
-		var exposed: bool = p.id == n.capital
-		for a in p.adj:
-			var o: String = g.provinces[a].owner
-			if o != n.tag and g.strength(o) > g.strength(n.tag) * 1.2:
-				exposed = true
-		v += 0.05 if exposed else 0.0
+		if not ctx.has("exposed"):
+			var exposed: bool = p.id == n.capital
+			var mine: float = g.strength(n.tag) * 1.2
+			for a in p.adj:
+				var o: String = g.provinces[a].owner
+				if not exposed and o != n.tag and g.strength(o) > mine:
+					exposed = true
+			ctx.exposed = exposed
+		v += 0.05 if ctx.exposed else 0.0
 		v -= float(d.get("upkeep", 0.0))
 	return v
