@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.9.0 – 2026-10-27
 - Die KI gibt überschüssiges Gold im Frieden für Missionare, Hoffeste (gegen Kriegsmüdigkeit) und Großprojekte aus, statt es zu horten.
 - Technologiebaum noch kompakter: Jeder Reiter zeigt nur seine eigenen Nationaltechs. Erforschbare stehen oben,
   gesperrte unter dem Baum, sodass die nächsten drei Stufen ohne Scrollen sichtbar sind.
