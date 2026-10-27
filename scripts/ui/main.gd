@@ -2607,58 +2607,66 @@ func _panel_hre() -> void:
 	var count := {}
 	for e in votes:
 		count[votes[e]] = count.get(votes[e], 0) + 1
-	side_box.add_child(_lbl("Kurfürsten (Stimme, wenn jetzt gewählt würde):", 18, Color(0.7, 0.8, 0.9)))
+	side_box.add_child(_lbl("Kurfürsten (Flagge) → ihre Stimme jetzt:", 16, Color(0.7, 0.8, 0.9)))
 	var els := []
 	for e in game.current_electors():
 		var v: String = votes.get(e, "")
 		var b := _nation_btn(e, "", _open_panel.bind("other", e) if e != me else _open_panel.bind("nation"))
 		b.tooltip_text = "%s würde %s wählen.%s" % [game.nations[e].name, game.nations[v].name if v != "" else "niemanden",
 				("\nBeziehung zu dir: %d" % int(game.get_rel(me, e))) if e != me else ""]
-		b.text = "%s → %s" % [e, v if v != "" else "–"]  # the flag names the elector; full names in the tooltip
+		b.text = "→ %s" % (v if v != "" else "–")  # the flag names the elector; full names in the tooltip
+		b.clip_text = true
 		els.append(b)
-	if els.size() % 2 == 1:
-		els.append(Control.new())
-	side_box.add_child(_grid(els))
+	side_box.add_child(_grid(els, 3))
+	var tip_votes := "Bessere Beziehungen, Bündnisse und Prestige bringen Stimmen."
+	var chips := [_chip("👥 %d Mitglieder" % game.hre_members().size(), "Reichsmitglieder")]
 	if game.hre.has(me):
-		var mine: int = count.get(me, 0)
-		side_box.add_child(_lbl("Du hättest %d von %d Stimmen. Bessere Beziehungen, Bündnisse und Prestige bringen Stimmen." % [mine, votes.size()], 16, Color(1, 0.9, 0.6)))
+		chips.append(_chip("👑 Du: %d / %d" % [count.get(me, 0), votes.size()], "So viele Kurfürsten würden dich jetzt wählen. " + tip_votes, "gold"))
 	else:
-		side_box.add_child(_lbl("Du bist kein Reichsmitglied und kannst nicht gewählt werden.", 16))
-	side_box.add_child(_lbl("Mitglieder: %d" % game.hre_members().size(), 15, Color(0.75, 0.75, 0.75)))
-	_hre_reforms_box(me)
+		chips.append(_chip("👑 Kein Mitglied", "Du bist kein Reichsmitglied und kannst nicht gewählt werden."))
+	_hre_reforms_box(me, chips)
 
 
 ## Imperial authority and the reform ladder; the player as emperor passes the next reform here.
-func _hre_reforms_box(me: String) -> void:
+## `chips` are the panel's status chips; the reform chips join them in one grid.
+func _hre_reforms_box(me: String, chips: Array) -> void:
 	var gv = game.govt
 	if gv.empire_reforms().is_empty():
+		side_box.add_child(_grid(chips))
 		return
-	side_box.add_child(_lbl("📜 Reichsreformen", 18, Color(0.7, 0.8, 0.9)))
 	var gain: float = gv.authority_gain(game)
-	side_box.add_child(_lbl("Kaiserliche Autorität: %d  (%s%.1f pro Jahr)" % [int(game.hre_authority), "+" if gain >= 0.0 else "", gain], 16, Color(1, 0.9, 0.6)))
-	side_box.add_child(_lbl("Wächst mit der Zahl der Mitglieder, sinkt durch Kriege zwischen ihnen und beim Wechsel des Kaiserhauses.", 14, Color(0.75, 0.75, 0.75)))
 	var nxt: Dictionary = gv.next_empire_reform(game)
-	# passed and later reforms are one line each (details on hover); only the next one is spelled out
+	var s0: Array = gv.reform_support(game) if not nxt.is_empty() else [0, 0]
+	chips.append(_chip("📜 Autorität %d (%s%.1f/J.)" % [int(game.hre_authority), "+" if gain >= 0.0 else "", gain],
+			"Kaiserliche Autorität wächst mit der Zahl der Mitglieder und sinkt durch Kriege zwischen ihnen und beim Wechsel des Kaiserhauses.", "gold"))
+	if not nxt.is_empty():
+		chips.append(_chip("👑 Kurfürsten %d/%d" % [s0[0], s0[1]], "Kurfürsten hinter dem Kaiser. Mehr als die Hälfte ist für eine Reform nötig.", "good" if s0[0] * 2 > s0[1] else "bad"))
+	# passed and locked reforms collapse into one line each (details on hover); only the next one is spelled out
+	var done_tip := []
+	var later_tip := []
 	for r in gv.empire_reforms():
-		var done: bool = game.hre_reforms.has(r.id)
-		var is_next: bool = r.id == nxt.get("id", "")
-		var head := "%s %s" % ["✅" if done else ("👉" if is_next else "🔒"), r.name]
-		if not done:
-			head += "  (ab %d, %d Autorität)" % [int(r.year), int(r.cost)]
-		var hl := _lbl(head, 16, Color(0.6, 1, 0.6) if done else (Color(1, 0.9, 0.6) if is_next else Color(0.8, 0.8, 0.8)))
-		hl.tooltip_text = "%s\nAlle Mitglieder: %s\nKaiser zusätzlich: %s" % [r.text, effects_text({"mods": r.members}), effects_text({"mods": r.emperor})]
+		var line := "%s: %s" % [r.name, effects_text({"mods": r.members})]
+		if game.hre_reforms.has(r.id):
+			done_tip.append("✅ " + line)
+		elif r.id != nxt.get("id", ""):
+			later_tip.append("🔒 %s (ab %d, %d Autorität)" % [line, int(r.year), int(r.cost)])
+	if not done_tip.is_empty():
+		chips.append(_chip("✅ %d beschlossen" % done_tip.size(), "\n".join(done_tip), "good"))
+	if not later_tip.is_empty():
+		chips.append(_chip("🔒 %d später" % later_tip.size(), "\n".join(later_tip)))
+	if chips.size() % 2 == 1:
+		chips.append(Control.new())
+	side_box.add_child(_grid(chips))
+	if not nxt.is_empty():
+		var r: Dictionary = nxt
+		var hl := _lbl("👉 %s  (ab %d, %d Autorität)" % [r.name, int(r.year), int(r.cost)], 16, Color(1, 0.9, 0.6))
+		hl.tooltip_text = r.text
 		hl.mouse_filter = Control.MOUSE_FILTER_STOP
 		side_box.add_child(hl)
-		if not is_next:
-			continue
-		side_box.add_child(_lbl(r.text, 14, Color(0.75, 0.75, 0.75)))
-		var eff := _grid([_lbl("Alle Mitglieder:", 14, Color(0.75, 0.75, 0.75)), _lbl("Kaiser zusätzlich:", 14, Color(0.75, 0.75, 0.75)),
-				TechScreen.effects_rich(r.members, 14), TechScreen.effects_rich(r.emperor, 14)])
-		side_box.add_child(eff)
+		side_box.add_child(_grid([_lbl("Alle Mitglieder:", 14, Color(0.75, 0.75, 0.75)), _lbl("Kaiser zusätzlich:", 14, Color(0.75, 0.75, 0.75)),
+				TechScreen.effects_rich(r.members, 14), TechScreen.effects_rich(r.emperor, 14)]))
 	if nxt.is_empty():
 		return
-	var s: Array = gv.reform_support(game)
-	side_box.add_child(_lbl("Kurfürsten hinter dem Kaiser: %d von %d (mehr als die Hälfte nötig)" % [s[0], s[1]], 15))
 	if me == game.emperor:
 		var err: String = gv.empire_reform_block(game, me)
 		side_box.add_child(_btn("👑 %s verabschieden" % nxt.name, func():

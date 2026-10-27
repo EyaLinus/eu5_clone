@@ -5,6 +5,11 @@
   Uzun Hasan und die Weißen Hammel, Georgien und Schirwan, Qaitbay und der Gewürzhandel der Mamluken, Selims
   Feldzug, Portugiesen vor Tanger, Wattasiden und Saadier in Marokko, Venedig und Zypern, die Belagerung von Rhodos.
   Neue Missionen für Osmanen (Anatolien, Ostgrenze), Mamluken (Syrien, Gewürzweg, Dulkadir) und Marokko (Küste, Häfen).
+- **Schnellere Monatsberechnung:** Die KI und die Wirtschaft rechnen pro Spielmonat rund 20–25 % schneller
+  (wichtig für die Browser-Version). Das Spielgeschehen bleibt exakt gleich.
+- **Reichsfenster (HRE) kompakt:** Kurfürsten in drei Spalten (Flagge → Stimme), Mitglieder, deine Stimmen,
+  Autorität und Rückhalt als Kacheln. Beschlossene und spätere Reformen stehen je in einer Kachel (Details im
+  Tooltip), nur die nächste Reform wird ausgeschrieben. Etwa 40 % kürzer.
 - **Drei Speicherplätze:** „Speichern“ im Menü bietet drei Plätze, „Laden“ zeigt dazu den Autosave, jeweils mit
   Nation und Datum. Das Startmenü hat „Laden“, sobald ein Platz belegt ist. Der Autosave überschreibt keine
   manuellen Stände mehr.
