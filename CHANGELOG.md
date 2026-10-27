@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- **🎓 Erste Schritte:** Sechs kleine Einstiegsziele oben im 💡 Ratgeber (entwickeln, bauen, forschen, Berater,
+  Regiment, Bündnis oder Heirat). Antippen führt hin, erledigte Ziele bringen je +25 💰 und +5 ⭐. Der Zähler am
+  Ratgeber-Tab zeigt wartende Belohnungen. Verschwindet, sobald alle abgeholt sind.
 - **Reichsfenster (HRE) kompakt:** Kurfürsten in drei Spalten (Flagge → Stimme), Mitglieder, deine Stimmen,
   Autorität und Rückhalt als Kacheln. Beschlossene und spätere Reformen stehen je in einer Kachel (Details im
   Tooltip), nur die nächste Reform wird ausgeschrieben. Etwa 40 % kürzer.

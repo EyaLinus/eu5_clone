@@ -67,6 +67,13 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "missions", "log", "ranking", "hre", "advice"]:
 		m._open_panel(mode)
 		n += 1
+	if month % 108 == 36:  # beginner goals, a few passes only: every jump opens, finished ones get claimed
+		for it in m.FirstSteps.steps(g, tag):
+			m._first_step_go(it.id, it.mode)
+			if it.done and not it.claimed:
+				m.FirstSteps.claim(g, tag, it.id)
+			n += 1
+		m._open_panel("advice")
 	for it in m._advice():  # every advisor entry must lead to a panel that opens
 		m._open_panel(it.mode, it.arg)
 		n += 1
