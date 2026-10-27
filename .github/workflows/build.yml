@@ -74,6 +74,20 @@ jobs:
           java -jar signer.jar --apks build/android/RiseOfEU-unsigned.apk --out build/android
           mv build/android/RiseOfEU-aligned-debugSigned.apk build/android/RiseOfEU.apk
           ls -la build/android
+      # browser build: single-threaded (no SharedArrayBuffer), so it runs on any plain web host or in an iframe
+      # without COOP/COEP headers; the .htaccess only sets the wasm MIME type on Apache hosts
+      - name: Export Web (HTML5)
+        run: |
+          command -v zip >/dev/null || (apt-get update -qq && apt-get install -y -qq zip >/dev/null)
+          mkdir -p build/web
+          godot --headless --path . --export-release "Web" build/web/index.html
+          cp tools/web/htaccess build/web/.htaccess
+          (cd build/web && zip -q -9 -r ../RiseOfEU-web.zip .)
+          ls -la build/web build/RiseOfEU-web.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RiseOfEU-web
+          path: build/RiseOfEU-web.zip
       - uses: actions/upload-artifact@v4
         with:
           name: RiseOfEU-windows
@@ -105,4 +119,5 @@ jobs:
           files: |
             dist/RiseOfEU.exe
             dist/RiseOfEU.apk
+            dist/RiseOfEU-web.zip
           generate_release_notes: false

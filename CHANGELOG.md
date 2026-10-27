@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- **Browser-Version (neu):** Jedes Release enthält jetzt `RiseOfEU-web.zip`, das Spiel läuft damit direkt im
+  Browser, auch eingebettet in andere Seiten. Spielstände bleiben im Browser gespeichert.
 - **Neues Startmenü:** Schwierigkeit als vier Knöpfe (Erklärung im Tooltip), Nationen im Raster. Antippen zeigt
   den Nationalgeist, gestartet wird mit „Los geht's“. Alles passt ohne Scrollen auf einen Bildschirm. Das Menü im
   Spiel ist ebenfalls kompakter.
