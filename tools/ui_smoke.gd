@@ -54,8 +54,11 @@ func _run(tags: Array, years: int) -> void:
 
 func _all_panels(m, g, tag: String, month: int) -> int:
 	var n := 0
-	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "missions", "log", "ranking", "hre"]:
+	for mode in ["nation", "economy", "mapmodes", "diplomacy", "wars", "missions", "log", "ranking", "hre", "advice"]:
 		m._open_panel(mode)
+		n += 1
+	for it in m._advice():  # every advisor entry must lead to a panel that opens
+		m._open_panel(it.mode, it.arg)
 		n += 1
 	for t in ["trade", "goods", "overview"]:
 		m.econ_tab = t

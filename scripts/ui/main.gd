@@ -223,7 +223,7 @@ func _build_hud() -> void:
 	left.add_theme_constant_override("h_separation", 8)
 	hud.add_child(left)
 	for e in [["nation", "Nation"], ["economy", "Wirtschaft"], ["tech", "Technologie"], ["government", "Regierung"], ["diplomacy", "Diplomatie"], ["wars", "Kriege"],
-			["missions", "Missionen"], ["log", "Chronik"], ["mapmode", "Kartenmodus"]]:
+			["missions", "Missionen"], ["log", "Chronik"], ["mapmode", "Kartenmodus"], ["advice", "Ratgeber: was jetzt zu tun ist"]]:
 		var cb: Callable = _open_panel.bind("mapmodes") if e[0] == "mapmode" else _open_panel.bind(e[0])
 		var tb := _tab_button("tab_" + e[0], cb, e[1])
 		var badge := Label.new()
@@ -236,6 +236,8 @@ func _build_hud() -> void:
 		tb.add_child(badge)
 		tab_badges[e[0]] = badge
 		left.add_child(tb)
+		if e[0] == "advice":
+			badge.position = Vector2(36, -8)  # the advisor's badge counts the open to-dos
 
 	var zoom := HBoxContainer.new()
 	zoom.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -1032,6 +1034,9 @@ func _update_badges() -> void:
 		if not best.is_empty() and n.gold >= Eco.building_cost(game, me, best[0], best[1]) + 50.0:
 			why = "Genug Gold für ein neues Gebäude (oder Autobau einschalten)."
 	tab_badges.economy.visible = why != ""
+	var c: int = _advice().size()
+	tab_badges.advice.text = str(c)
+	tab_badges.advice.visible = c > 0
 	tab_badges.economy.get_parent().tooltip_text = "Wirtschaft" + (("\n● " + why) if why != "" else "")
 
 
@@ -1355,6 +1360,8 @@ func _refresh() -> void:
 			gov_screen.build()
 		"modifiers":
 			_panel_modifiers()
+		"advice":
+			_panel_advice()
 	side_scroll.set_deferred("scroll_vertical", scroll)
 
 
@@ -2530,6 +2537,91 @@ func _panel_ranking() -> void:
 	var mine: int = tags.find(game.player)
 	if mine >= (20 if more else 10):
 		side_box.add_child(_lbl("Du: Platz %d" % (mine + 1), 16))
+
+
+## The advisor: everything that wants the player's attention right now, most urgent first, each with a jump
+## to the place where it is handled. Kind "bad" = trouble, "good" = a reward or chance waiting, "" = a hint.
+func _advice() -> Array:
+	var me: String = game.player
+	var n = game.nations[me]
+	var out := []
+	var add := func(text: String, tip: String, kind: String, mode: String, arg = null) -> void:
+		out.append({"text": text, "tip": tip, "kind": kind, "mode": mode, "arg": arg})
+	# trouble
+	if n.gold < 0.0:
+		add.call("💸 Kasse im Minus", "Unter −20 Gold desertieren Truppen. Kredit aufnehmen, Regimenter entlassen oder Frieden schließen.", "bad", "economy")
+	elif n.income - n.expenses < 0.0:
+		add.call("📉 Monatsbilanz negativ (%+.1f)" % (n.income - n.expenses), "Du gibst mehr aus, als du einnimmst. Haushalt unter ⚖️ Regierung prüfen oder Armee verkleinern.", "bad", "economy")
+	var worst := -1
+	var worst_u := 0.0
+	var restless := 0
+	for pid in game.provinces_of(me):
+		var u: float = game.unrest(pid)
+		if u >= float(game.bal.revolt_threshold) and game.provinces[pid].suppress_months == 0:
+			restless += 1
+			if u > worst_u:
+				worst_u = u
+				worst = pid
+	if worst >= 0:
+		add.call("✊ Aufstand droht: %s%s" % [game.provinces[worst].name, (" (+%d weitere)" % (restless - 1)) if restless > 1 else ""],
+				"Unruhe %.1f. Unterdrücken (⚔️), eine Armee hinschicken oder die Ursachen beseitigen (Tooltip der Unruhe-Kachel)." % worst_u, "bad", "province", worst)
+	if not n.coalition.is_empty():
+		add.call("⚠️ Koalition gegen dich (%d)" % n.coalition.size(), "Senke die aggressive Expansion: Zeit, 😠 Ruf verbessern im Nationsfenster, Diplomatie-Technologie.", "bad", "nation")
+	if game.is_at_war(me) and n.manpower < 1.0:
+		add.call("👥 Keine Mannschaften", "Söldner im Provinzfenster kosten Gold statt Mannschaften. 👥 Rekrutierung im Nationsfenster füllt sofort auf.", "bad", "nation")
+	# rewards waiting
+	for m in game.available_missions(me):
+		if game.mission_ready(me, m):
+			add.call("🎯 Mission erfüllt", "Hole dir die Belohnung ab.", "good", "missions")
+			break
+	for w in game.wars_of(me):
+		var att: bool = game.is_attacker(w, me)
+		if game.side_tags(w, att)[0] == me and game.warscore(w) * (1.0 if att else -1.0) >= 25.0:
+			add.call("🕊️ Frieden lohnt sich: %s" % w.name, "Du hast genug Kriegspunkte, um Provinzen zu fordern.", "good", "peace", w.id)
+	for v in game.vassals_of(me):
+		if game.annex_months_left(v) == 0:
+			add.call("🤝 %s kann annektiert werden" % game.nations[v].name, "Der Vasall ist bereit für die Eingliederung.", "good", "other", v)
+	if tech_screen.can_research(game, me):
+		add.call("🔬 Technologie bereit", "Du hast genug Macht für eine neue Technologie.", "good", "tech")
+	if gov_screen.can_act(game, me):
+		add.call("⚖️ Regierung: etwas zu tun", "Ein Berater, eine Reform, ein Gesetz oder ein Stand wartet auf dich.", "good", "government")
+	# hints: idle resources
+	var Eco = game.Economy
+	if not n.merchant_auto and n.merchants.size() < Eco.merchant_count(game, n):
+		add.call("🏬 Händler frei", "Schick ihn unter 💰 Wirtschaft → Handel in einen reichen Markt.", "", "economy")
+	if not n.autobuild and not game.is_at_war(me):
+		var best: Array = Eco.best_building(game, n, false)
+		if not best.is_empty() and n.gold >= Eco.building_cost(game, me, best[0], best[1]) + 50.0:
+			add.call("🏗️ Gold für ein Gebäude", "Bestes Angebot: %s. Oder den Autobau unter 💰 Wirtschaft einschalten." % game.provinces[best[0]].name, "", "province", best[0])
+	for k in ["adm", "dip", "mil"]:
+		if float(n.get(k)) >= float(game.bal.power_cap) * 0.8:
+			add.call("%s Macht staut sich (%d)" % [{"adm": "📜", "dip": "🕊️", "mil": "⚔️"}[k], int(n.get(k))],
+					"Bei %d ist Schluss. Entwickeln, Technologie, Berater oder die Aktionen im Nationsfenster nutzen." % int(game.bal.power_cap), "", "nation")
+	if Faith.missionaries(game, me) < int(game.bal.max_missionaries) and n.gold >= 80.0:
+		for pid in game.provinces_of(me):
+			if Faith.convert_block_reason(game, me, pid) == "":
+				add.call("⛪ Missionar frei: %s" % game.provinces[pid].name, "Andersgläubige Provinzen sind unruhig. Ein Missionar bekehrt sie.", "", "province", pid)
+				break
+	if n.we >= 4.0 and game.feast_ready_in(me) == 0 and n.gold >= game.feast_cost(me):
+		add.call("👑 Hoffest möglich", "Senkt die Kriegsmüdigkeit und bringt Prestige (Nationsfenster → Großprojekte).", "", "nation")
+	return out
+
+
+func _panel_advice() -> void:
+	side_title.text = "💡 Ratgeber"
+	var items: Array = _advice()
+	if items.is_empty():
+		side_box.add_child(_lbl("Alles im Griff. Nichts Dringendes zu tun. ✅", 17))
+		return
+	side_box.add_child(_lbl("Antippen führt dorthin, wo du es erledigst.", 14, Color(0.75, 0.75, 0.75)))
+	for it in items:
+		var b := _btn(it.text, _open_panel.bind(it.mode, it.arg), it.tip)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		if it.kind == "bad":
+			b.add_theme_color_override("font_color", Color(1.0, 0.6, 0.5))
+		elif it.kind == "good":
+			b.add_theme_color_override("font_color", Color(0.6, 1.0, 0.55))
+		side_box.add_child(b)
 
 
 func _panel_log() -> void:
