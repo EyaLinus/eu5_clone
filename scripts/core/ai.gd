@@ -2,6 +2,8 @@ extends RefCounted
 ## AI for every nation the player does not control, plus auto-managed player armies.
 ## `g` is the game (scripts/core/game.gd); untyped to avoid a cyclic preload.
 
+var _no_tech := {}  # tag+category -> [year, techs owned] of the last search that found nothing to research
+
 
 func think(g, n) -> void:
 	g.govt.ai_think(g, n)
@@ -23,7 +25,13 @@ func _spend_power(g, n) -> void:
 	for kind in g.POWERS:
 		var c: float = g.tech_cost(n.tag, kind)
 		if n.get(kind) >= c:
-			g.buy_tech(n.tag, kind)
+			# no tech open: availability only changes with the year or a new tech, so don't search again before that
+			var key: String = n.tag + kind
+			var stamp := [g.year(), n.techs.size()]
+			if _no_tech.get(key, []) == stamp:
+				continue
+			if g.buy_tech(n.tag, kind) != "":
+				_no_tech[key] = stamp
 	# surplus admin goes into development of the cheapest province
 	var cap := float(g.bal.power_cap)
 	if n.adm > g.tech_cost(n.tag, "adm") * 1.6 or n.adm > cap * 0.8:
@@ -32,8 +40,12 @@ func _spend_power(g, n) -> void:
 			g.develop(n.tag, best)
 	# keep the realm calm: suppress provinces about to revolt, calm the people when exhausted
 	var thr: float = float(g.bal.revolt_threshold)
+	var base: float = g.unrest_base(n)
 	for pid in (g.provinces_of(n.tag) if n.mil >= 30.0 else []):
-		if g.provinces[pid].suppress_months == 0 and g.unrest(pid) >= thr and n.mil >= g.suppress_cost(pid) + 20.0:
+		var p = g.provinces[pid]
+		if p.suppress_months > 0 or g.unrest_bound(p, base) < thr:
+			continue
+		if g.unrest(pid) >= thr and n.mil >= g.suppress_cost(pid) + 20.0:
 			g.suppress_unrest(n.tag, pid)
 	if n.we >= 6.0 and n.dip >= float(g.bal.we_reduce_cost) + 40.0:
 		g.reduce_we(n.tag)
@@ -191,12 +203,17 @@ func _cheapest_building_cost(g, n) -> float:
 func _fabricate_claim(g, n) -> void:
 	var best := -1
 	var best_score := -1e9
+	var power := {}  # owner -> strength (-1 = allied, skip), computed once per neighbour
 	for pid in g.provinces_of(n.tag):
 		for a in g.provinces[pid].adj:
 			var p = g.provinces[a]
-			if p.owner == n.tag or n.claims.has(a) or g.is_allied(n.tag, p.owner):
+			if p.owner == n.tag or n.claims.has(a):
 				continue
-			var s: float = p.dev - g.strength(p.owner) * 0.2
+			if not power.has(p.owner):
+				power[p.owner] = -1.0 if g.is_allied(n.tag, p.owner) else g.strength(p.owner)
+			if power[p.owner] < 0.0:
+				continue
+			var s: float = p.dev - power[p.owner] * 0.2
 			if s > best_score:
 				best_score = s
 				best = a

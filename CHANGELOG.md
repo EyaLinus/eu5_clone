@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- **Schnellere Monatsberechnung:** Die KI und die Wirtschaft rechnen pro Spielmonat rund 20–25 % schneller
+  (wichtig für die Browser-Version). Das Spielgeschehen bleibt exakt gleich.
 - **Reichsfenster (HRE) kompakt:** Kurfürsten in drei Spalten (Flagge → Stimme), Mitglieder, deine Stimmen,
   Autorität und Rückhalt als Kacheln. Beschlossene und spätere Reformen stehen je in einer Kachel (Details im
   Tooltip), nur die nächste Reform wird ausgeschrieben. Etwa 40 % kürzer.
