@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.9.1 – 2026-10-27
 - **Weitere Fenster entschlackt:** Kartenmodi und Rangliste stehen in zwei Spalten (Details im Tooltip), offene
   Missionen zeigen nur ihre Bedingungen (Belohnung im Tooltip, die ersten fünf sichtbar), lange Diplomatiegruppen
   starten zugeklappt, Kurfürsten zeigen kurz „BOH → HAB“.
