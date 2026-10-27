@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- **Klügere Kriegserklärungen:** Die KI rechnet nur noch Verbündete ein, die wirklich mitkämpfen (früher zählten auch Freunde des Gegners), und zieht bei historischen Kriegsereignissen nur in aussichtsreiche Kriege. Die KI verliert nur noch etwa 4 % statt 13 % ihrer Angriffskriege; es gibt etwas weniger Kriege, Revolten und Bankrotte.
 - Die KI gibt überschüssiges Gold im Frieden für Missionare, Hoffeste (gegen Kriegsmüdigkeit) und Großprojekte aus, statt es zu horten.
 - Technologiebaum noch kompakter: Jeder Reiter zeigt nur seine eigenen Nationaltechs. Erforschbare stehen oben,
   gesperrte unter dem Baum, sodass die nächsten drei Stufen ohne Scrollen sichtbar sind.
