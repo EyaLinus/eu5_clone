@@ -1,0 +1,5 @@
+# Apache: serve the Godot web build with the right MIME types (other servers ignore this file)
+<IfModule mod_mime.c>
+	AddType application/wasm .wasm
+	AddType application/octet-stream .pck
+</IfModule>
