@@ -165,16 +165,17 @@ func _build_law(g, gv, n) -> void:
 	for l in gv.laws:
 		var o: Dictionary = gv.law_option(l.id, n.gov.laws[l.id])
 		var cd: int = gv.law_cooldown_left(g, n, l.id)
-		var sub: String = l.name + (" · änderbar in %d Monaten" % cd if cd > 0 else "")
-		m.side_box.add_child(_card(o.name, sub, o.effects, false, "Ändern", _pick_law.bind(l.id)))
+		var sub: String = l.name + (" · änderbar in " + _wait(cd) if cd > 0 else _alternatives(l.options.filter(
+				func(x): return x.id != o.id and gv.law_block(g, n.tag, l.id, x.id) == "").size()))
+		m.side_box.add_child(_card(o.name, sub, o.effects, false, "Ändern", _pick_law.bind(l.id), true))
 	_section("🏛️ Staatsreformen", "Dauerhafte Reformen in vier Stufen, jede ab einem bestimmten Jahr. Pro Stufe gilt eine Reform, bezahlt mit Verwaltungspunkten. Ein späterer Wechsel kostet erneut und ist nur alle %d Jahre möglich." % int(gv.cfg.get("reform_change_years", 25)))
 	var locked := []
 	for t in gv.reforms:
 		if n.gov.reforms.has(t.id):
 			var o: Dictionary = gv.reform_option(t.id, n.gov.reforms[t.id])
 			var cd: int = gv.reform_cooldown_left(g, n, t.id)
-			var sub: String = t.name + (" · änderbar in %d Monaten" % cd if cd > 0 else "")
-			m.side_box.add_child(_card(o.name, sub, o.effects, false, "Ändern", _pick_reform.bind(t.id)))
+			var sub: String = t.name + (" · änderbar in " + _wait(cd) if cd > 0 else "")
+			m.side_box.add_child(_card(o.name, sub, o.effects, false, "Ändern", _pick_reform.bind(t.id), true))
 		elif g.year() >= int(t.year):
 			m.side_box.add_child(m._btn("➕ %s: Reform wählen (%d %s)" % [t.name, gv.reform_cost(g, n, t.id), Icons.emoji("adm")], _pick_reform.bind(t.id)))
 		else:
@@ -206,7 +207,18 @@ func _overview() -> void:
 	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
 
 
-func _card(title: String, sub: String, eff: Dictionary, national: bool, action: String, cb: Callable) -> Control:
+## Cooldown as "8 Monaten" or, from two years on, "10 Jahren".
+func _wait(months: int) -> String:
+	return "%d Jahren" % ceili(months / 12.0) if months >= 24 else "%d Monaten" % months
+
+
+## " · n weitere möglich" for a law card, so open choices show without opening the popup.
+func _alternatives(k: int) -> String:
+	return " · %d weitere möglich" % k if k > 0 else ""
+
+
+## `compact`: smaller title and button, for the long law and reform lists.
+func _card(title: String, sub: String, eff: Dictionary, national: bool, action: String, cb: Callable, compact: bool = false) -> Control:
 	var pc := PanelContainer.new()
 	pc.add_theme_stylebox_override("panel", UiTheme.card("gold" if national else ""))
 	var h := HBoxContainer.new()
@@ -216,9 +228,9 @@ func _card(title: String, sub: String, eff: Dictionary, national: bool, action: 
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_theme_constant_override("separation", 2)
 	h.add_child(v)
-	v.add_child(m._lbl(("⭐ " if national else "") + title, 18))
+	v.add_child(m._lbl(("⭐ " if national else "") + title, 16 if compact else 18))
 	if sub != "":
-		v.add_child(m._lbl(sub, 14, Color(0.72, 0.75, 0.82)))
+		v.add_child(m._lbl(sub, 13 if compact else 14, Color(0.72, 0.75, 0.82)))
 	# a default option without effects needs no "keine Wirkung" line
 	if not eff.is_empty():
 		v.add_child(TechScreen.effects_rich(eff, 15))
@@ -227,6 +239,8 @@ func _card(title: String, sub: String, eff: Dictionary, national: bool, action: 
 	b.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	b.add_theme_font_size_override("font_size", 15)
+	if compact:
+		b.custom_minimum_size.y = 40
 	h.add_child(b)
 	return pc
 
