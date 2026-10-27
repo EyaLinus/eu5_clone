@@ -149,13 +149,6 @@ func _save_settings() -> void:
 
 
 ## Difficulty for new games (start menu); saved in the settings, each save keeps its own.
-func _cycle_difficulty() -> void:
-	var i: int = Game.DIFFICULTIES.find(String(settings.difficulty))
-	settings.difficulty = Game.DIFFICULTIES[(i + 1) % Game.DIFFICULTIES.size()]
-	_save_settings()
-	_show_start_menu()
-
-
 func _cycle_ui_scale() -> void:
 	var i := UI_SCALES.find(float(settings.ui_scale))
 	settings.ui_scale = UI_SCALES[(i + 1) % UI_SCALES.size()]
@@ -540,20 +533,72 @@ func _nation_btn(tag: String, extra: String, cb: Callable, pre: String = "") -> 
 
 # ---------------------------------------------------------------- game flow
 
+var start_pick := ""  # nation chosen in the start menu, started with its "Los" button
+
+
+const DIFFICULTY_TIPS := {
+	"easy": "Für den Einstieg: +25 % Einkommen, +25 % Mannschaften, +10 % Kampfkraft, −10 % Technologiekosten, weniger Unruhe. Die KI greift dich seltener an.",
+	"normal": "Leichte Hilfe: +10 % Einkommen, +5 % Kampfkraft, etwas weniger Unruhe. Die KI greift dich etwas seltener an.",
+	"hard": "Keine Hilfen: gleiche Regeln für dich und die KI.",
+	"very_hard": "Die KI hat +15 % Einkommen und Mannschaften, +10 % Kampfkraft und greift dich öfter an.",
+}
+
+
 func _show_start_menu() -> void:
 	hud.visible = false
 	_open_modal()
 	modal_box.add_child(_lbl("🌍 Rise of EU", 40))
-	modal_box.add_child(_lbl("1444 – 1644 · Wähle deine Nation. Ziel: Am Ende die höchste Punktzahl (Entwicklung + Prestige + Technologie).", 18))
+	modal_box.add_child(_lbl("1444 – 1644 · Ziel: am Ende die höchste Punktzahl (Entwicklung + Prestige + Technologie).", 16, Color(0.8, 0.8, 0.8)))
+	var top := []
 	if FileAccess.file_exists(SAVE_PATH):
-		modal_box.add_child(_btn("💾 Weiterspielen", _load_game))
-	modal_box.add_child(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
-	modal_box.add_child(_btn("⚔️ Schwierigkeit: %s" % Game.DIFFICULTY_NAMES.get(settings.difficulty, "Normal"), _cycle_difficulty))
+		top.append(_btn("💾 Weiterspielen", _load_game))
+	top.append(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
+	if top.size() % 2 == 1:
+		top.append(Control.new())
+	modal_box.add_child(_grid(top))
+	# difficulty: four buttons, the chosen one framed in gold
+	modal_box.add_child(_lbl("⚔️ Schwierigkeit", 18, Color(0.7, 0.8, 0.9)))
+	var diffs := []
+	for d in Game.DIFFICULTIES:
+		var db := _btn(Game.DIFFICULTY_NAMES[d], func():
+			settings.difficulty = d
+			_save_settings()
+			_show_start_menu(), DIFFICULTY_TIPS.get(d, ""))
+		if d == String(settings.difficulty):
+			db.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
+			db.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
+		diffs.append(db)
+	modal_box.add_child(_grid(diffs, 4))
+	# the chosen nation with its idea and the start button
+	if start_pick != "" and data.nations.has(start_pick):
+		var nd: Dictionary = data.nations[start_pick]
+		var card := PanelContainer.new()
+		card.add_theme_stylebox_override("panel", UiTheme.card("gold", 10))
+		var v := VBoxContainer.new()
+		v.add_child(_lbl("%s %s" % [PixelEmoji.nation(start_pick, nd.emoji), nd.name], 24))
+		v.add_child(_bb(_idea_bb(nd.get("idea", ""), nd.get("bonus", {})), 16))
+		if EXTRA_PLAYABLE.has(start_pick):
+			v.add_child(_lbl("Weniger eigene Missionen und Ereignisse als die großen Nationen.", 14, Color(0.85, 0.75, 0.5)))
+		v.add_child(_btn("▶ Los geht's als %s (%s)" % [nd.name, Game.DIFFICULTY_NAMES.get(settings.difficulty, "Normal")], _start_game.bind(start_pick)))
+		card.add_child(v)
+		modal_box.add_child(card)
+	else:
+		modal_box.add_child(_lbl("👆 Wähle deine Nation:", 18, Color(1, 0.9, 0.6)))
+	var picks := []
 	for tag in MAJORS + EXTRA_PLAYABLE:
-		if tag == EXTRA_PLAYABLE[0]:
-			modal_box.add_child(_lbl("Weitere Nationen (weniger Missionen und Events):", 16, Color(0.85, 0.75, 0.5)))
 		var nd: Dictionary = data.nations[tag]
-		modal_box.add_child(_rich_btn("%s %s" % [PixelEmoji.nation(tag, nd.emoji), nd.name], _idea_bb(nd.get("idea", ""), nd.get("bonus", {})), _start_game.bind(tag), 20))
+		var nb := _btn("%s %s" % [PixelEmoji.nation(tag, nd.emoji), nd.name], func():
+			start_pick = tag
+			_show_start_menu()
+			var sc := modal_box.get_parent() as ScrollContainer
+			if sc != null:
+				sc.set_deferred("scroll_vertical", 0), nd.get("idea", "") + ("\n(weniger Missionen und Ereignisse)" if EXTRA_PLAYABLE.has(tag) else ""))
+		if tag == start_pick:
+			nb.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
+		picks.append(nb)
+	while picks.size() % 3 != 0:
+		picks.append(Control.new())
+	modal_box.add_child(_grid(picks, 3))
 
 
 ## National idea as "Name: buffs" with the buffs green (data/nations.json "idea" text before the colon + "bonus").
@@ -1097,27 +1142,39 @@ func _show_menu() -> void:
 	_open_modal()
 	modal_box.add_child(_lbl("☰ Menü", 30))
 	modal_box.add_child(_btn("▶ Weiter", _close_modal))
-	modal_box.add_child(_btn("💾 Speichern", func(): _save_game(); _toast("💾 Gespeichert."); _close_modal()))
-	modal_box.add_child(_btn("📂 Laden", _load_game))
-	modal_box.add_child(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
+	var acts := [
+		_btn("💾 Speichern", func(): _save_game(); _toast("💾 Gespeichert."); _close_modal()),
+		_btn("📂 Laden", _load_game),
+		_btn("🏠 Hauptmenü", func(): _save_game(); game = null; _show_start_menu(), "Speichert und kehrt zum Startmenü zurück."),
+	]
+	if OS.get_name() != "Android":
+		acts.append(_btn("🚪 Beenden", func(): _save_game(); get_tree().quit(), "Speichert und beendet das Spiel."))
+	if acts.size() % 2 == 1:
+		acts.append(Control.new())
+	modal_box.add_child(_grid(acts))
+	modal_box.add_child(_lbl("Einstellungen", 18, Color(0.7, 0.8, 0.9)))
+	var opts := [
+		_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale),
+		_btn("🔊 Ton: %s" % ("an" if settings.get("sound", true) else "aus"), func():
+			settings.sound = not settings.get("sound", true)
+			_save_settings()
+			_show_menu()),
+		_btn("💡 Tipps: %s" % ("an" if settings.tips else "aus"), func():
+			settings.tips = not settings.tips
+			if settings.tips:
+				settings.tips_seen = []
+			_save_settings()
+			_show_menu(), "Einmalige Hinweise, wenn etwas Neues passiert. Einschalten zeigt alle wieder."),
+	]
 	if not OS.has_feature("mobile"):
-		modal_box.add_child(_btn("👆 Große Bedienelemente: %s (Leisten nach Neustart)" % ("an" if settings.get("big_ui", false) else "aus"), func():
+		opts.append(_btn("👆 Große Knöpfe: %s" % ("an" if settings.get("big_ui", false) else "aus"), func():
 			settings.big_ui = not settings.get("big_ui", false)
 			_save_settings()
-			_show_menu()))
-	modal_box.add_child(_btn("🔊 Ton: %s" % ("an" if settings.get("sound", true) else "aus"), func():
-		settings.sound = not settings.get("sound", true)
-		_save_settings()
-		_show_menu()))
-	modal_box.add_child(_btn("💡 Tipps: %s" % ("an" if settings.tips else "aus"), func():
-		settings.tips = not settings.tips
-		if settings.tips:
-			settings.tips_seen = []
-		_save_settings()
-		_show_menu()))
-	modal_box.add_child(_btn("🏠 Hauptmenü (speichert)", func(): _save_game(); game = null; _show_start_menu()))
-	if OS.get_name() != "Android":
-		modal_box.add_child(_btn("🚪 Beenden", func(): _save_game(); get_tree().quit()))
+			_show_menu(), "Größere Bedienelemente für Touchscreens. Die Leisten ändern sich nach einem Neustart."))
+	if opts.size() % 2 == 1:
+		opts.append(Control.new())
+	modal_box.add_child(_grid(opts))
+	modal_box.add_child(_lbl("⚔️ Schwierigkeit: %s" % Game.DIFFICULTY_NAMES.get(game.difficulty, "Normal"), 15, Color(0.75, 0.75, 0.75)))
 
 
 func _show_event(event_id: String) -> void:
@@ -2275,46 +2332,68 @@ func _panel_peace(war_id: int) -> void:
 	var dev_sel := 0
 	for pid in peace_selection:
 		dev_sel += game.provinces[pid].dev
-	side_box.add_child(_lbl("Kriegspunkte: %+d · Forderung kostet: %d\nIntegration kostet %d 📜 Admin (du hast %d)" % [
-			int(ws), int(cost), int(dev_sel * float(game.bal.core_cost_per_dev)), int(game.nations[me].adm)], 18))
+	var core_cost: int = int(dev_sel * float(game.bal.core_cost_per_dev))
+	side_box.add_child(_grid([
+		_chip("🏆 Punkte %+d" % int(ws), "Kriegspunkte: aus Schlachten und besetzten Provinzen.", "good" if ws > 0 else ("bad" if ws < 0 else "")),
+		_chip("📜 Forderung %d" % int(cost), "Was die ausgewählten Provinzen an Kriegspunkten kosten.", "bad" if cost > ws else ""),
+		_chip("📜 Integration %d / %d" % [core_cost, int(game.nations[me].adm)], "Die Integration der Forderung kostet so viel Verwaltungsmacht (du hast %d)." % int(game.nations[me].adm),
+				"bad" if core_cost > game.nations[me].adm else ""),
+		_chip("🏘️ %d Prov. · %d Entw." % [peace_selection.size(), dev_sel], "Ausgewählte Provinzen und ihre Entwicklung."),
+	]))
 	var cands: Array = game.demandable(w, att)
 	if cands.is_empty():
 		side_box.add_child(_lbl("Keine besetzten Feindprovinzen. Besetze Provinzen, um sie fordern zu können.", 16))
+	# occupied provinces as toggle tiles, grouped by owner; picked ones are framed in gold
+	var by_owner := {}
 	for pid in cands:
-		var p = game.provinces[pid]
-		var cb := CheckBox.new()
-		cb.text = "%s (%s) – %d Punkte" % [p.name, game.nations[p.owner].name, int(game.peace_cost([pid]))]
-		cb.button_pressed = peace_selection.has(pid)
-		cb.focus_mode = Control.FOCUS_NONE
-		cb.toggled.connect(_toggle_peace.bind(pid))
-		side_box.add_child(cb)
+		var o: String = game.provinces[pid].owner
+		if not by_owner.has(o):
+			by_owner[o] = []
+		by_owner[o].append(pid)
+	for o in by_owner:
+		side_box.add_child(_lbl(nname(o), 15, Color(0.7, 0.8, 0.9)))
+		var tiles := []
+		for pid in by_owner[o]:
+			var p = game.provinces[pid]
+			var on: bool = peace_selection.has(pid)
+			var tb := _btn(("✅ " if on else "") + "%s %d" % [p.name, int(game.peace_cost([pid]))], _toggle_peace.bind(not on, pid),
+					"%s: Entwicklung %d, kostet %d Kriegspunkte." % [p.name, p.dev, int(game.peace_cost([pid]))])
+			tb.clip_text = true
+			if on:
+				tb.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
+			tiles.append(tb)
+		if tiles.size() % 2 == 1:
+			tiles.append(Control.new())
+		side_box.add_child(_grid(tiles))
+	var acts := []
 	if not cands.is_empty() and ws > 0:
-		side_box.add_child(_btn("✨ Beste Auswahl (für %d Punkte)" % int(ws), func():
+		acts.append(_btn("✨ Beste Auswahl", func():
 			peace_selection = {}
 			for pid in game.ai.pick_demands(game, w, att, ws):
 				peace_selection[pid] = true
-			_refresh()))
-	side_box.add_child(_btn("📜 Forderung stellen", func():
+			_refresh(), "Wählt die wertvollsten Provinzen, die deine %d Kriegspunkte hergeben." % int(ws)))
+	acts.append(_btn("📜 Fordern", func():
 		var ok: bool = game.offer_peace(me, w, peace_selection.keys(), true)
-		_after_peace(ok)))
+		_after_peace(ok), "Frieden mit den ausgewählten Provinzen anbieten. Der Gegner nimmt an, wenn die Kriegspunkte reichen."))
 	var target: String = game.side_tags(w, not att)[0]
 	var why: String = game.vassal_block_reason(w, att)
-	if why == "":
-		side_box.add_child(_btn("⛓️ Vasallisieren (%d Punkte)" % int(game.vassal_cost(w, att)), func():
+	if why == "" or target != me:
+		acts.append(_btn("⛓️ Vasall %d" % int(game.vassal_cost(w, att)) if why == "" else "⛓️ Vasall", func():
 			var ok: bool = game.offer_peace(me, w, [], true, true)
-			_after_peace(ok)))
-	elif target != me:
-		side_box.add_child(_lbl("⛓️ Vasallisieren nicht möglich: " + why, 15, Color(0.7, 0.7, 0.7)))
-	side_box.add_child(_btn("🏳️ Weißer Frieden anbieten", func():
+			_after_peace(ok), ("Den Gegner zum Vasallen machen (%d Kriegspunkte). Er zahlt Tribut und kämpft an deiner Seite." % int(game.vassal_cost(w, att))) if why == "" else ("❌ " + why), why != ""))
+	acts.append(_btn("🏳️ Weißer Frieden", func():
 		var ok: bool = game.offer_peace(me, w, [], true)
-		_after_peace(ok)))
+		_after_peace(ok), "Frieden ohne Forderungen: alle besetzten Provinzen gehen zurück."))
 	if ws < 0:
-		side_box.add_child(_btn("🙇 Provinzen abtreten (Kapitulation)", func():
+		acts.append(_btn("🙇 Kapitulieren", func():
 			var give: Array = game.ai.pick_demands(game, w, not att, -ws * 0.9)
 			var ok: bool = game.offer_peace(me, w, give, false)
 			if not ok:
 				ok = game.offer_peace(me, w, [], true)
-			_after_peace(ok)))
+			_after_peace(ok), "Provinzen abtreten, um den verlorenen Krieg zu beenden."))
+	if acts.size() % 2 == 1:
+		acts.append(Control.new())
+	side_box.add_child(_grid(acts))
 
 
 func _set_all_auto(on: bool) -> void:
@@ -2721,6 +2800,12 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["🏦 Kredit erlassen", 1])
 		elif k == "merc_ready":
 			parts.append(["⚔️ Söldner sofort verfügbar", 1])
+		elif k == "monument_progress":
+			parts.append(["🏗️ Großprojekt %d Monate schneller" % int(v), 1])
+		elif k == "feast_ready":
+			parts.append(["🍷 Nächstes Hoffest sofort möglich", 1])
+		elif k == "spouse_rel":
+			parts.append(["❤️ Verschwägerte %+d" % int(v), sgn.call(float(v))])
 		elif k == "convert_random":
 			parts.append(["⛪ %d Provinzen nehmen deinen Glauben an" % int(v), 1])
 	return parts
@@ -2815,6 +2900,14 @@ func conditions_text(c: Dictionary) -> String:
 				lines.append(mark + "Höchstens %d%% des Landes teilen deinen Glauben" % int(float(v) * 100))
 			"religion":
 				lines.append(mark + "Staatsglaube: " + game.Religion.faith_name(v))
+			"monument":
+				lines.append(mark + "Großprojekt vollendet: " + game.monument_defs[v].name)
+			"monuments_min":
+				lines.append(mark + "Mindestens %d Großprojekte vollendet" % int(v))
+			"monument_building":
+				lines.append(mark + ("Ein Großprojekt wird gebaut" if v else "Kein Großprojekt im Bau"))
+			"married":
+				lines.append(mark + ("Königliche Heirat besteht" if v else "Keine königliche Heirat"))
 			"province_faith":
 				lines.append(mark + "Eine deiner Provinzen ist %s" % game.Religion.faith_name(v).to_lower())
 			_:
