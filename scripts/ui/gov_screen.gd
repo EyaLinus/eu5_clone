@@ -135,6 +135,15 @@ func _build_budget(g, gv, n) -> void:
 
 
 func _build_court(g, gv, me: String, n) -> void:
+	var h: Dictionary = n.gov.get("heir", {})
+	if not h.is_empty():
+		var title: String = gv.heir_title(me)
+		_section("👑 %s" % title, "Übernimmt die Herrschaft, wenn die Zeit des Herrschers endet. Seine Fähigkeiten bestimmen dann die Punkte pro Monat.")
+		var sub := "📜%d 🕊️%d ⚔️%d · übernimmt in ca. %d Jahren" % [int(h.adm), int(h.dip), int(h.mil), n.ruler.years]
+		var card := _card(str(h.name) if str(h.name) != "" else title, sub, {}, false, "Erziehen", _heir, true)
+		if g.POWERS.any(func(k): return gv.educate_block(g, me, k) == ""):
+			card.get_child(0).get_child(1).add_theme_color_override("font_color", UiTheme.GOLD)
+		m.side_box.add_child(card)
 	_section("🎓 Berater (%d/%d)" % [n.gov.advisors.size(), gv.advisor_slots(g, n)],
 			"Kosten %d Punkte der jeweiligen Art. Historische Persönlichkeiten dienen nur zu ihren Lebzeiten." % gv.advisor_cost(g, n, ""))
 	for id in n.gov.advisors:
@@ -252,6 +261,41 @@ func _choice(title: String, sub: String, eff: Dictionary, national: bool, label:
 	if err != "":
 		card.get_child(0).get_child(0).add_child(m._lbl(err, 14, Color(0.95, 0.6, 0.55)))
 	return card
+
+
+## Heir popup: skills next to the ruler's, one education per year in the chosen field.
+func _heir() -> void:
+	var g = m.game
+	var gv = g.govt
+	var me: String = g.player
+	var n = g.nations[me]
+	var h: Dictionary = n.gov.heir
+	var title: String = gv.heir_title(me)
+	m._open_modal()
+	var box: VBoxContainer = m.modal_box
+	box.add_child(m._lbl("👑 %s: %s" % [title, str(h.name) if str(h.name) != "" else "unbenannt"], 26))
+	box.add_child(m._lbl("Übernimmt in ca. %d Jahren. Einmal im Jahr kannst du ihn in einem Fach unterrichten lassen: +1 auf diese Fähigkeit (höchstens %d). Jede Stufe macht den nächsten Unterricht teurer." % [
+			n.ruler.years, int(g.bal.ruler_max)], 15, Color(0.72, 0.75, 0.82)))
+	var names := {"adm": "Verwaltung", "dip": "Diplomatie", "mil": "Militär"}
+	for k in g.POWERS:
+		var v: int = int(h[k])
+		var err: String = gv.educate_block(g, me, k)
+		var line := "%s%s: %d (Herrscher %d)" % [Icons.prefix(k), names[k], v, int(n.ruler[k])]
+		var l: Label = m._lbl(line, 17)
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var label: String = "Voll" if v >= int(g.bal.ruler_max) else "+1 für %d %s" % [gv.educate_cost(g, n, k), Icons.emoji(k)]
+		var b: Button = m._btn(label, func():
+			var e: String = gv.educate(g, me, k)
+			m._act(e, "🎓 %s lernt %s" % [title, names[k]])
+			if e == "":
+				_heir(), err if err != "" else "Ein Jahr Unterricht in %s" % names[k], err != "")
+		box.add_child(m._row([l, b]))
+		b.size_flags_horizontal = Control.SIZE_SHRINK_END
+		b.clip_text = false
+		b.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	if int(h.get("edu", 0)) == g.year():
+		box.add_child(m._lbl("Dieses Jahr schon unterrichtet, wieder ab %d." % (g.year() + 1), 15, Color(1.0, 0.75, 0.45)))
+	box.add_child(m._btn("Schließen", m._close_modal))
 
 
 ## Advisor popup: current and next skill level, promote and dismiss.

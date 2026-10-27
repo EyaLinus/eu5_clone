@@ -243,6 +243,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		_new_ruler(n)
 		tree.refresh(n)
 		govt.init_nation(n)
+		govt.ensure_heir(self, n)
 		nations[tag] = n
 		order.append(tag)
 		provinces[n.capital].fort = 1
@@ -301,16 +302,24 @@ func _apply_start_diplomacy(d: Dictionary) -> void:
 
 
 func _new_ruler(n: Nation) -> void:
+	var r := roll_person(n)
+	n.ruler_name = r.name
+	r.erase("name")
+	n.ruler = r
+
+
+## A random ruler or heir of `n`: adm/dip/mil, reign years and a numbered name from the nation's list.
+func roll_person(n: Nation) -> Dictionary:
 	var lo := int(bal.ruler_min)
 	var hi := int(bal.ruler_max)
-	n.ruler = {"adm": rng.randi_range(lo, hi), "dip": rng.randi_range(lo, hi), "mil": rng.randi_range(lo, hi),
-			"years": rng.randi_range(8, 35)}
-	n.ruler_name = ""
+	var r := {"adm": rng.randi_range(lo, hi), "dip": rng.randi_range(lo, hi), "mil": rng.randi_range(lo, hi),
+			"years": rng.randi_range(8, 35), "name": ""}
 	if not n.ruler_names.is_empty():
 		var base: String = n.ruler_names[rng.randi_range(0, n.ruler_names.size() - 1)]
 		var num: int = n.name_counts.get(base, 0) + 1
 		n.name_counts[base] = num
-		n.ruler_name = "%s %s" % [base, _roman(num)]
+		r.name = "%s %s" % [base, _roman(num)]
+	return r
 
 
 static func _roman(v: int) -> String:
@@ -818,7 +827,7 @@ func _yearly() -> void:
 			continue
 		n.ruler.years -= 1
 		if n.ruler.years <= 0:
-			_new_ruler(n)
+			govt.succession(self, n)
 			var who: String = n.ruler_name if n.ruler_name != "" else "Ein neuer Herrscher"
 			log_msg("👑 %s besteigt den Thron (📜%d 🕊️%d ⚔️%d)." % [who, n.ruler.adm, n.ruler.dip, n.ruler.mil], [tag])
 			_marriage_succession(n)

@@ -33,6 +33,7 @@ func _init() -> void:
 		"test_gov_forms",
 		"test_tech_ahead",
 		"test_tech_queue",
+		"test_heir",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1787,6 +1788,42 @@ func test_religion_modifiers() -> void:
 
 
 ## Age goals: count only in their age, give permanent rewards, two of three win the triumph.
+func test_heir() -> void:
+	var g = new_game("FRA")
+	var gv = g.govt
+	var n = g.nations.FRA
+	var h: Dictionary = n.gov.heir
+	check(not h.is_empty() and h.has("adm") and str(h.name) != "", "every nation starts with a named heir")
+	check(gv.heir_title("FRA") == "Erbe" and gv.heir_title("VEN") == "Nachfolger", "heir or successor by form")
+	# education: costs power of that kind, +1, once a year, capped at ruler_max
+	h.adm = 1
+	n.adm = 500.0
+	var c: float = gv.educate_cost(g, n, "adm")
+	check(gv.educate(g, "FRA", "adm") == "" and int(n.gov.heir.adm) == 2 and is_equal_approx(n.adm, 500.0 - c), "educate raises a skill for power")
+	check(gv.educate_block(g, "FRA", "dip") != "", "once a year")
+	check(gv.educate_cost(g, n, "adm") > c, "each level costs more")
+	g.month += 12
+	n.gov.heir.mil = int(g.bal.ruler_max)
+	check(gv.educate_block(g, "FRA", "mil") != "", "capped at ruler_max")
+	n.adm = 0.0
+	check(gv.educate_block(g, "FRA", "adm").begins_with("Zu wenig"), "needs power")
+	# saved and loaded
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.nations.FRA.gov.heir.adm == n.gov.heir.adm and g2.nations.FRA.gov.heir.name == n.gov.heir.name, "heir saved")
+	# succession: the heir becomes ruler, a new heir is named
+	var old: Dictionary = n.gov.heir.duplicate()
+	n.ruler.years = 1
+	g.month = (g.month / 12) * 12 + 11
+	g.tick()
+	check(n.ruler_name == str(old.name) and int(n.ruler.adm) == int(old.adm) and int(n.ruler.mil) == int(old.mil), "heir takes the throne")
+	check(n.ruler.years >= 8 and not n.gov.heir.is_empty() and n.gov.heir.name != old.name, "new reign and a new heir")
+	# old saves without heir get one at the next turn of the year
+	n.gov.erase("heir")
+	gv.yearly(g, n)
+	check(not n.gov.get("heir", {}).is_empty(), "missing heir is named yearly")
+
+
 func test_tech_queue() -> void:
 	var g = new_game("FRA")
 	var tr = g.tree
