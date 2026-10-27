@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+- **Noch weniger Scrollen:** Armee-, Kriegs- und Reichsfenster zeigen ihre Werte als Kacheln, Befehle stehen im
+  Raster. Das Armeefenster passt jetzt auf einen Bildschirm. Im Reichsfenster sind erledigte und spätere Reformen
+  einzeilig (Details im Tooltip), nur die nächste Reform steht ausführlich da. Die Chronik ist nach Jahren
+  gruppiert, nur das aktuelle Jahr ist aufgeklappt.
+
 ## v0.9.0 – 2026-10-27
 - Die KI gibt überschüssiges Gold im Frieden für Missionare, Hoffeste (gegen Kriegsmüdigkeit) und Großprojekte aus, statt es zu horten.
 - Technologiebaum noch kompakter: Jeder Reiter zeigt nur seine eigenen Nationaltechs. Erforschbare stehen oben,
