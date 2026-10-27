@@ -1849,10 +1849,17 @@ func _economy_goods() -> void:
 
 func _panel_mapmodes() -> void:
 	side_title.text = "🗺️ Kartenmodus"
+	var modes := []
 	for i in map.MODE_NAMES.size():
-		var b := _btn(("▶ " if map.map_mode == i else "") + map.MODE_NAMES[i], _set_map_mode.bind(i), MODE_LEGENDS[i])
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		side_box.add_child(b)
+		var b := _btn(map.MODE_NAMES[i], _set_map_mode.bind(i), MODE_LEGENDS[i])
+		b.clip_text = true
+		if map.map_mode == i:
+			b.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
+			b.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
+		modes.append(b)
+	if modes.size() % 2 == 1:
+		modes.append(Control.new())
+	side_box.add_child(_grid(modes))
 	side_box.add_child(_lbl(MODE_LEGENDS[map.map_mode], 16, Color(0.8, 0.85, 0.7)))
 	for k in MODE_KEYS.get(map.map_mode, []):
 		side_box.add_child(_lbl("● " + k[1], 16, Color(k[0])))
@@ -2115,8 +2122,8 @@ func _panel_diplomacy() -> void:
 	for g in groups:
 		if g[1].is_empty():
 			continue
-		# the long list of far-away realms starts closed
-		if not _section("dip_" + g[0], "%s (%d)" % [g[0], g[1].size()], g[0] != "Andere"):
+		# long groups and the far-away realms start closed
+		if not _section("dip_" + g[0], "%s (%d)" % [g[0], g[1].size()], g[0] != "Andere" and g[1].size() <= 6):
 			continue
 		for tag in g[1]:
 			var o = game.nations[tag]
@@ -2492,19 +2499,27 @@ func _panel_missions() -> void:
 			side_box.add_child(_lbl("Keine offenen Missionen."))
 		# ready missions first
 		avail.sort_custom(func(a, b): return game.mission_ready(me, a) and not game.mission_ready(me, b))
-		for m in avail:
+		var all_open: bool = section_open.get("missions_all", false)
+		for mi in avail.size():
+			var m: Dictionary = avail[mi]
 			var ready: bool = game.mission_ready(me, m)
+			if mi >= 5 and not ready and not all_open:
+				_section("missions_all", "… %d weitere Missionen" % (avail.size() - mi), false)
+				break
 			var pc := PanelContainer.new()
 			pc.add_theme_stylebox_override("panel", UiTheme.card("good" if ready else "", 8))
 			var v := VBoxContainer.new()
 			v.add_theme_constant_override("separation", 2)
 			pc.add_child(v)
-			var t := _lbl(("✅ " if ready else "🎯 ") + m.title, 18, Color(1, 0.9, 0.6))
-			t.tooltip_text = m.get("desc", "")
+			# open missions: title + conditions, the reward on hover; ready ones spell the reward out
+			var t := _lbl(("✅ " if ready else "🎯 ") + m.title, 17, Color(1, 0.9, 0.6))
+			t.tooltip_text = m.get("desc", "") + "\nBelohnung: " + effects_text(m.get("reward", {}))
 			t.mouse_filter = Control.MOUSE_FILTER_STOP
 			v.add_child(t)
-			v.add_child(_lbl(conditions_text(m.get("require", {})), 14, Color(0.8, 0.8, 0.85)))
-			v.add_child(_lbl("Belohnung: " + effects_text(m.get("reward", {})), 14, Color(0.7, 0.9, 0.7)))
+			if ready:
+				v.add_child(_lbl("Belohnung: " + effects_text(m.get("reward", {})), 14, Color(0.7, 0.9, 0.7)))
+			else:
+				v.add_child(_lbl(conditions_text(m.get("require", {})), 14, Color(0.8, 0.8, 0.85)))
 			if ready:
 				v.add_child(_btn("🎯 Abschließen", func(): _act(game.complete_mission(me, m.id), "🎯 Mission erfüllt!")))
 			side_box.add_child(pc)
@@ -2534,10 +2549,10 @@ func _panel_hre() -> void:
 	var els := []
 	for e in game.current_electors():
 		var v: String = votes.get(e, "")
-		var b := _nation_btn(e, " → %s" % (game.nations[v].tag if v != "" else "–"), _open_panel.bind("other", e) if e != me else _open_panel.bind("nation"))
+		var b := _nation_btn(e, "", _open_panel.bind("other", e) if e != me else _open_panel.bind("nation"))
 		b.tooltip_text = "%s würde %s wählen.%s" % [game.nations[e].name, game.nations[v].name if v != "" else "niemanden",
 				("\nBeziehung zu dir: %d" % int(game.get_rel(me, e))) if e != me else ""]
-		b.clip_text = true
+		b.text = "%s → %s" % [e, v if v != "" else "–"]  # the flag names the elector; full names in the tooltip
 		els.append(b)
 	if els.size() % 2 == 1:
 		els.append(Control.new())
@@ -2601,16 +2616,19 @@ func _panel_ranking() -> void:
 			tags.append(t)
 	tags.sort_custom(func(a, b): return game.score(a) > game.score(b))
 	var more: bool = section_open.get("rank_more", false)
+	var rows := []
 	for i in mini(20 if more else 10, tags.size()):
 		var t: String = tags[i]
 		var o = game.nations[t]
-		var txt := "  🏘️%d  🛡️%.0f" % [o.dev_total, game.army_regs(t)]
-		if o.overlord != "":
-			txt += "  ⛓️"
-		var b := _nation_btn(t, txt, _open_panel.bind("other", t) if t != game.player else _open_panel.bind("nation"), "%d. " % (i + 1))
+		var b := _nation_btn(t, " %d" % game.score(t), _open_panel.bind("other", t) if t != game.player else _open_panel.bind("nation"), "%d. " % (i + 1))
+		b.tooltip_text = "%s: %d Punkte · 🏘️ %d Entwicklung · 🛡️ %.0f Regimenter%s" % [o.name, game.score(t), o.dev_total, game.army_regs(t), " · ⛓️ Vasall" if o.overlord != "" else ""]
+		b.clip_text = true
 		if t == game.player:
 			b.modulate = Color(1.0, 0.95, 0.6)
-		side_box.add_child(b)
+		rows.append(b)
+	if rows.size() % 2 == 1:
+		rows.append(Control.new())
+	side_box.add_child(_grid(rows))
 	if tags.size() > 10:
 		_section("rank_more", "Plätze 11 bis 20" if not more else "Nur die ersten 10", false)
 	var mine: int = tags.find(game.player)
@@ -2705,24 +2723,26 @@ func _panel_advice() -> void:
 
 func _panel_log() -> void:
 	side_title.text = "📜 Chronik"
-	# newest first, grouped by year: only the latest year is open, older ones fold away
-	var years := []
-	var by_year := {}
+	# newest first with a small year heading; only the latest 10 entries are shown, the rest folds away
+	var shown := 10
+	var more: bool = section_open.get("log_more", false)
+	var last_y := ""
+	var k := 0
 	for i in range(game.log_lines.size() - 1, -1, -1):
+		if k == shown and not more:
+			_section("log_more", "Ältere Einträge (%d)" % (game.log_lines.size() - shown), false)
+			break
 		var l: String = game.log_lines[i]
 		var cut := l.find(": ")
 		var date := l.substr(0, cut) if cut > 0 else ""
-		var y := date.get_slice(" ", 1) if date.contains(" ") else "?"
-		if not by_year.has(y):
-			years.append(y)
-			by_year[y] = []
-		by_year[y].append([date.get_slice(" ", 0), l.substr(cut + 2) if cut > 0 else l])
-	for j in years.size():
-		var y: String = years[j]
-		if not _section("log_" + y, "%s (%d)" % [y, by_year[y].size()], j == 0):
-			continue
-		for e in by_year[y]:
-			side_box.add_child(_lbl("%s · %s" % [e[0].left(3), e[1]], 15))
+		var y := date.get_slice(" ", 1) if date.contains(" ") else ""
+		if y != last_y:
+			side_box.add_child(_lbl(y, 15, Color(0.7, 0.8, 0.9)))
+			last_y = y
+		side_box.add_child(_lbl("%s · %s" % [date.get_slice(" ", 0).left(3), l.substr(cut + 2) if cut > 0 else l], 15))
+		k += 1
+	if more:
+		_section("log_more", "Nur die neuesten %d" % shown, false)
 
 
 # ---------------------------------------------------------------- texts

@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- **Weitere Fenster entschlackt:** Kartenmodi und Rangliste stehen in zwei Spalten (Details im Tooltip), offene
+  Missionen zeigen nur ihre Bedingungen (Belohnung im Tooltip, die ersten fünf sichtbar), lange Diplomatiegruppen
+  starten zugeklappt, Kurfürsten zeigen kurz „BOH → HAB“.
 - **Friedensfenster kompakt:** Kacheln für Kriegspunkte, Forderung und Integrationskosten. Die besetzten Provinzen
   stehen nach Besitzer sortiert als Kacheln im Raster (antippen = auswählen), die Aktionen in zwei Spalten.
 - **Neues Startmenü:** Schwierigkeit als vier Knöpfe (Erklärung im Tooltip), Nationen im Raster. Antippen zeigt
@@ -17,8 +20,8 @@
   Belohnungen. Die KI verfolgt die Ziele ebenfalls.
 - **Noch weniger Scrollen:** Armee-, Kriegs- und Reichsfenster zeigen ihre Werte als Kacheln, Befehle stehen im
   Raster. Das Armeefenster passt jetzt auf einen Bildschirm. Im Reichsfenster sind erledigte und spätere Reformen
-  einzeilig (Details im Tooltip), nur die nächste Reform steht ausführlich da. Die Chronik ist nach Jahren
-  gruppiert, nur das aktuelle Jahr ist aufgeklappt.
+  einzeilig (Details im Tooltip), nur die nächste Reform steht ausführlich da. Die Chronik zeigt die
+  neuesten zehn Einträge mit Jahreszahl, ältere lassen sich aufklappen.
 
 ## v0.9.0 – 2026-10-27
 - Die KI gibt überschüssiges Gold im Frieden für Missionare, Hoffeste (gegen Kriegsmüdigkeit) und Großprojekte aus, statt es zu horten.
