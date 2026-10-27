@@ -31,6 +31,7 @@ func _init() -> void:
 		"test_age_goals",
 		"test_advisor_skill",
 		"test_gov_forms",
+		"test_tech_ahead",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1785,6 +1786,43 @@ func test_religion_modifiers() -> void:
 
 
 ## Age goals: count only in their age, give permanent rewards, two of three win the triumph.
+func test_tech_ahead() -> void:
+	var g = new_game("FRA")
+	var tr = g.tree
+	var n = g.nations.FRA
+	g.month = (1455 - 1444) * 12
+	# a generic tech whose regular window opens 10 years from now
+	var t: Dictionary = {}
+	for d in tr.defs:
+		if not Tech.is_special(d) and int(d.year) - tr.early_years == g.year() + 10 and d.get("req", []).all(func(r): return n.techs.has(r)):
+			t = d
+			break
+	if t.is_empty():
+		for d in tr.defs:
+			if not Tech.is_special(d) and int(d.year) - tr.early_years > g.year() and int(d.year) - tr.early_years - tr.ahead_years <= g.year():
+				t = d
+				break
+	check(not t.is_empty(), "found a tech ahead of time")
+	var ya: int = tr.years_ahead(g, t.id)
+	check(ya > 0 and ya <= tr.ahead_years, "years ahead within the window")
+	var base: float = g.tech_cost("FRA", t.cat) * (1.0 - tr.spread_discount(g, "FRA", t.id))
+	check(is_equal_approx(tr.cost(g, "FRA", t.id), base * (1.0 + tr.ahead_penalty * ya)), "ahead-of-time premium")
+	for r in t.get("req", []):
+		n.techs[r] = 0
+	check(tr.block_reason(g, "FRA", t.id) == "", "researchable ahead of time")
+	var far: Dictionary = {}
+	for d in tr.defs:
+		if not Tech.is_special(d) and int(d.year) - tr.early_years - tr.ahead_years > g.year():
+			far = d
+			break
+	check(far.is_empty() or tr.block_reason(g, "FRA", far.id).begins_with("Verfügbar ab") or tr.block_reason(g, "FRA", far.id).begins_with("Benötigt"), "too far ahead stays locked")
+	# the AI only goes ahead with power to spare
+	n.set(t.cat, tr.cost(g, "FRA", t.id) * 1.2)
+	var avail_now: Array = tr.available(g, "FRA", t.cat).filter(func(x): return tr.years_ahead(g, x.id) == 0)
+	if avail_now.is_empty():
+		check(tr.best_choice(g, "FRA", t.cat) == "", "AI keeps a reserve before researching ahead")
+
+
 func test_gov_forms() -> void:
 	var g = new_game("FRA")
 	var gv = g.govt
