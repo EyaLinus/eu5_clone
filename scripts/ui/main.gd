@@ -1849,10 +1849,17 @@ func _economy_goods() -> void:
 
 func _panel_mapmodes() -> void:
 	side_title.text = "🗺️ Kartenmodus"
+	var modes := []
 	for i in map.MODE_NAMES.size():
-		var b := _btn(("▶ " if map.map_mode == i else "") + map.MODE_NAMES[i], _set_map_mode.bind(i), MODE_LEGENDS[i])
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		side_box.add_child(b)
+		var b := _btn(map.MODE_NAMES[i], _set_map_mode.bind(i), MODE_LEGENDS[i])
+		b.clip_text = true
+		if map.map_mode == i:
+			b.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
+			b.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
+		modes.append(b)
+	if modes.size() % 2 == 1:
+		modes.append(Control.new())
+	side_box.add_child(_grid(modes))
 	side_box.add_child(_lbl(MODE_LEGENDS[map.map_mode], 16, Color(0.8, 0.85, 0.7)))
 	for k in MODE_KEYS.get(map.map_mode, []):
 		side_box.add_child(_lbl("● " + k[1], 16, Color(k[0])))
@@ -2115,8 +2122,8 @@ func _panel_diplomacy() -> void:
 	for g in groups:
 		if g[1].is_empty():
 			continue
-		# the long list of far-away realms starts closed
-		if not _section("dip_" + g[0], "%s (%d)" % [g[0], g[1].size()], g[0] != "Andere"):
+		# long groups and the far-away realms start closed
+		if not _section("dip_" + g[0], "%s (%d)" % [g[0], g[1].size()], g[0] != "Andere" and g[1].size() <= 6):
 			continue
 		for tag in g[1]:
 			var o = game.nations[tag]
@@ -2332,46 +2339,68 @@ func _panel_peace(war_id: int) -> void:
 	var dev_sel := 0
 	for pid in peace_selection:
 		dev_sel += game.provinces[pid].dev
-	side_box.add_child(_lbl("Kriegspunkte: %+d · Forderung kostet: %d\nIntegration kostet %d 📜 Admin (du hast %d)" % [
-			int(ws), int(cost), int(dev_sel * float(game.bal.core_cost_per_dev)), int(game.nations[me].adm)], 18))
+	var core_cost: int = int(dev_sel * float(game.bal.core_cost_per_dev))
+	side_box.add_child(_grid([
+		_chip("🏆 Punkte %+d" % int(ws), "Kriegspunkte: aus Schlachten und besetzten Provinzen.", "good" if ws > 0 else ("bad" if ws < 0 else "")),
+		_chip("📜 Forderung %d" % int(cost), "Was die ausgewählten Provinzen an Kriegspunkten kosten.", "bad" if cost > ws else ""),
+		_chip("📜 Integration %d / %d" % [core_cost, int(game.nations[me].adm)], "Die Integration der Forderung kostet so viel Verwaltungsmacht (du hast %d)." % int(game.nations[me].adm),
+				"bad" if core_cost > game.nations[me].adm else ""),
+		_chip("🏘️ %d Prov. · %d Entw." % [peace_selection.size(), dev_sel], "Ausgewählte Provinzen und ihre Entwicklung."),
+	]))
 	var cands: Array = game.demandable(w, att)
 	if cands.is_empty():
 		side_box.add_child(_lbl("Keine besetzten Feindprovinzen. Besetze Provinzen, um sie fordern zu können.", 16))
+	# occupied provinces as toggle tiles, grouped by owner; picked ones are framed in gold
+	var by_owner := {}
 	for pid in cands:
-		var p = game.provinces[pid]
-		var cb := CheckBox.new()
-		cb.text = "%s (%s) – %d Punkte" % [p.name, game.nations[p.owner].name, int(game.peace_cost([pid]))]
-		cb.button_pressed = peace_selection.has(pid)
-		cb.focus_mode = Control.FOCUS_NONE
-		cb.toggled.connect(_toggle_peace.bind(pid))
-		side_box.add_child(cb)
+		var o: String = game.provinces[pid].owner
+		if not by_owner.has(o):
+			by_owner[o] = []
+		by_owner[o].append(pid)
+	for o in by_owner:
+		side_box.add_child(_lbl(nname(o), 15, Color(0.7, 0.8, 0.9)))
+		var tiles := []
+		for pid in by_owner[o]:
+			var p = game.provinces[pid]
+			var on: bool = peace_selection.has(pid)
+			var tb := _btn(("✅ " if on else "") + "%s %d" % [p.name, int(game.peace_cost([pid]))], _toggle_peace.bind(not on, pid),
+					"%s: Entwicklung %d, kostet %d Kriegspunkte." % [p.name, p.dev, int(game.peace_cost([pid]))])
+			tb.clip_text = true
+			if on:
+				tb.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
+			tiles.append(tb)
+		if tiles.size() % 2 == 1:
+			tiles.append(Control.new())
+		side_box.add_child(_grid(tiles))
+	var acts := []
 	if not cands.is_empty() and ws > 0:
-		side_box.add_child(_btn("✨ Beste Auswahl (für %d Punkte)" % int(ws), func():
+		acts.append(_btn("✨ Beste Auswahl", func():
 			peace_selection = {}
 			for pid in game.ai.pick_demands(game, w, att, ws):
 				peace_selection[pid] = true
-			_refresh()))
-	side_box.add_child(_btn("📜 Forderung stellen", func():
+			_refresh(), "Wählt die wertvollsten Provinzen, die deine %d Kriegspunkte hergeben." % int(ws)))
+	acts.append(_btn("📜 Fordern", func():
 		var ok: bool = game.offer_peace(me, w, peace_selection.keys(), true)
-		_after_peace(ok)))
+		_after_peace(ok), "Frieden mit den ausgewählten Provinzen anbieten. Der Gegner nimmt an, wenn die Kriegspunkte reichen."))
 	var target: String = game.side_tags(w, not att)[0]
 	var why: String = game.vassal_block_reason(w, att)
-	if why == "":
-		side_box.add_child(_btn("⛓️ Vasallisieren (%d Punkte)" % int(game.vassal_cost(w, att)), func():
+	if why == "" or target != me:
+		acts.append(_btn("⛓️ Vasall %d" % int(game.vassal_cost(w, att)) if why == "" else "⛓️ Vasall", func():
 			var ok: bool = game.offer_peace(me, w, [], true, true)
-			_after_peace(ok)))
-	elif target != me:
-		side_box.add_child(_lbl("⛓️ Vasallisieren nicht möglich: " + why, 15, Color(0.7, 0.7, 0.7)))
-	side_box.add_child(_btn("🏳️ Weißer Frieden anbieten", func():
+			_after_peace(ok), ("Den Gegner zum Vasallen machen (%d Kriegspunkte). Er zahlt Tribut und kämpft an deiner Seite." % int(game.vassal_cost(w, att))) if why == "" else ("❌ " + why), why != ""))
+	acts.append(_btn("🏳️ Weißer Frieden", func():
 		var ok: bool = game.offer_peace(me, w, [], true)
-		_after_peace(ok)))
+		_after_peace(ok), "Frieden ohne Forderungen: alle besetzten Provinzen gehen zurück."))
 	if ws < 0:
-		side_box.add_child(_btn("🙇 Provinzen abtreten (Kapitulation)", func():
+		acts.append(_btn("🙇 Kapitulieren", func():
 			var give: Array = game.ai.pick_demands(game, w, not att, -ws * 0.9)
 			var ok: bool = game.offer_peace(me, w, give, false)
 			if not ok:
 				ok = game.offer_peace(me, w, [], true)
-			_after_peace(ok)))
+			_after_peace(ok), "Provinzen abtreten, um den verlorenen Krieg zu beenden."))
+	if acts.size() % 2 == 1:
+		acts.append(Control.new())
+	side_box.add_child(_grid(acts))
 
 
 func _set_all_auto(on: bool) -> void:
@@ -2470,19 +2499,27 @@ func _panel_missions() -> void:
 			side_box.add_child(_lbl("Keine offenen Missionen."))
 		# ready missions first
 		avail.sort_custom(func(a, b): return game.mission_ready(me, a) and not game.mission_ready(me, b))
-		for m in avail:
+		var all_open: bool = section_open.get("missions_all", false)
+		for mi in avail.size():
+			var m: Dictionary = avail[mi]
 			var ready: bool = game.mission_ready(me, m)
+			if mi >= 5 and not ready and not all_open:
+				_section("missions_all", "… %d weitere Missionen" % (avail.size() - mi), false)
+				break
 			var pc := PanelContainer.new()
 			pc.add_theme_stylebox_override("panel", UiTheme.card("good" if ready else "", 8))
 			var v := VBoxContainer.new()
 			v.add_theme_constant_override("separation", 2)
 			pc.add_child(v)
-			var t := _lbl(("✅ " if ready else "🎯 ") + m.title, 18, Color(1, 0.9, 0.6))
-			t.tooltip_text = m.get("desc", "")
+			# open missions: title + conditions, the reward on hover; ready ones spell the reward out
+			var t := _lbl(("✅ " if ready else "🎯 ") + m.title, 17, Color(1, 0.9, 0.6))
+			t.tooltip_text = m.get("desc", "") + "\nBelohnung: " + effects_text(m.get("reward", {}))
 			t.mouse_filter = Control.MOUSE_FILTER_STOP
 			v.add_child(t)
-			v.add_child(_lbl(conditions_text(m.get("require", {})), 14, Color(0.8, 0.8, 0.85)))
-			v.add_child(_lbl("Belohnung: " + effects_text(m.get("reward", {})), 14, Color(0.7, 0.9, 0.7)))
+			if ready:
+				v.add_child(_lbl("Belohnung: " + effects_text(m.get("reward", {})), 14, Color(0.7, 0.9, 0.7)))
+			else:
+				v.add_child(_lbl(conditions_text(m.get("require", {})), 14, Color(0.8, 0.8, 0.85)))
 			if ready:
 				v.add_child(_btn("🎯 Abschließen", func(): _act(game.complete_mission(me, m.id), "🎯 Mission erfüllt!")))
 			side_box.add_child(pc)
@@ -2512,10 +2549,10 @@ func _panel_hre() -> void:
 	var els := []
 	for e in game.current_electors():
 		var v: String = votes.get(e, "")
-		var b := _nation_btn(e, " → %s" % (game.nations[v].tag if v != "" else "–"), _open_panel.bind("other", e) if e != me else _open_panel.bind("nation"))
+		var b := _nation_btn(e, "", _open_panel.bind("other", e) if e != me else _open_panel.bind("nation"))
 		b.tooltip_text = "%s würde %s wählen.%s" % [game.nations[e].name, game.nations[v].name if v != "" else "niemanden",
 				("\nBeziehung zu dir: %d" % int(game.get_rel(me, e))) if e != me else ""]
-		b.clip_text = true
+		b.text = "%s → %s" % [e, v if v != "" else "–"]  # the flag names the elector; full names in the tooltip
 		els.append(b)
 	if els.size() % 2 == 1:
 		els.append(Control.new())
@@ -2579,16 +2616,19 @@ func _panel_ranking() -> void:
 			tags.append(t)
 	tags.sort_custom(func(a, b): return game.score(a) > game.score(b))
 	var more: bool = section_open.get("rank_more", false)
+	var rows := []
 	for i in mini(20 if more else 10, tags.size()):
 		var t: String = tags[i]
 		var o = game.nations[t]
-		var txt := "  🏘️%d  🛡️%.0f" % [o.dev_total, game.army_regs(t)]
-		if o.overlord != "":
-			txt += "  ⛓️"
-		var b := _nation_btn(t, txt, _open_panel.bind("other", t) if t != game.player else _open_panel.bind("nation"), "%d. " % (i + 1))
+		var b := _nation_btn(t, " %d" % game.score(t), _open_panel.bind("other", t) if t != game.player else _open_panel.bind("nation"), "%d. " % (i + 1))
+		b.tooltip_text = "%s: %d Punkte · 🏘️ %d Entwicklung · 🛡️ %.0f Regimenter%s" % [o.name, game.score(t), o.dev_total, game.army_regs(t), " · ⛓️ Vasall" if o.overlord != "" else ""]
+		b.clip_text = true
 		if t == game.player:
 			b.modulate = Color(1.0, 0.95, 0.6)
-		side_box.add_child(b)
+		rows.append(b)
+	if rows.size() % 2 == 1:
+		rows.append(Control.new())
+	side_box.add_child(_grid(rows))
 	if tags.size() > 10:
 		_section("rank_more", "Plätze 11 bis 20" if not more else "Nur die ersten 10", false)
 	var mine: int = tags.find(game.player)
@@ -2683,24 +2723,26 @@ func _panel_advice() -> void:
 
 func _panel_log() -> void:
 	side_title.text = "📜 Chronik"
-	# newest first, grouped by year: only the latest year is open, older ones fold away
-	var years := []
-	var by_year := {}
+	# newest first with a small year heading; only the latest 10 entries are shown, the rest folds away
+	var shown := 10
+	var more: bool = section_open.get("log_more", false)
+	var last_y := ""
+	var k := 0
 	for i in range(game.log_lines.size() - 1, -1, -1):
+		if k == shown and not more:
+			_section("log_more", "Ältere Einträge (%d)" % (game.log_lines.size() - shown), false)
+			break
 		var l: String = game.log_lines[i]
 		var cut := l.find(": ")
 		var date := l.substr(0, cut) if cut > 0 else ""
-		var y := date.get_slice(" ", 1) if date.contains(" ") else "?"
-		if not by_year.has(y):
-			years.append(y)
-			by_year[y] = []
-		by_year[y].append([date.get_slice(" ", 0), l.substr(cut + 2) if cut > 0 else l])
-	for j in years.size():
-		var y: String = years[j]
-		if not _section("log_" + y, "%s (%d)" % [y, by_year[y].size()], j == 0):
-			continue
-		for e in by_year[y]:
-			side_box.add_child(_lbl("%s · %s" % [e[0].left(3), e[1]], 15))
+		var y := date.get_slice(" ", 1) if date.contains(" ") else ""
+		if y != last_y:
+			side_box.add_child(_lbl(y, 15, Color(0.7, 0.8, 0.9)))
+			last_y = y
+		side_box.add_child(_lbl("%s · %s" % [date.get_slice(" ", 0).left(3), l.substr(cut + 2) if cut > 0 else l], 15))
+		k += 1
+	if more:
+		_section("log_more", "Nur die neuesten %d" % shown, false)
 
 
 # ---------------------------------------------------------------- texts
@@ -2778,6 +2820,12 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["🏦 Kredit erlassen", 1])
 		elif k == "merc_ready":
 			parts.append(["⚔️ Söldner sofort verfügbar", 1])
+		elif k == "monument_progress":
+			parts.append(["🏗️ Großprojekt %d Monate schneller" % int(v), 1])
+		elif k == "feast_ready":
+			parts.append(["🍷 Nächstes Hoffest sofort möglich", 1])
+		elif k == "spouse_rel":
+			parts.append(["❤️ Verschwägerte %+d" % int(v), sgn.call(float(v))])
 		elif k == "convert_random":
 			parts.append(["⛪ %d Provinzen nehmen deinen Glauben an" % int(v), 1])
 	return parts
@@ -2872,6 +2920,14 @@ func conditions_text(c: Dictionary) -> String:
 				lines.append(mark + "Höchstens %d%% des Landes teilen deinen Glauben" % int(float(v) * 100))
 			"religion":
 				lines.append(mark + "Staatsglaube: " + game.Religion.faith_name(v))
+			"monument":
+				lines.append(mark + "Großprojekt vollendet: " + game.monument_defs[v].name)
+			"monuments_min":
+				lines.append(mark + "Mindestens %d Großprojekte vollendet" % int(v))
+			"monument_building":
+				lines.append(mark + ("Ein Großprojekt wird gebaut" if v else "Kein Großprojekt im Bau"))
+			"married":
+				lines.append(mark + ("Königliche Heirat besteht" if v else "Keine königliche Heirat"))
 			"province_faith":
 				lines.append(mark + "Eine deiner Provinzen ist %s" % game.Religion.faith_name(v).to_lower())
 			_:
