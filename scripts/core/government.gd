@@ -70,6 +70,11 @@ func form_name(tag: String) -> String:
 	return forms.get(tag, forms.get("default", "Monarchie"))
 
 
+## Effects of `tag`'s form of government (part of the gov bonus source).
+func form_effects(tag: String) -> Dictionary:
+	return cfg.get("form_effects", {}).get(form_name(tag), {})
+
+
 # ---------------------------------------------------------------- advisors
 
 func advisor_slots(g, n) -> int:
@@ -374,7 +379,7 @@ func _changed(g, n) -> void:
 
 func refresh(n) -> void:
 	var b := {}
-	var effs := []
+	var effs := [form_effects(n.tag)]
 	for id in n.gov.advisors:
 		effs.append(advisor_effects(id, advisor_skill(n, id)))
 	for id in n.gov.companies:

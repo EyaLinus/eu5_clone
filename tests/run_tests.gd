@@ -30,6 +30,7 @@ func _init() -> void:
 		"test_religion_modifiers",
 		"test_age_goals",
 		"test_advisor_skill",
+		"test_gov_forms",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1427,7 +1428,8 @@ func test_estates() -> void:
 		check(not g.event_defs.has(g.event_by_id["estate_crisis_" + e.id]), "crisis events are not in the random pool")
 	n.adm = 500.0
 	check(g.govt.set_law(g, "FRA", "staat", "staendestaat") == "", "Ständestaat")
-	check(absf(g.govt.estate_target(g, n, "adel") - 65.0) < 0.01, "law shifts the nobility's target to 65")
+	var form_adel: float = g.govt.form_effects("FRA").get("estate_adel", 0.0)
+	check(absf(g.govt.estate_target(g, n, "adel") - 65.0 - form_adel) < 0.01, "law shifts the nobility's target to 65 (+ form)")
 	for i in 60:
 		g.govt.estates_monthly(g, n)
 	check(n.gov.estates.adel > 60.0, "nobility drifts towards its target (%.1f)" % n.gov.estates.adel)
@@ -1633,7 +1635,8 @@ func test_reforms() -> void:
 	check(gv.reform_block(g, "FRA", "verwaltung", "hofrat") != "", "second tier locked in 1444")
 	check(gv.enact_reform(g, "FRA", "grundlage", "domaenen") == "", "enact a reform")
 	check(absf(n.adm - 900.0) < 0.01, "first tier costs 100 adm")
-	check(absf(n.bonus.gov.get("tax", 0.0) - 0.1) < 0.001 and n.bonus.gov.get("manpower", 0.0) < 0.0, "reform effects apply")
+	var fe: Dictionary = gv.form_effects("FRA")
+	check(absf(n.bonus.gov.get("tax", 0.0) - fe.get("tax", 0.0) - 0.1) < 0.001 and n.bonus.gov.get("manpower", 0.0) < fe.get("manpower", 0.0), "reform effects apply")
 	check(gv.enact_reform(g, "FRA", "grundlage", "lehnswesen") != "", "reform change has a cooldown")
 	g.month = (1530 - 1444) * 12
 	check(gv.open_reform_tiers(g, n) == ["verwaltung", "heerwesen"], "tiers unlock over time")
@@ -1763,6 +1766,21 @@ func test_religion_modifiers() -> void:
 
 
 ## Age goals: count only in their age, give permanent rewards, two of three win the triumph.
+func test_gov_forms() -> void:
+	var g = new_game("FRA")
+	var gv = g.govt
+	for form in gv.cfg.form_effects:
+		for k in gv.cfg.form_effects[form]:
+			check(Tech.LABELS.has(k), "%s effect %s has a label" % [form, k])
+	for t in g.order:
+		check(not gv.form_effects(t).is_empty(), "%s (%s) has form effects" % [t, gv.form_name(t)])
+	var ven = g.nations.get("VEN")
+	if ven != null:
+		check(gv.form_name("VEN") == "Kaufmannsrepublik", "Venice is a merchant republic")
+		check(ven.bonus.gov.get("trade", 0.0) >= 0.15 - 0.001, "merchant republic trade bonus applies")
+	check(g.nations.FRA.bonus.gov.get("manpower", 0.0) >= 0.1 - 0.001, "feudal monarchy manpower bonus applies")
+
+
 func test_advisor_skill() -> void:
 	var g = new_game("FRA")
 	var n = g.nations.FRA

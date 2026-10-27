@@ -59,6 +59,12 @@ func build() -> void:
 	sum.clip_text = false
 	sum.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	sum.add_theme_font_size_override("font_size", 15)
+	var fe: Dictionary = gv.form_effects(me)
+	if not fe.is_empty():
+		var fl: Control = TechScreen.effects_rich(fe, 14)
+		fl.tooltip_text = "Wirkung der Staatsform %s (dauerhaft)" % gv.form_name(me)
+		fl.mouse_filter = Control.MOUSE_FILTER_STOP
+		m.side_box.add_child(fl)
 	var tabs := []
 	for t in TABS:
 		var b: Button = m._btn(t[1], _select.bind(t[0]))
