@@ -49,6 +49,11 @@ func _run(m) -> void:
 	m._close_modal()
 	m.tech_screen._select("mil")
 	await _shot("04c_tech_mil")
+	m.game.nations.FRA.gov.ages["humanisten"] = 1450
+	m.game.govt.refresh(m.game.nations.FRA)
+	m.tech_screen._ages()
+	await _shot("04m_ages")
+	m._close_modal()
 	m.game.govt.hire(m.game, "FRA", "fra_coeur")
 	m.game.govt.set_law(m.game, "FRA", "kirche", "toleranz")
 	m.game.nations.FRA.gold = 2000.0
