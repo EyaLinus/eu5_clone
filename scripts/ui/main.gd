@@ -149,13 +149,6 @@ func _save_settings() -> void:
 
 
 ## Difficulty for new games (start menu); saved in the settings, each save keeps its own.
-func _cycle_difficulty() -> void:
-	var i: int = Game.DIFFICULTIES.find(String(settings.difficulty))
-	settings.difficulty = Game.DIFFICULTIES[(i + 1) % Game.DIFFICULTIES.size()]
-	_save_settings()
-	_show_start_menu()
-
-
 func _cycle_ui_scale() -> void:
 	var i := UI_SCALES.find(float(settings.ui_scale))
 	settings.ui_scale = UI_SCALES[(i + 1) % UI_SCALES.size()]
@@ -540,20 +533,72 @@ func _nation_btn(tag: String, extra: String, cb: Callable, pre: String = "") -> 
 
 # ---------------------------------------------------------------- game flow
 
+var start_pick := ""  # nation chosen in the start menu, started with its "Los" button
+
+
+const DIFFICULTY_TIPS := {
+	"easy": "Für den Einstieg: +25 % Einkommen, +25 % Mannschaften, +10 % Kampfkraft, −10 % Technologiekosten, weniger Unruhe. Die KI greift dich seltener an.",
+	"normal": "Leichte Hilfe: +10 % Einkommen, +5 % Kampfkraft, etwas weniger Unruhe. Die KI greift dich etwas seltener an.",
+	"hard": "Keine Hilfen: gleiche Regeln für dich und die KI.",
+	"very_hard": "Die KI hat +15 % Einkommen und Mannschaften, +10 % Kampfkraft und greift dich öfter an.",
+}
+
+
 func _show_start_menu() -> void:
 	hud.visible = false
 	_open_modal()
 	modal_box.add_child(_lbl("🌍 Rise of EU", 40))
-	modal_box.add_child(_lbl("1444 – 1644 · Wähle deine Nation. Ziel: Am Ende die höchste Punktzahl (Entwicklung + Prestige + Technologie).", 18))
+	modal_box.add_child(_lbl("1444 – 1644 · Ziel: am Ende die höchste Punktzahl (Entwicklung + Prestige + Technologie).", 16, Color(0.8, 0.8, 0.8)))
+	var top := []
 	if FileAccess.file_exists(SAVE_PATH):
-		modal_box.add_child(_btn("💾 Weiterspielen", _load_game))
-	modal_box.add_child(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
-	modal_box.add_child(_btn("⚔️ Schwierigkeit: %s" % Game.DIFFICULTY_NAMES.get(settings.difficulty, "Normal"), _cycle_difficulty))
+		top.append(_btn("💾 Weiterspielen", _load_game))
+	top.append(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
+	if top.size() % 2 == 1:
+		top.append(Control.new())
+	modal_box.add_child(_grid(top))
+	# difficulty: four buttons, the chosen one framed in gold
+	modal_box.add_child(_lbl("⚔️ Schwierigkeit", 18, Color(0.7, 0.8, 0.9)))
+	var diffs := []
+	for d in Game.DIFFICULTIES:
+		var db := _btn(Game.DIFFICULTY_NAMES[d], func():
+			settings.difficulty = d
+			_save_settings()
+			_show_start_menu(), DIFFICULTY_TIPS.get(d, ""))
+		if d == String(settings.difficulty):
+			db.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
+			db.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
+		diffs.append(db)
+	modal_box.add_child(_grid(diffs, 4))
+	# the chosen nation with its idea and the start button
+	if start_pick != "" and data.nations.has(start_pick):
+		var nd: Dictionary = data.nations[start_pick]
+		var card := PanelContainer.new()
+		card.add_theme_stylebox_override("panel", UiTheme.card("gold", 10))
+		var v := VBoxContainer.new()
+		v.add_child(_lbl("%s %s" % [PixelEmoji.nation(start_pick, nd.emoji), nd.name], 24))
+		v.add_child(_bb(_idea_bb(nd.get("idea", ""), nd.get("bonus", {})), 16))
+		if EXTRA_PLAYABLE.has(start_pick):
+			v.add_child(_lbl("Weniger eigene Missionen und Ereignisse als die großen Nationen.", 14, Color(0.85, 0.75, 0.5)))
+		v.add_child(_btn("▶ Los geht's als %s (%s)" % [nd.name, Game.DIFFICULTY_NAMES.get(settings.difficulty, "Normal")], _start_game.bind(start_pick)))
+		card.add_child(v)
+		modal_box.add_child(card)
+	else:
+		modal_box.add_child(_lbl("👆 Wähle deine Nation:", 18, Color(1, 0.9, 0.6)))
+	var picks := []
 	for tag in MAJORS + EXTRA_PLAYABLE:
-		if tag == EXTRA_PLAYABLE[0]:
-			modal_box.add_child(_lbl("Weitere Nationen (weniger Missionen und Events):", 16, Color(0.85, 0.75, 0.5)))
 		var nd: Dictionary = data.nations[tag]
-		modal_box.add_child(_rich_btn("%s %s" % [PixelEmoji.nation(tag, nd.emoji), nd.name], _idea_bb(nd.get("idea", ""), nd.get("bonus", {})), _start_game.bind(tag), 20))
+		var nb := _btn("%s %s" % [PixelEmoji.nation(tag, nd.emoji), nd.name], func():
+			start_pick = tag
+			_show_start_menu()
+			var sc := modal_box.get_parent() as ScrollContainer
+			if sc != null:
+				sc.set_deferred("scroll_vertical", 0), nd.get("idea", "") + ("\n(weniger Missionen und Ereignisse)" if EXTRA_PLAYABLE.has(tag) else ""))
+		if tag == start_pick:
+			nb.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
+		picks.append(nb)
+	while picks.size() % 3 != 0:
+		picks.append(Control.new())
+	modal_box.add_child(_grid(picks, 3))
 
 
 ## National idea as "Name: buffs" with the buffs green (data/nations.json "idea" text before the colon + "bonus").
@@ -1097,27 +1142,39 @@ func _show_menu() -> void:
 	_open_modal()
 	modal_box.add_child(_lbl("☰ Menü", 30))
 	modal_box.add_child(_btn("▶ Weiter", _close_modal))
-	modal_box.add_child(_btn("💾 Speichern", func(): _save_game(); _toast("💾 Gespeichert."); _close_modal()))
-	modal_box.add_child(_btn("📂 Laden", _load_game))
-	modal_box.add_child(_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale))
+	var acts := [
+		_btn("💾 Speichern", func(): _save_game(); _toast("💾 Gespeichert."); _close_modal()),
+		_btn("📂 Laden", _load_game),
+		_btn("🏠 Hauptmenü", func(): _save_game(); game = null; _show_start_menu(), "Speichert und kehrt zum Startmenü zurück."),
+	]
+	if OS.get_name() != "Android":
+		acts.append(_btn("🚪 Beenden", func(): _save_game(); get_tree().quit(), "Speichert und beendet das Spiel."))
+	if acts.size() % 2 == 1:
+		acts.append(Control.new())
+	modal_box.add_child(_grid(acts))
+	modal_box.add_child(_lbl("Einstellungen", 18, Color(0.7, 0.8, 0.9)))
+	var opts := [
+		_btn("🔠 UI-Größe: %d%%" % int(round(float(settings.ui_scale) * 100)), _cycle_ui_scale),
+		_btn("🔊 Ton: %s" % ("an" if settings.get("sound", true) else "aus"), func():
+			settings.sound = not settings.get("sound", true)
+			_save_settings()
+			_show_menu()),
+		_btn("💡 Tipps: %s" % ("an" if settings.tips else "aus"), func():
+			settings.tips = not settings.tips
+			if settings.tips:
+				settings.tips_seen = []
+			_save_settings()
+			_show_menu(), "Einmalige Hinweise, wenn etwas Neues passiert. Einschalten zeigt alle wieder."),
+	]
 	if not OS.has_feature("mobile"):
-		modal_box.add_child(_btn("👆 Große Bedienelemente: %s (Leisten nach Neustart)" % ("an" if settings.get("big_ui", false) else "aus"), func():
+		opts.append(_btn("👆 Große Knöpfe: %s" % ("an" if settings.get("big_ui", false) else "aus"), func():
 			settings.big_ui = not settings.get("big_ui", false)
 			_save_settings()
-			_show_menu()))
-	modal_box.add_child(_btn("🔊 Ton: %s" % ("an" if settings.get("sound", true) else "aus"), func():
-		settings.sound = not settings.get("sound", true)
-		_save_settings()
-		_show_menu()))
-	modal_box.add_child(_btn("💡 Tipps: %s" % ("an" if settings.tips else "aus"), func():
-		settings.tips = not settings.tips
-		if settings.tips:
-			settings.tips_seen = []
-		_save_settings()
-		_show_menu()))
-	modal_box.add_child(_btn("🏠 Hauptmenü (speichert)", func(): _save_game(); game = null; _show_start_menu()))
-	if OS.get_name() != "Android":
-		modal_box.add_child(_btn("🚪 Beenden", func(): _save_game(); get_tree().quit()))
+			_show_menu(), "Größere Bedienelemente für Touchscreens. Die Leisten ändern sich nach einem Neustart."))
+	if opts.size() % 2 == 1:
+		opts.append(Control.new())
+	modal_box.add_child(_grid(opts))
+	modal_box.add_child(_lbl("⚔️ Schwierigkeit: %s" % Game.DIFFICULTY_NAMES.get(game.difficulty, "Normal"), 15, Color(0.75, 0.75, 0.75)))
 
 
 func _show_event(event_id: String) -> void:
