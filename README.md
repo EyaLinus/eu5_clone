@@ -3,9 +3,13 @@
 Ein stark vereinfachtes Grand-Strategy-Spiel im Stil von Europa Universalis, 1444 bis 1644 (200 Jahre),
 für **Android (APK)** und **Windows (EXE)**. Einzelspieler, Emoji-Grafik als Platzhalter.
 
-Download: siehe [Releases](../../releases) (`RiseOfEU.apk`, `RiseOfEU.exe`).
+Download: siehe [Releases](../../releases) (`RiseOfEU.apk`, `RiseOfEU.exe`, `RiseOfEU-web.zip`).
 
 - **Android:** APK aufs Handy laden, Installation aus unbekannten Quellen erlauben, installieren (Querformat).
+- **Browser:** `RiseOfEU-web.zip` entpacken und den Ordner auf einen Webserver legen, dann `index.html` öffnen
+  (auch per `<iframe>`). Direkt per `file://` geht es nicht. Spezielle Header (COOP/COEP) sind nicht nötig, der
+  Server muss `.wasm` nur als `application/wasm` ausliefern (für Apache liegt eine `.htaccess` bei). Spielstände
+  liegen im Browser (IndexedDB) und gelten pro Browser und Domain. Download beim ersten Start ca. 10 MB komprimiert.
 - **Windows:** `RiseOfEU.exe` starten. SmartScreen warnt, weil die Datei nicht signiert ist: "Weitere Informationen" → "Trotzdem ausführen".
 - Releases baut die CI: Actions → "Test, build and release" → "Run workflow" mit `release_tag` (z. B. `v0.2.0`).
 
