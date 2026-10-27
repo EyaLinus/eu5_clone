@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+- **💡 Ratgeber (neu):** Ein neuer Reiter links zeigt mit einer Zahl, wie viel gerade zu tun ist: drohende
+  Aufstände, Schulden, Koalitionen, erfüllte Missionen, lohnender Frieden, Technologie und Regierung, freie Händler,
+  Gold für Gebäude, sich stauende Macht, freie Missionare und das Hoffest. Jeder Eintrag führt direkt dorthin.
 - **Zeitalter-Ziele 🏆 (neu):** Jedes der vier Zeitalter (Renaissance, Entdeckungen, Reformation, Absolutismus) hat
   drei Ziele, etwa 10 Technologien, eine Kompanie auf Stufe 3, 90 % Glaubenseinheit oder alle Staatsreformen. Ein
   Ziel zählt nur in seinem Zeitalter und gibt dauerhaft einen Bonus. Zwei von drei bringen den Triumph des Zeitalters
