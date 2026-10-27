@@ -4,6 +4,11 @@
 - **💡 Ratgeber (neu):** Ein neuer Reiter links zeigt mit einer Zahl, wie viel gerade zu tun ist: drohende
   Aufstände, Schulden, Koalitionen, erfüllte Missionen, lohnender Frieden, Technologie und Regierung, freie Händler,
   Gold für Gebäude, sich stauende Macht, freie Missionare und das Hoffest. Jeder Eintrag führt direkt dorthin.
+- **Zeitalter-Ziele 🏆 (neu):** Jedes der vier Zeitalter (Renaissance, Entdeckungen, Reformation, Absolutismus) hat
+  drei Ziele, etwa 10 Technologien, eine Kompanie auf Stufe 3, 90 % Glaubenseinheit oder alle Staatsreformen. Ein
+  Ziel zählt nur in seinem Zeitalter und gibt dauerhaft einen Bonus. Zwei von drei bringen den Triumph des Zeitalters
+  (z. B. Renaissancefürst: +0,5 Verwaltung/Monat). Der 🏆-Knopf im Technologie-Fenster zeigt Fortschritt und
+  Belohnungen. Die KI verfolgt die Ziele ebenfalls.
 - **Noch weniger Scrollen:** Armee-, Kriegs- und Reichsfenster zeigen ihre Werte als Kacheln, Befehle stehen im
   Raster. Das Armeefenster passt jetzt auf einen Bildschirm. Im Reichsfenster sind erledigte und spätere Reformen
   einzeilig (Details im Tooltip), nur die nächste Reform steht ausführlich da. Die Chronik ist nach Jahren
