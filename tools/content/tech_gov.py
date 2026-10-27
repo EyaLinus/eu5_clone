@@ -412,6 +412,11 @@ REFORMS = [
         ("staatsraison", "Staatsräson", {"ae_decay": 0.2, "dip": 1, "estate_klerus": -10}, "Was dem Staat nützt, ist recht."),
         ("gemeinwohl", "Gemeines Bestes", {"production": 0.1, "estate_buerger": 10, "estate_adel": -10}, "Der Fürst als erster Diener des Landes."),
     ]),
+    ("herrschaft", "Herrschaftsform", 1610, [
+        ("absolutismus", "Absolutismus", {"adm": 1, "force_limit": 2, "estate_adel": -10, "estate_buerger": -5}, "Der König regiert ohne Stände, die Stände murren."),
+        ("parlament", "Parlamentarische Krone", {"tax": 0.1, "unrest": -0.5, "estate_buerger": 15, "adm": -0.5}, "Ein Parlament bewilligt Steuern und redet mit."),
+        ("aufgeklaert", "Aufgeklärte Herrschaft", {"tech_cost": -0.05, "production": 0.05, "estate_klerus": -15}, "Vernunft statt Tradition, zum Ärger der Kirche."),
+    ]),
 ]
 
 # Age goals (EU4-like age objectives): every age has three goals that only count while the age lasts.
@@ -435,7 +440,7 @@ AGES = [
         ("kriegskunst", "Kriegskunst", "14 Militär-Technologien erforschen.", {"tech_cat": ["mil", 14]}, {"army_power": 0.05}),
     ], ("Glaubensstreiter", {"mil": 0.5})),
     ("absolutismus", "Absolutismus", 1600, 1821, [
-        ("staatsraison", "Vollendeter Staat", "Alle vier Stufen der Staatsreformen besetzen.", {"reforms": 4}, {"adm": 0.5}),
+        ("staatsraison", "Vollendeter Staat", "Vier Stufen der Staatsreformen besetzen.", {"reforms": 4}, {"adm": 0.5}),
         ("gelehrtenstaat", "Gelehrtenstaat", "45 Technologien erforschen.", {"techs": 45}, {"tech_cost": -0.05}),
         ("ruhm", "Ewiger Ruhm", "50 Prestige erreichen.", {"prestige": 50}, {"income": 0.03}),
     ], ("Sonnenkönig", {"combat": 0.05})),
