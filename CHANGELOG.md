@@ -5,6 +5,11 @@
   deine Baustelle, jedes fertige Großprojekt bringt ein eigenes Ereignis (Domweihe, Kadetten der Kriegsakademie,
   Hochbetrieb an der Börse ...). Nach einem Hoffest gibt es Duelle, Dichter und plaudernde Gesandte, und
   verschwägerte Höfe schicken Geschenke oder bitten um Hilfe.
+- **Friedensfenster kompakt:** Kacheln für Kriegspunkte, Forderung und Integrationskosten. Die besetzten Provinzen
+  stehen nach Besitzer sortiert als Kacheln im Raster (antippen = auswählen), die Aktionen in zwei Spalten.
+- **Neues Startmenü:** Schwierigkeit als vier Knöpfe (Erklärung im Tooltip), Nationen im Raster. Antippen zeigt
+  den Nationalgeist, gestartet wird mit „Los geht's“. Alles passt ohne Scrollen auf einen Bildschirm. Das Menü im
+  Spiel ist ebenfalls kompakter.
 - **Klügere Kriegserklärungen:** Die KI rechnet nur noch Verbündete ein, die wirklich mitkämpfen (früher zählten auch Freunde des Gegners), und zieht bei historischen Kriegsereignissen nur in aussichtsreiche Kriege. Die KI verliert nur noch etwa 4 % statt 13 % ihrer Angriffskriege; es gibt etwas weniger Kriege, Revolten und Bankrotte.
 - **💡 Ratgeber (neu):** Ein neuer Reiter links zeigt mit einer Zahl, wie viel gerade zu tun ist: drohende
   Aufstände, Schulden, Koalitionen, erfüllte Missionen, lohnender Frieden, Technologie und Regierung, freie Händler,
