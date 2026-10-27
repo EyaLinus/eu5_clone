@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- **Schnellere Monatsberechnung:** Die KI und die Wirtschaft rechnen pro Spielmonat rund 20–25 % schneller
+  (wichtig für die Browser-Version). Das Spielgeschehen bleibt exakt gleich.
 - **Karte nach Süden und Osten erweitert (67 neue Provinzen):** Anatolien, Kaukasus, Levante, Ägypten und die
   ganze nordafrikanische Küste bis Marokko, dazu Kreta, Zypern und Rhodos. 15 neue Länder im Stand von 1444:
   Karaman, Candar, Dulkadir, Trapezunt, Aq Qoyunlu, Qara Qoyunlu (Täbris), Georgien, Schirwan, Tscherkessien,
