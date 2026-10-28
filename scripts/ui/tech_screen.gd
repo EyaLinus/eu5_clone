@@ -56,7 +56,7 @@ func build() -> void:
 	if ahead >= 1.0:
 		info += " (+%d %% voraus)" % roundi(ahead * float(g.bal.tech_ahead_penalty) * 100.0)
 	var il: Label = m._lbl(info, 15, Color(0.8, 0.82, 0.9))
-	il.tooltip_text = "Zeitalter der %s. Gold umrandet: jetzt erforschbar · 🔒 Vorgänger fehlt · ▶ früh (Aufschlag) · 🏗 schaltet Gebäude frei · Antippen zeigt Details" % Tech.age_name(g.year())
+	il.tooltip_text = "Zeitalter der %s. Gold umrandet: jetzt erforschbar · 🔒 Vorgänger fehlt · ▶ früh (Aufschlag) · Gebäude-Symbol (🏪, 🎓 …): schaltet dieses Gebäude oder eine Stufe frei · Antippen zeigt Details" % Tech.age_name(g.year())
 	il.mouse_filter = Control.MOUSE_FILTER_STOP
 	il.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var gv = g.govt
@@ -214,7 +214,7 @@ func _cell(g, me: String, t: Dictionary, special: bool) -> Button:
 	if not done and reason != "" and g.year() >= from:
 		foot = "🔒 " + foot
 	if g.tree.unlocks.has(t.id):
-		foot += " 🏗"
+		foot += " " + unlock_icons(g, t.id)
 	var qi: int = g.tree.queue_of(n, t.cat).find(t.id)
 	if qi >= 0:
 		foot = "📜%d %s" % [qi + 1, foot]
@@ -292,7 +292,20 @@ func _detail(id: String) -> void:
 		if Tech.DESCS.has(k):
 			box.add_child(m._lbl("• %s: %s" % [Tech.LABELS[k][0], Tech.DESCS[k]], 14, Color(0.68, 0.7, 0.78)))
 	if g.tree.unlocks.has(id):
-		box.add_child(m._lbl("🏗 Schaltet frei: " + unlock_text(g, id), 17, Color(0.85, 0.9, 1.0)))
+		box.add_child(m._lbl("🏗 Schaltet frei", 18, UiTheme.GOLD))
+		for u in g.tree.unlocks[id]:
+			var d: Dictionary = g.buildings_def[u[0]]
+			var head: String = "%s %s" % [d.get("emoji", "🏠"), d.name] + (" (neues Gebäude)" if int(u[1]) == 1 else " Stufe %d" % int(u[1]))
+			var ready := 0
+			if int(u[1]) > 1:
+				for pid in g.provinces_of(me):
+					if int(g.provinces[pid].buildings.get(u[0], 0)) == int(u[1]) - 1:
+						ready += 1
+			if ready > 0:
+				head += " · in %d deiner Provinzen ausbaubar" % ready
+			box.add_child(m._lbl(head, 17, Color(0.85, 0.9, 1.0)))
+			if d.has("text"):
+				box.add_child(m._lbl("   " + str(d.text), 14, Color(0.68, 0.7, 0.78)))
 	for r in t.get("req", []):
 		var ok: bool = n.techs.has(r)
 		box.add_child(m._lbl(("✓ " if ok else "✗ ") + "Benötigt: " + g.tree.by_id[r].name, 16, Color(0.7, 0.9, 0.7) if ok else Color(0.95, 0.6, 0.55)))
@@ -319,6 +332,8 @@ func _detail(id: String) -> void:
 		m._close_modal()
 		m._act(err, "🔬 %s erforscht!" % t.name)
 	var research: Button = m._btn("🔬 Erforschen (%d)" % cost, go, "", reason != "" or n.get(t.cat) < cost)
+	research.clip_text = false
+	research.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	var row := [research]
 	if not n.techs.has(id):
 		var planned: bool = n.tech_queue.has(id)
@@ -383,6 +398,16 @@ func _plan() -> void:
 
 
 ## "Universität, Werkstatt Stufe 4": the buildings and building levels tech `id` unlocks.
+## Emoji of the buildings a tech unlocks, for the tile footer ("🏪🏦").
+static func unlock_icons(g, id: String) -> String:
+	var icons := ""
+	for u in g.tree.unlocks.get(id, []):
+		var e: String = g.buildings_def[u[0]].get("emoji", "🏗")
+		if not icons.contains(e):
+			icons += e
+	return icons
+
+
 static func unlock_text(g, id: String) -> String:
 	var parts := []
 	for u in g.tree.unlocks.get(id, []):
