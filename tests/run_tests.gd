@@ -19,6 +19,7 @@ func _init() -> void:
 		"test_separate_peace", "test_tired_ai_seeks_peace", "test_ai_marriage_and_generals", "test_ai_access_and_guarantee", "test_income_bonus_and_army_cost",
 		"test_difficulty",
 		"test_march_time_and_terrain", "test_interception", "test_battle_rounds",
+		"test_naval",
 		"test_ai_peace_spending",
 		"test_ai_war_odds",
 		"test_military_access",
@@ -769,6 +770,66 @@ func test_battle_rounds() -> void:
 	var g4 = new_game("FRA", 9)
 	g4.from_dict(JSON.parse_string(JSON.stringify(g3.to_dict())))
 	check(g4.battles.size() == 1 and g4.battles[0].round == 1, "a running battle is saved")
+
+
+func test_naval() -> void:
+	var g = new_game("FRA", 5)
+	var N = g.Naval
+	check(g.seas.size() >= 10, "sea regions loaded")
+	check(N.limit(g, "ENG") > 0.0 and g.nations.ENG.ships > 0.0, "England starts with a fleet")
+	check(N.limit(g, "BOH") == 0.0, "landlocked Bohemia has no fleet")
+	var lon: int = g.key_to_pid["london"]
+	var cal: int = g.key_to_pid["calais"]
+	check(N.sea_of_strait(g, lon, cal) == "channel", "London-Calais crosses the Channel")
+	# building ships
+	var n = g.nations.FRA
+	n.gold = 1000.0
+	n.mil = 200.0
+	var before: float = n.ships
+	check(N.build_ships(g, "FRA", 1) == "", "France builds a ship")
+	check(n.ships == before + 1.0, "the ship is there")
+	n.ships = N.limit(g, "FRA")
+	check(N.build_ships(g, "FRA", 1) != "", "not above the limit")
+	# stationing
+	var seas: Array = N.coast_weights(g, "FRA").keys()
+	check(seas.has("channel"), "France borders the Channel")
+	N.station(g, "FRA", "channel")
+	check(N.presence(g, "FRA").keys() == ["channel"], "a stationed fleet sits in one sea")
+	check(N.station(g, "FRA", "black") != "", "only own coastal seas")
+	# war: England rules the Channel -> French armies cannot cross, French coast blockaded
+	g.nations.FRA.truces.erase("ENG")
+	g.nations.ENG.truces.erase("FRA")
+	g.declare_war("ENG", "FRA")
+	g.nations.ENG.ships = 30.0
+	g.nations.ENG.fleet_sea = "channel"
+	g.nations.FRA.ships = 2.0
+	N.refresh(g)
+	var w = g.war_between("ENG", "FRA")
+	check(N.control(g, w, "channel") == "att", "England rules the Channel")
+	check(not N.can_cross(g, "FRA", cal, lon), "France cannot cross the Channel")
+	check(N.can_cross(g, "ENG", lon, cal), "England can")
+	check(g.find_path("FRA", cal, lon).is_empty(), "no French path to London")
+	var a = g.spawn_army("FRA", cal, 5.0)
+	check(g.move_army(a, lon).contains("Flotte"), "the order says the enemy fleet blocks it")
+	var blk := false
+	for pid in g.provinces_of("FRA"):
+		if N.is_blockaded(g, pid):
+			blk = true
+	check(blk, "French Channel coast is blockaded")
+	check(g.nations.FRA.bonus.get("blockade", {}).get("income", 0.0) < 0.0, "a blockade costs income")
+	check(not N.is_blockaded(g, lon), "London, behind the ruling fleet, is not blockaded")
+	# a fleet battle: the bigger fleet wins and the loser loses ships
+	g.nations.FRA.ships = 10.0
+	g.nations.FRA.fleet_sea = "channel"
+	N.refresh(g)
+	var sc0: float = w.battle_score
+	N._fleet_battle(g, w, g.sea_by_id["channel"], 30.0, 10.0)
+	check(g.nations.FRA.ships < 10.0 and w.battle_score > sc0, "England wins the sea battle")
+	# save
+	var g2 = new_game("FRA", 9)
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(absf(g2.nations.FRA.ships - g.nations.FRA.ships) < 0.001 and g2.nations.ENG.fleet_sea == "channel", "fleets are saved")
+	check(not g2.can_cross("FRA", cal, lon), "sea control is restored after loading")
 
 
 func test_power_actions() -> void:

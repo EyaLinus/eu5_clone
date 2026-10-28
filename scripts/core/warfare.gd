@@ -120,7 +120,8 @@ static func move_armies(g) -> void:
 			if a.target == a.pid:
 				_stop(a)
 			continue
-		if a.path.size() < 2 or a.path[0] != a.pid or a.path[-1] != a.target or not g.can_enter(a.owner, a.path[1]):
+		if a.path.size() < 2 or a.path[0] != a.pid or a.path[-1] != a.target or not g.can_enter(a.owner, a.path[1]) \
+				or not g.can_cross(a.owner, a.path[0], a.path[1]):
 			var old_next: int = a.path[1] if a.path.size() >= 2 else -1
 			a.path = g.find_path(a.owner, a.pid, a.target)
 			if a.path.size() < 2 or (old_next >= 0 and a.path[1] != old_next):
