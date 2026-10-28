@@ -1334,6 +1334,9 @@ func _show_game_over() -> void:
 	modal_box.add_child(_lbl(_summary_text(), 16, Color(0.85, 0.85, 0.75)))
 	if game.history.size() >= 2:
 		modal_box.add_child(_history_chart(260))
+	if game.score_history.size() >= 2:
+		modal_box.add_child(_lbl("📈 Verlauf der Großmächte", 18))
+		modal_box.add_child(_score_chart(260))
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
 	modal_box.add_child(_btn("🏠 Hauptmenü", func(): game = null; _show_start_menu()))
@@ -1390,6 +1393,66 @@ func _history_chart(height: int) -> Control:
 		c.draw_string(font, Vector2(10, 42), "🏆 Rang (oben = 1.)", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.35, 0.6, 1.0))
 		c.draw_string(font, Vector2(10, sz.y - 12), str(h[0][0]), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.7, 0.7, 0.7))
 		c.draw_string(font, Vector2(sz.x - 50, sz.y - 12), str(h[-1][0]), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.7, 0.7, 0.7)))
+	return c
+
+
+## Score lines of today's five best realms and the player over the years (game.score_history), in their
+## map colours, each line ending in its flag. A realm outside the top 8 in a year leaves a gap.
+func _score_chart(height: int) -> Control:
+	var c := Control.new()
+	c.custom_minimum_size = Vector2(300, height)
+	var h: Array = game.score_history
+	var now: Dictionary = h[-1][1]
+	var tags: Array = now.keys()
+	tags.sort_custom(func(a, b): return now[a] > now[b])
+	tags = tags.slice(0, 5)
+	if not tags.has(game.player) and now.has(game.player):
+		tags.append(game.player)
+	c.tooltip_text = "\n".join(tags.map(func(t): return "%s: %d Punkte" % [game.nations[t].name, now[t]]))
+	c.draw.connect(func():
+		var sz: Vector2 = c.size
+		c.draw_rect(Rect2(Vector2.ZERO, sz), Color(0.1, 0.11, 0.14))
+		var hi := 1.0
+		for e in h:
+			for t in tags:
+				hi = maxf(hi, e[1].get(t, 0))
+		hi *= 1.08
+		var font := c.get_theme_default_font()
+		var left := 8.0
+		var right := sz.x - 40.0  # room for the flags at the line ends
+		var top := 10.0
+		var bottom := sz.y - 26.0
+		for frac in [0.5, 1.0]:  # two guide lines with their score
+			var y: float = bottom - (bottom - top) * frac / 1.08
+			c.draw_line(Vector2(left, y), Vector2(right, y), Color(1, 1, 1, 0.08), 1.0)
+			c.draw_string(font, Vector2(left + 2, y - 3), str(int(hi / 1.08 * frac)), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.6, 0.6, 0.6))
+		var ends := []  # [y, tag] of every line that reaches today, for the flags
+		for t in tags:
+			var col: Color = game.nations[t].color.lightened(0.25)
+			var w := 4.0 if t == game.player else 2.0
+			var seg := PackedVector2Array()
+			var last := Vector2.ZERO
+			for i in h.size():
+				if not h[i][1].has(t):
+					if seg.size() >= 2:
+						c.draw_polyline(seg, col, w)
+					seg = PackedVector2Array()
+					continue
+				var p := Vector2(left + (right - left) * i / (h.size() - 1), bottom - (bottom - top) * h[i][1][t] / hi)
+				seg.append(p)
+				last = p
+			if seg.size() >= 2:
+				c.draw_polyline(seg, col, w)
+			if h[-1][1].has(t):
+				ends.append([last.y, t])
+		ends.sort_custom(func(a, b): return a[0] < b[0])
+		var y_min := top + 8.0
+		for e in ends:  # stack the flags so close lines do not hide each other's flag
+			var y: float = maxf(e[0], y_min)
+			c.draw_string(font, Vector2(right + 4, y + 8), PixelEmoji.nation(e[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 18)
+			y_min = y + 22.0
+		c.draw_string(font, Vector2(left, sz.y - 6), str(h[0][0]), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.7, 0.7, 0.7))
+		c.draw_string(font, Vector2(right - 40, sz.y - 6), str(h[-1][0]), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.7, 0.7, 0.7)))
 	return c
 
 
@@ -2793,6 +2856,9 @@ func _panel_ranking() -> void:
 	var mine: int = tags.find(game.player)
 	if mine >= (20 if more else 10):
 		side_box.add_child(_lbl("Du: Platz %d" % (mine + 1), 16))
+	if game.score_history.size() >= 2 and _section("rank_chart", "📈 Verlauf der Großmächte", true,
+			"Punkte der heute fünf besten Reiche und deine, Jahr für Jahr. Lücken: das Reich war in dem Jahr nicht unter den Top 8."):
+		side_box.add_child(_score_chart(240))
 
 
 ## The advisor: everything that wants the player's attention right now, most urgent first, each with a jump
