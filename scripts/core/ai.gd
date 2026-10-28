@@ -32,12 +32,19 @@ func _spend_power(g, n) -> void:
 				continue
 			if g.buy_tech(n.tag, kind) != "":
 				_no_tech[key] = stamp
-	# surplus admin goes into development of the cheapest province
+	# surplus power goes into development of the cheapest province; diplomacy and military only
+	# from a real hoard, they are also needed for annexing vassals, war exhaustion and unrest
 	var cap := float(g.bal.power_cap)
-	if n.adm > g.tech_cost(n.tag, "adm") * 1.6 or n.adm > cap * 0.8:
-		var best := _cheapest_province(g, n.tag)
-		if best >= 0:
-			g.develop(n.tag, best)
+	for kind in ["adm", "dip", "mil"]:
+		var keep: float = g.tech_cost(n.tag, kind) * 1.6
+		if kind != "adm":
+			if kind == "dip" and not g.vassals_of(n.tag).is_empty():
+				continue
+			keep = maxf(keep * 1.5, float(g.bal.ai_develop_reserve))
+		if n.get(kind) > keep or n.get(kind) > cap * 0.8:
+			var best := _cheapest_province(g, n.tag)
+			if best >= 0:
+				g.develop(n.tag, best, kind)
 	# keep the realm calm: suppress provinces about to revolt, calm the people when exhausted
 	var thr: float = float(g.bal.revolt_threshold)
 	var base: float = g.unrest_base(n)
