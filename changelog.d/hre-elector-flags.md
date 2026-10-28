@@ -1,1 +1,0 @@
-- Reichsfenster: Die Stimme jedes Kurfürsten zeigt jetzt die Flagge des Kandidaten statt eines Kürzels wie „HAB“.
