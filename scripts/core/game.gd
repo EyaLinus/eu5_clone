@@ -2709,7 +2709,7 @@ func to_dict() -> Dictionary:
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
 			"pending_peace": pending_peace, "peace_offer_memo": peace_offer_memo, "log": log_lines, "stats": stats, "game_over": game_over, "emperor": emperor,
 			"hre_authority": hre_authority, "hre_reforms": hre_reforms,
-			"history": history, "score_history": score_history, "prices": prices, "prev_prices": prev_prices, "shocks": shocks}
+			"history": history, "score_history": score_history, "prices": prices, "prev_prices": prev_prices, "shocks": shocks, "goods_leader": goods_leader}
 	var ps := []
 	for p in provinces:
 		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort, p.prev_owner, p.suppress_months,
@@ -2916,7 +2916,14 @@ func from_dict(d: Dictionary) -> void:
 	for tag in order:
 		nations[tag].bonus["empire"] = govt.empire_effects(self, tag) if nations[tag].alive else {}
 		_update_cached(nations[tag])
-	Economy.refresh_goods_leaders(self)
+	if d.has("goods_leader"):
+		goods_leader = {}
+		for k in d.goods_leader:
+			if goods_def.has(k) and nations.has(str(d.goods_leader[k])):
+				goods_leader[k] = str(d.goods_leader[k])
+		Economy.apply_goods_leaders(self)
+	else:
+		Economy.refresh_goods_leaders(self)
 	Economy.update_markets(self)
 	Progression.refresh(self)
 	for t in order:
