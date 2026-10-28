@@ -11,6 +11,7 @@ const ARMY_R := 15.0
 const Icons = preload("res://scripts/ui/icons.gd")
 const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
 const Warfare = preload("res://scripts/core/warfare.gd")
+const Naval = preload("res://scripts/core/naval.gd")
 ## Painted base map (tools/art/map_terrain.py). Without it the map falls back to flat SEA/WASTE.
 const TERRAIN_PATH := "res://assets/art/map/terrain.png"
 const TERRAIN_HALF_PATH := "res://assets/art/map/terrain_half.png"
@@ -282,6 +283,7 @@ func _draw() -> void:
 				_draw_hatch(poly, bboxes[p.id], cc)
 	_draw_borders(view)
 	_draw_roads(view)
+	_draw_sea_routes(view)
 	if hover_pid >= 0 and hover_pid != selected_pid:
 		# with an army selected the pointer shows the march target
 		_outline(hover_pid, SELECT if selected_army >= 0 else Color(1, 1, 1, 0.7), 2.0)
@@ -296,6 +298,7 @@ func _draw() -> void:
 			_outline(f.pid, gc, 4.0)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_draw_labels()
+	_draw_seas()
 	_draw_armies()
 	_draw_hover_tip()
 
@@ -319,6 +322,59 @@ func _draw_roads(view: Rect2) -> void:
 			var w := (1.2 + 0.8 * mini(lv, lo)) / zoom
 			draw_line(p.center, o.center, Color(0.1, 0.07, 0.04, 0.7), w + 2.0 / zoom)
 			draw_dashed_line(p.center, o.center, ROAD, w, 7.0 / zoom)
+
+
+## Sea crossings: a dotted ferry line; red while an enemy fleet rules that sea for the player.
+func _draw_sea_routes(view: Rect2) -> void:
+	if zoom < 0.45:
+		return
+	var v := view.grow(200.0)
+	for k in game.straits:
+		var a: int = int(k / 10000)
+		var b: int = int(k % 10000)
+		var pa: Vector2 = game.provinces[a].center
+		var pb: Vector2 = game.provinces[b].center
+		if not v.has_point(pa) and not v.has_point(pb):
+			continue
+		var blocked: bool = game.player != "" and not Naval.can_cross(game, game.player, a, b)
+		var col := Color(0.95, 0.3, 0.25, 0.95) if blocked else Color(0.85, 0.93, 1.0, 0.75)
+		draw_dashed_line(pa, pb, Color(0, 0, 0, 0.5), 4.0 / zoom, 6.0 / zoom)
+		draw_dashed_line(pa, pb, col, 2.0 / zoom, 6.0 / zoom)
+
+
+## Sea names; while the player is at war also who rules each sea (our ships : enemy ships).
+func _draw_seas() -> void:
+	var me: String = game.player
+	var war: bool = me != "" and game.is_at_war(me)
+	if not war and map_mode != MODE_WAR:
+		return
+	var ours := [me]
+	for w in game.wars_of(me):
+		for t in game.side_tags(w, game.is_attacker(w, me)):
+			if not ours.has(t):
+				ours.append(t)
+	var foes: Array = game.enemies_of(me) if war else []
+	for s in game.seas:
+		var sp := to_screen(s.center)
+		if not Rect2(Vector2(-80, -40), size + Vector2(160, 80)).has_point(sp):
+			continue
+		var txt: String = "⚓ " + s.name
+		var col := Color(0.8, 0.9, 1.0, 0.85)
+		if war:
+			var us := Naval.side_power(game, ours, s.id)
+			var them := Naval.side_power(game, foes, s.id)
+			if us > 0.0 or them > 0.0:
+				txt += "  %s : %s" % [Naval.fmt(us), Naval.fmt(them)]
+				if game.sea_blocked.get(me, {}).has(s.id):
+					col = Color(1.0, 0.45, 0.4)
+				elif us > 0.0 and us >= them * float(game.bal.sea_control_ratio):
+					col = Color(0.5, 1.0, 0.5)
+				else:
+					col = Color(1.0, 0.9, 0.5)
+		var fs := 15
+		var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		draw_string_outline(font, sp - Vector2(w / 2, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0, 0, 0, 0.85))
+		draw_string(font, sp - Vector2(w / 2, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 
 
 ## Province outline with a constant on-screen width (world-space transform must be active).
@@ -374,6 +430,8 @@ func _draw_hover_tip() -> void:
 	var fight = Warfare.battle_at(game, p.id)
 	if fight != null:
 		line2 += " · ⚔️ Schlacht (%s)" % Warfare.phase(fight)
+	if Naval.is_blockaded(game, p.id):
+		line2 += " · ⚓ blockiert"
 	for bid in p.buildings:
 		var lv: int = int(p.buildings[bid])
 		if lv > 0 and game.buildings_def.has(bid):

@@ -10,6 +10,7 @@ const Government = preload("res://scripts/core/government.gd")
 const Religion = preload("res://scripts/core/religion.gd")
 const Monuments = preload("res://scripts/core/monuments.gd")
 const Warfare = preload("res://scripts/core/warfare.gd")
+const Naval = preload("res://scripts/core/naval.gd")
 
 const POWERS := ["adm", "dip", "mil"]
 const MONTH_NAMES := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
@@ -100,6 +101,8 @@ class Nation:
 	var monument_build := {}  # {"id", "months"} while one is being built
 	var autobuild: bool = false  # player: build the best building whenever the treasury stays above the reserve
 	var autobuild_reserve: float = 100.0
+	var ships: float = 0.0  # fleet size (Naval)
+	var fleet_sea: String = ""  # player's fleet station: "" = spread over all own coastal seas
 	var army_stance: String = ""  # player's default for new armies: "" manual, "attack" or "defend"
 
 
@@ -139,6 +142,13 @@ var armies: Array = []
 var wars: Array = []
 var battles: Array = []  # running Warfare.Battle
 var straits := {}  # sea crossings, Warfare.strait_key -> true
+var seas: Array = []  # Naval: {"id", "name", "center", "provinces"}
+var sea_by_id := {}
+var province_seas := {}  # pid -> [sea ids] of coastal provinces
+var strait_sea := {}  # Warfare.strait_key -> sea id
+var _fleet := {}  # tag -> {sea: ships}, Naval.refresh
+var sea_blocked := {}  # tag -> {sea: true} where an enemy rules the sea
+var blockaded := {}  # pid -> true
 var month: int = 0
 var rng := RandomNumberGenerator.new()
 var player: String = ""
@@ -227,6 +237,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		provinces.append(p)
 		key_to_pid[p.key] = p.id
 	Warfare.setup(self, data)
+	Naval.setup(self, data)
 	for tag in data.nations:
 		var nd: Dictionary = data.nations[tag]
 		var n := Nation.new()
@@ -271,6 +282,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 		n.manpower = n.max_manpower
 		var regs: float = round(force_limit(tag) * 0.6)
 		spawn_army(tag, n.capital, regs)
+	Naval.start_fleets(self)
 	Progression.refresh(self)
 	event_defs = data.get("events", [])
 	for e in event_defs:
@@ -520,7 +532,7 @@ func find_path(tag: String, from: int, to: int) -> Array:
 		var cur: int = queue[head]
 		head += 1
 		for a in provinces[cur].adj:
-			if prev.has(a) or not can_enter(tag, a):
+			if prev.has(a) or not can_enter(tag, a) or not Naval.can_cross(self, tag, cur, a):
 				continue
 			prev[a] = cur
 			if a == to:
@@ -532,6 +544,11 @@ func find_path(tag: String, from: int, to: int) -> Array:
 				return path
 			queue.append(a)
 	return []
+
+
+## Army step from a to b allowed by the sea (a strait needs the sea not ruled by an enemy fleet).
+func can_cross(tag: String, a: int, b: int) -> bool:
+	return Naval.can_cross(self, tag, a, b)
 
 
 ## Total modifier `key` of a nation: permanent mods (ideas, events, missions) plus all derived bonus sources.
@@ -609,12 +626,15 @@ func tick() -> void:
 		if n.alive:
 			_economy(n)
 			govt.estates_monthly(self, n)
+	Naval.monthly(self)
 	_armies_tick()
 	_wars_tick()
 	for tag in order:
 		var n: Nation = nations[tag]
 		if n.alive and tag != player:
 			ai.think(self, n)
+			if (month + tag.hash()) % 6 == 0:
+				Naval.ai_build(self, n)
 	if player != "" and nations[player].alive:
 		ai.control_armies(self, player)
 		Economy.autobuild(self, nations[player])
@@ -668,7 +688,7 @@ func _economy(n: Nation) -> void:
 	_unrest_tick(n)
 	Religion.monthly(self, n)
 	Monuments.tick(self, n)
-	n.expenses = maint + Economy.upkeep(self, n.tag) + Economy.interest(self, n) + govt.budget_cost(self, n)
+	n.expenses = maint + Naval.upkeep(self, n) + Economy.upkeep(self, n.tag) + Economy.interest(self, n) + govt.budget_cost(self, n)
 	if n.overlord != "":
 		var tribute: float = maxf(0.0, n.income * float(bal.vassal_tribute))
 		n.expenses += tribute
@@ -1081,6 +1101,8 @@ func _siege(p: Province) -> void:
 	for b in besiegers:
 		regs += b.regs
 	var prog: float = float(bal.siege_base) * minf(regs, 20.0) / (sqrt(p.dev) + 2.0) / (1.0 + Economy.fort_level(self, p) * float(bal.fort_siege_mult))
+	if Naval.is_blockaded(self, p.id):
+		prog *= 1.0 + float(bal.blockade_siege)  # no supply by sea
 	p.siege += prog * maxf(0.2, 1.0 + mod(nations[besiegers[0].owner], "siege"))
 	if p.siege >= 100.0:
 		p.siege = 0.0
@@ -1975,6 +1997,9 @@ func move_army(army: Army, pid: int) -> String:
 		return "Die Armee steckt in der Schlacht bei %s." % provinces[b.pid].name
 	var path := find_path(army.owner, army.pid, pid)
 	if path.is_empty():
+		var sea_why: String = Naval.crossing_block_reason(self, army.owner, army.pid, pid)
+		if sea_why != "":
+			return sea_why
 		return "Kein Weg dorthin. Fremdes Land braucht 🚶 Durchmarschrecht (Diplomatie-Fenster des Landes)."
 	if army.path.size() < 2 or path.size() < 2 or army.path[1] != path[1]:
 		army.move = 0.0  # a new direction starts the step over
@@ -2636,7 +2661,7 @@ func to_dict() -> Dictionary:
 				"truces": n.truces, "claims": cl, "flags": n.flags, "missions_done": n.missions_done,
 				"coalition": n.coalition, "overlord": n.overlord, "vassal_since": n.vassal_since, "we": n.we,
 				"merchants": n.merchants, "merchant_auto": n.merchant_auto, "army_stance": n.army_stance,
-				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "religion": n.religion, "monuments": n.monuments.keys(), "monument_build": n.monument_build,
+				"autobuild": n.autobuild, "autobuild_reserve": n.autobuild_reserve, "loans": n.loans, "trade_pacts": n.trade_pacts, "marriages": n.marriages, "access": n.access.keys(), "guarantees": n.guarantees.keys(), "religion": n.religion, "ships": n.ships, "fleet_sea": n.fleet_sea, "monuments": n.monuments.keys(), "monument_build": n.monument_build,
 				"techs": tree.to_save(n), "tech_queue": n.tech_queue, "gov": govt.to_save(n)}
 	d.nations = ns
 	var ar := []
@@ -2775,6 +2800,8 @@ func from_dict(d: Dictionary) -> void:
 		for l in e.get("loans", []):
 			n.loans.append(float(l))
 		n.autobuild_reserve = float(e.get("autobuild_reserve", 100.0))
+		n.ships = float(e.get("ships", -1.0))
+		n.fleet_sea = str(e.get("fleet_sea", ""))
 		tree.load_save(n, e.get("techs", {}))
 		n.tech_queue = Array(e.get("tech_queue", [])).filter(func(q): return tree.by_id.has(q))
 		govt.load_save(n, e.get("gov", {}))
@@ -2810,6 +2837,10 @@ func from_dict(d: Dictionary) -> void:
 		wars.append(w)
 	Warfare.load_save(self, d.get("battles", []))
 	_rebuild_owned()
+	for tag in order:
+		if nations[tag].ships < 0.0:  # saves from before fleets: start fleets
+			nations[tag].ships = roundf(Naval.limit(self, tag) * float(bal.navy_start_share))
+	Naval.refresh(self)
 	for tag in order:
 		nations[tag].bonus["empire"] = govt.empire_effects(self, tag) if nations[tag].alive else {}
 		_update_cached(nations[tag])
