@@ -2643,6 +2643,11 @@ func test_ctx_events() -> void:
 	g.apply_effects("FRA", {"ships": -1000})
 	check(n.ships == 0.0, "ships effect never below zero")
 	check(g.check_conditions("FRA", {"blockaded": false}) and not g.check_conditions("FRA", {"blockaded": true}), "no blockade at start")
+	# fleet missions ask for ships, not land regiments (naval_fix.py)
+	for tag in ["ENG", "SPA", "TUR", "VEN", "NAP"]:
+		for m in data.missions.get(tag, []):
+			if m.id in ["eng_navy", "eng_royal_navy", "spa_armada", "tur_fleet", "ven_arsenal", "nap_galleys"]:
+				check(m.require.has("ships_min") and not m.require.has("regs"), "%s requires ships" % m.id)
 
 
 func test_late_content() -> void:
