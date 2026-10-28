@@ -18,6 +18,7 @@ func _init() -> void:
 		"test_economy_goods_and_trade", "test_buildings", "test_autobuild", "test_army_power", "test_road_march", "test_power_actions", "test_building_gain", "test_marriage", "test_generals", "test_peace_offer_cooldown", "test_mercenaries", "test_trade_pacts", "test_loans_and_shocks", "test_harbor", "test_army_stances", "test_progression", "test_coalition_forms", "test_inherit", "test_inherit_never_takes_player", "test_save_roundtrip",
 		"test_separate_peace", "test_tired_ai_seeks_peace", "test_ai_marriage_and_generals", "test_ai_access_and_guarantee", "test_income_bonus_and_army_cost",
 		"test_difficulty",
+		"test_march_time_and_terrain", "test_interception", "test_battle_rounds",
 		"test_ai_peace_spending",
 		"test_ai_war_odds",
 		"test_military_access",
@@ -610,28 +611,165 @@ func test_army_power() -> void:
 
 func test_road_march() -> void:
 	var g = new_game("FRA", 5)
+	var W = g.Warfare
 	var cap: int = g.nations.FRA.capital
-	var far := -1
 	var path: Array = []
 	for pid in g.provinces_of("FRA"):
 		var pp: Array = g.find_path("FRA", cap, pid)
 		if pp.size() >= 4:
-			far = pid
 			path = pp
 			break
-	check(far >= 0, "France has a province three marches from the capital")
-	check(g.road_step_chance("FRA", path[0], path[1]) == 0.0, "no roads, no extra march step")
+	check(path.size() >= 4, "France has a province three marches from the capital")
+	var a = g.spawn_army("FRA", cap, 3.0)
+	var slow: float = W.speed(g, a, path[0], path[1])
 	for pid in path:
 		g.provinces[pid].buildings["road"] = 2
-	check(absf(g.road_step_chance("FRA", path[0], path[1]) - 0.5) < 0.0001, "two road levels: 50 % extra step")
-	check(g.road_step_chance("ENG", path[0], path[1]) == 0.0, "roads only help their owner")
-	g.bal.road_move_chance = 1.0
-	var a = g.spawn_army("FRA", cap, 3.0)
-	a.target = path[-1]
-	g._armies_tick()
-	check(a.pid == path[2], "army on roads marches two provinces in one month")
-	g._armies_tick()
-	check(a.pid == path[3], "the last step onto the target stays a normal step")
+	check(absf(W.speed(g, a, path[0], path[1]) - slow - 2 * float(g.bal.road_speed)) < 0.0001, "two road levels add march speed")
+	var e = g.spawn_army("ENG", cap, 3.0)
+	check(W.road_bonus(g, "ENG", path[0], path[1]) == 0.0, "roads only help their owner")
+	g.armies.erase(e)
+	g.move_army(a, path[-1])
+	var months := 0
+	while a.pid != path[-1] and months < 20:
+		g._armies_tick()
+		months += 1
+	check(a.pid == path[-1] and a.target == -1, "the army arrives and stops")
+	check(months <= W.eta(g, a) + 6, "march time is finite")
+
+
+func test_march_time_and_terrain() -> void:
+	var g = new_game("FRA", 5)
+	var W = g.Warfare
+	var t: Dictionary = {}
+	for p in g.provinces:
+		t[p.terrain] = true
+	check(t.has("mountains") and t.has("plains") and t.has("desert"), "provinces have terrain")
+	var mtn: int = g.key_to_pid["tirol"]
+	check(g.provinces[mtn].terrain == "mountains", "Tirol is mountains")
+	var nb: int = g.provinces[mtn].adj[0]
+	var flat_cost: float = g.provinces[nb].center.distance_to(g.provinces[mtn].center) / float(g.bal.march_px_per_month)
+	flat_cost = clampf(flat_cost, float(g.bal.march_min_months), float(g.bal.march_max_months))
+	check(W.step_cost(g, nb, mtn) > flat_cost * 1.5, "marching into the mountains takes longer")
+	var lon: int = g.key_to_pid["london"]
+	var cal: int = g.key_to_pid["calais"]
+	check(W.is_strait(g, lon, cal) and W.is_strait(g, cal, lon), "the Channel is a sea crossing")
+	check(W.step_cost(g, lon, cal) >= float(g.bal.strait_months), "a sea crossing costs extra months")
+	# an army stays put until the step is done, then arrives
+	var a = g.spawn_army("FRA", g.nations.FRA.capital, 4.0)
+	var to: int = -1
+	for x in g.provinces[a.pid].adj:
+		if g.provinces[x].owner == "FRA" and W.step_cost(g, a.pid, x) > 1.0:
+			to = x
+	if to >= 0:
+		var from: int = a.pid
+		g.move_army(a, to)
+		g._armies_tick()
+		check(a.pid == from and a.move > 0.0, "a long step is not done in one month")
+		check(W.eta(g, a) >= 1, "eta counts the remaining months")
+		var other: int = -1
+		for x in g.provinces[from].adj:
+			if x != to and g.can_enter("FRA", x):
+				other = x
+		if other >= 0:
+			g.move_army(a, other)
+			check(a.move == 0.0, "turning round throws the march progress away")
+
+
+func test_interception() -> void:
+	var g = new_game("FRA", 5)
+	var W = g.Warfare
+	g.nations.FRA.truces.erase("ENG")
+	g.nations.ENG.truces.erase("FRA")
+	g.declare_war("FRA", "ENG")
+	g.bal.march_min_months = 0.1
+	g.bal.march_max_months = 0.2
+	var x: int = g.nations.FRA.capital
+	var y: int = -1
+	for nb in g.provinces[x].adj:
+		if g.provinces[nb].owner == "FRA" and not W.is_strait(g, x, nb):
+			y = nb
+			break
+	var f = g.spawn_army("FRA", x, 5.0)
+	var e = g.spawn_army("ENG", y, 5.0)
+	g.move_army(f, y)
+	e.target = x
+	e.path = g.find_path("ENG", y, x)
+	W.move_armies(g)
+	check(f.pid == e.pid, "armies marching past each other meet instead of swapping places")
+	W.gather(g)
+	check(W.in_battle(g, f) and W.in_battle(g, e), "the meeting starts a battle")
+	check(g.move_army(f, x) != "", "an army in battle cannot march away")
+
+
+func test_battle_rounds() -> void:
+	var g = new_game("FRA", 5)
+	var W = g.Warfare
+	g.nations.FRA.truces.erase("ENG")
+	g.nations.ENG.truces.erase("FRA")
+	g.declare_war("FRA", "ENG")
+	var pid: int = g.nations.FRA.capital
+	var f = g.spawn_army("FRA", pid, 10.0)
+	var e = g.spawn_army("ENG", pid, 10.0)
+	f.power = 1.0
+	e.power = 1.0
+	W.gather(g)
+	var b = W.battle_at(g, pid)
+	check(b != null, "equal armies start a battle")
+	check(W.phase(b) == "Plänkeln", "battles open with skirmishing")
+	W.fight_round(g, b)
+	check(W.phase(b) == "Nahkampf" and g.battles.has(b), "an even battle is not decided in the first round")
+	# reinforcements join the running battle
+	var r = g.spawn_army("ENG", pid, 4.0)
+	W.gather(g)
+	check(b.def.has(r) or b.att.has(r), "an army marching in joins the battle")
+	var months := 0
+	while g.battles.has(b) and months < 10:
+		W.battles_tick(g)
+		months += 1
+	check(not g.battles.has(b), "the battle ends")
+	check(b.round >= 3, "an even battle lasts several rounds (%d)" % b.round)
+	check(months >= 1, "an even battle takes at least a month")
+	# lopsided battles end fast, the loser bleeds
+	var g2 = new_game("FRA", 6)
+	g2.nations.FRA.truces.erase("ENG")
+	g2.nations.ENG.truces.erase("FRA")
+	g2.declare_war("FRA", "ENG")
+	var big = g2.spawn_army("FRA", pid, 30.0)
+	var small = g2.spawn_army("ENG", pid, 5.0)
+	big.power = 1.0
+	small.power = 1.0
+	var war = g2.war_between("FRA", "ENG")
+	var sc0: float = war.battle_score
+	g2._battle(war, [big], [small], pid)
+	check(big.regs > 26.0, "the big army loses little (%.1f)" % big.regs)
+	check(not g2.armies.has(small) or small.regs < 3.5, "the small army loses a lot")
+	check(war.battle_score > sc0, "the winner gains war score")
+	# terrain defence: holding mountains helps
+	var mtn: int = g.key_to_pid["tirol"]
+	var hold: String = g.provinces[mtn].controller
+	var bb = W.Battle.new()
+	bb.pid = mtn
+	var h = g.spawn_army(hold, mtn, 5.0)
+	bb.att = [h]
+	var p_hold: float = W.side_power(g, bb, true)
+	h.owner = "FRA" if hold != "FRA" else "ENG"
+	check(p_hold > W.side_power(g, bb, true) * 1.2 or h.owner == hold, "holding the mountains is worth a lot")
+	h.owner = hold
+	# landings fight worse
+	h.landing = true
+	check(W.side_power(g, bb, true) < p_hold, "troops fresh off the ships fight worse")
+	# saved mid-battle
+	var g3 = new_game("FRA", 7)
+	g3.nations.FRA.truces.erase("ENG")
+	g3.nations.ENG.truces.erase("FRA")
+	g3.declare_war("FRA", "ENG")
+	g3.spawn_army("FRA", pid, 10.0)
+	g3.spawn_army("ENG", pid, 10.0)
+	W.gather(g3)
+	W.fight_round(g3, g3.battles[0])
+	var g4 = new_game("FRA", 9)
+	g4.from_dict(JSON.parse_string(JSON.stringify(g3.to_dict())))
+	check(g4.battles.size() == 1 and g4.battles[0].round == 1, "a running battle is saved")
 
 
 func test_power_actions() -> void:

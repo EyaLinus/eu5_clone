@@ -27,4 +27,6 @@ static func load_all() -> Dictionary:
 		"techs": load_json("res://data/techs.json"),
 		"government": load_json("res://data/government.json"),
 		"monuments": load_json("res://data/monuments.json"),
+		"terrain": load_json("res://data/terrain.json"),
+		"straits": load_json("res://data/straits.json"),
 	}

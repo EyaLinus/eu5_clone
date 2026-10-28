@@ -10,6 +10,7 @@ const TechScreen = preload("res://scripts/ui/tech_screen.gd")
 const Tech = preload("res://scripts/core/tech.gd")
 const Faith = preload("res://scripts/core/religion.gd")
 const Monuments = preload("res://scripts/core/monuments.gd")
+const Warfare = preload("res://scripts/core/warfare.gd")
 const FirstSteps = preload("res://scripts/core/first_steps.gd")
 const GovScreen = preload("res://scripts/ui/gov_screen.gd")
 const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
@@ -1583,6 +1584,9 @@ func _panel_province(pid: int) -> void:
 			("\nMissionar: noch %d Monate." % p.convert_months) if p.convert_months > 0 else ""], "bad" if foreign_faith else ""))
 	if Eco.fort_level(game, p) > 0:
 		chips.append(_chip("🏰 Festung %d" % Eco.fort_level(game, p), "Belagerungen dauern deutlich länger."))
+	var ter: Dictionary = Warfare.terrain(game, pid)
+	chips.append(_chip(Warfare.terrain_name(game, pid),
+			"Gelände: Marschzeit hierher ×%.2f, wer die Provinz hält, kämpft hier mit +%d %% Kampfkraft." % [float(ter.move), int(round(float(ter.defense) * 100))]))
 	if p.coastal:
 		chips.append(_chip("⚓ Küste", "Küstenprovinz: hier kann ein Hafen gebaut werden."))
 	if own:
@@ -1951,8 +1955,16 @@ func _panel_army(id: int) -> void:
 		_chip(("⭐ General %d" % a.general) if a.general > 0 else "⭐ Kein General",
 				("+%d %% Kampfkraft." % int(a.general * float(game.bal.general_bonus) * 100)) if a.general > 0 else "Ohne General kämpft die Armee ohne Bonus.", "gold" if a.general > 0 else ""),
 	]
+	var fight = Warfare.battle_of(game, a)
+	if fight != null:
+		var mine_att: bool = fight.att.has(a)
+		chips.append(_chip("⚔️ Schlacht · %s" % Warfare.phase(fight),
+				"Runde %d bei %s (%s). Kampfmoral: wir %d %%, Feind %d %%. Wessen Kampfmoral zuerst bricht, verliert und wird verfolgt. Zwei Runden pro Monat; eigene Armeen, die herankommen, greifen mit ein. Aus einer laufenden Schlacht kann man nicht abmarschieren." % [
+				fight.round + 1, game.provinces[fight.pid].name, Warfare.terrain_name(game, fight.pid),
+				int(maxf(0.0, fight.morale_att if mine_att else fight.morale_def) * 100), int(maxf(0.0, fight.morale_def if mine_att else fight.morale_att) * 100)], "bad"))
 	if a.target >= 0:
-		chips.append(_chip("🎯 %s · %d Mon." % [game.provinces[a.target].name, maxi(1, a.path.size() - 1)], "Marschziel und Dauer."))
+		chips.append(_chip("🎯 %s · %d Mon." % [game.provinces[a.target].name, Warfare.eta(game, a)],
+				"Marschziel und Dauer. Jeder Schritt kostet Zeit nach Entfernung und Gelände (Gebirge, Wald, Sumpf sind langsam), eine Überfahrt übers Meer %.0f Monat extra. Eigene Straßen machen schneller. Bis ein Schritt fertig ist, steht die Armee noch in der alten Provinz; wer sie dort erreicht, stellt sie. Ein neues Ziel in andere Richtung fängt den Schritt von vorn an." % float(game.bal.strait_months)))
 		chips.append(_chip("Modus: " + _stance_name(a), "Wer die Armee führt."))
 	else:
 		chips.append(_chip("Modus: " + _stance_name(a), "Wer die Armee führt."))
