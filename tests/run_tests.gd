@@ -1383,6 +1383,14 @@ func test_emoji_coverage() -> void:
 				check(have.has("%x" % c), "%s: no pixel glyph for %s (U+%X), add it in tools/art/emoji_icons.py" % [path, char(c), c])
 	for tag in data.nations:
 		check(ResourceLoader.exists("res://assets/art/icons/flag_%s.png" % tag), "nation %s has no flag" % tag)
+	# every flag is a glyph of the pixel font, registered before any text is drawn
+	var PE = load("res://scripts/ui/pixel_emoji.gd")
+	PE.install()
+	PE.add_nations(data.nations.keys())
+	for tag in data.nations:
+		var f: String = PE.nation(tag)
+		check(f.length() == 1 and f.unicode_at(0) >= PE.PUA and PE.font.has_char(f.unicode_at(0)), "flag of %s is a pixel glyph" % tag)
+	check(PE.nation("XXX") == "🏳" and have.has("1f3f3"), "a nation without flag shows the white flag glyph")
 
 
 ## Pixel UI kit (tools/art/ui_kit.py): every slice texture exists and is big enough for its margins;
