@@ -267,13 +267,16 @@ STRAITS = [
     ("london", "calais"), ("wessex", "normandy"), ("pale", "wales"),
     ("ulster", "lothian"), ("corsica", "genoa"), ("corsica", "sardinia"),
     ("sicily", "calabria"), ("copenhagen", "scania"), ("copenhagen", "jutland"),
-    ("stockholm", "turku"), ("turku", "reval"), ("constantinople", "edirne"),
+    ("stockholm", "turku"), ("turku", "reval"),
     ("cornwall", "brest"), ("sardinia", "barcelona"), ("sicily", "napoli"),
-    ("crimea", "zaporozhia"), ("dalmatia", "ancona"), ("morea", "thessaly"),
+    ("dalmatia", "ancona"),
     ("constantinople", "izmit"), ("edirne", "bursa"), ("crimea", "circassia"), ("sevilla", "tangier"),
     ("granada", "tangier"), ("sicily", "tunis"), ("sardinia", "tunis"), ("crete", "morea"),
     ("crete", "rhodes"), ("rhodes", "mentese"), ("cyprus", "icel"), ("cyprus", "tripoli_sy"),
 ]
+
+# land borders the coarse polygons miss (isthmus, small gaps): adjacency only, not sea crossings
+LAND_LINKS = [("constantinople", "edirne"), ("morea", "thessaly"), ("crimea", "zaporozhia")]
 
 SCALE = 48.0  # pixels per degree latitude
 LON0, LAT0 = -11.0, 63.0
@@ -348,7 +351,7 @@ def main(land_path):
                 if inter.area > 6.0:
                     adj[i].add(j)
                     adj[j].add(i)
-    for a, b in STRAITS:
+    for a, b in STRAITS + LAND_LINKS:
         ia, ib = key_to_id[a], key_to_id[b]
         adj[ia].add(ib)
         adj[ib].add(ia)

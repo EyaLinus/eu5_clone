@@ -179,10 +179,11 @@ func _peace_spending(g, n, keep: float) -> void:
 	var Rel = g.Religion
 	if Rel.missionaries(g, tag) < int(g.bal.max_missionaries):
 		var target := -1
+		# same tests as Religion.convert_block_reason, inlined: that one recounts missionaries per province
 		for pid in g.provinces_of(tag):
 			var p = g.provinces[pid]
 			if p.religion != n.religion and (target < 0 or p.dev > g.provinces[target].dev) \
-					and Rel.convert_block_reason(g, tag, pid) == "":
+					and p.convert_months == 0 and p.controller == tag and n.gold >= Rel.convert_cost(g, p):
 				target = pid
 		if target >= 0 and n.gold > Rel.convert_cost(g, g.provinces[target]) + keep:
 			Rel.send_missionary(g, tag, target)
@@ -192,10 +193,13 @@ func _peace_spending(g, n, keep: float) -> void:
 		return
 	var M = g.Monuments
 	var best := ""
+	var best_cost := 0.0
 	for id in g.monument_defs:
-		if M.block_reason(g, tag, id) == "" and n.gold > M.cost(g, tag, id) * float(g.bal.ai_monument_gold_mult) + keep \
-				and (best == "" or M.cost(g, tag, id) < M.cost(g, tag, best)):
+		var c: float = M.cost(g, tag, id)
+		if n.gold > c * float(g.bal.ai_monument_gold_mult) + keep and (best == "" or c < best_cost) \
+				and M.block_reason(g, tag, id) == "":
 			best = id
+			best_cost = c
 	if best != "":
 		M.start(g, tag, best)
 

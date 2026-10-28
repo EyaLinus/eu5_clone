@@ -1,0 +1,1 @@
+- **Landwege statt falscher Meerengen:** Konstantinopel–Edirne, Morea–Thessalien und Krim–Saporischschja sind wieder normale Landgrenzen. Bisher galten sie als Meerengen, die eine feindliche Flotte sperren konnte. Dadurch kamen die Osmanen nie über Land nach Konstantinopel, und Byzanz überlebte in jeder Partie.
