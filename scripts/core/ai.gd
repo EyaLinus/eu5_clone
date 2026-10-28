@@ -36,12 +36,15 @@ func _spend_power(g, n) -> void:
 	# from a real hoard, they are also needed for annexing vassals, war exhaustion and unrest
 	var cap := float(g.bal.power_cap)
 	for kind in ["adm", "dip", "mil"]:
+		var have: float = n.get(kind)
+		if kind != "adm" and have <= float(g.bal.ai_develop_reserve) and have <= cap * 0.8:
+			continue  # cheap exit before the tech cost and vassal checks below
 		var keep: float = g.tech_cost(n.tag, kind) * 1.6
 		if kind != "adm":
+			keep = maxf(keep * 1.5, float(g.bal.ai_develop_reserve))
+		if have > keep or have > cap * 0.8:
 			if kind == "dip" and not g.vassals_of(n.tag).is_empty():
 				continue
-			keep = maxf(keep * 1.5, float(g.bal.ai_develop_reserve))
-		if n.get(kind) > keep or n.get(kind) > cap * 0.8:
 			var best := _cheapest_province(g, n.tag)
 			if best >= 0:
 				g.develop(n.tag, best, kind)
