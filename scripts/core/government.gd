@@ -147,6 +147,10 @@ func court_condition(g, n, k: String, v) -> bool:
 			return int(n.ruler.years) <= int(v)
 		"regency":
 			return (regency_until(n) > 0) == bool(v)
+		"heir_age_min":
+			return not h.is_empty() and heir_age(g, n) >= int(v)
+		"heir_age_max":
+			return not h.is_empty() and heir_age(g, n) <= int(v)
 	return true
 
 

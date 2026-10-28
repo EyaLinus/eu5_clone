@@ -2591,7 +2591,7 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"religion":
 				if n.religion != str(v):
 					return false
-			"ruler_trait", "heir_trait", "heir_skill_max", "heir_skill_min", "reign_years_max", "regency":
+			"ruler_trait", "heir_trait", "heir_skill_max", "heir_skill_min", "reign_years_max", "regency", "heir_age_min", "heir_age_max":
 				if not govt.court_condition(self, n, k, v):
 					return false
 			"unrest_min":

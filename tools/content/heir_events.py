@@ -2,7 +2,7 @@
 Generic events, id prefix "heir_". Run: python3 tools/content/heir_events.py (idempotent, see events_io.py).
 
 Conditions: ruler_trait / heir_trait (trait id, "any" or "" for none), heir_skill_min / heir_skill_max (sum of the
-heir's three skills), reign_years_max. Effects: heir {adm/dip/mil: +n}, heir_trait / ruler_trait (id, "" or "random").
+heir's three skills), heir_age_min / heir_age_max, regency (bool), reign_years_max. Effects: heir {adm/dip/mil: +n}, heir_trait / ruler_trait (id, "" or "random").
 Trait events repeat (10-year cooldown) since every new ruler can bring the trait back. Rules as in court_events.py:
 three options, the first one gold-free, permanent mods at most 0.03, gold options get AI weight 2.
 """
@@ -28,19 +28,19 @@ EVENTS = [
     # --- the heir
     ev("coming_of_age", "Der Erbe wird volljährig",
        "Mit Glockengeläut feiert die Hauptstadt die Volljährigkeit des Erben. Nun soll er zeigen, was in ihm steckt.",
-       "heir", {"year_min": 1446},
+       "heir", {"year_min": 1446, "heir_age_min": 15, "heir_age_max": 30},
        [("Ein Dankgottesdienst genügt.", {"prestige": 3}),
         ("Ein großes Turnier!", {"gold": -60, "prestige": 8, "estate": {"adel": 5}}),
         ("Ein Sitz im Kronrat.", {"adm": -20, "heir": {"adm": 1}})], once=True),
     ev("famous_tutor", "Ein berühmter Lehrer",
        "Ein weitgereister Gelehrter bietet an, den Erben zu unterrichten, wenn der Preis stimmt.", "scholar",
-       {"heir_skill_max": 5, "year_min": 1450},
+       {"heir_skill_max": 5, "year_min": 1450, "heir_age_max": 20},
        [("Ein Hofgelehrter aus dem eigenen Land.", {"adm": -30, "heir": {"adm": 1}}),
         ("Den Gelehrten aus Italien holen.", {"gold": -70, "heir": {"adm": 1, "dip": 1}}),
         ("Der Erbe lernt im Feldlager.", {"mil": -25, "heir": {"mil": 1}})]),
     ev("disappointing_heir", "Ein enttäuschender Erbe",
        "Die Lehrer klagen: Der Erbe schläft im Unterricht und versäumt die Ratssitzungen. Am Hof wird getuschelt.",
-       "court", {"heir_skill_max": 2, "year_min": 1450},
+       "court", {"heir_skill_max": 2, "year_min": 1450, "heir_age_min": 10},
        [("Auf die Zeit vertrauen.", {"prestige": -3}),
         ("Strenge Erziehung.", {"adm": -50, "heir": {"adm": 1, "dip": 1}}),
         ("Eine kluge Braut soll ihn lenken.", {"dip": -40, "heir": {"dip": 1}, "prestige": 2})]),

@@ -2082,6 +2082,8 @@ func test_regency() -> void:
 	n.gov.heir.born = g.year() - 30
 	gv.succession(g, n)
 	check(gv.regency_until(n) == 0, "adult heir: no regency")
+	n.gov.heir.born = g.year() - 8
+	check(gv.court_condition(g, n, "heir_age_max", 10) and not gv.court_condition(g, n, "heir_age_min", 15), "heir age conditions")
 	n.gov.heir.erase("born")
 	check(gv.heir_age(g, n) == 99, "old-save heirs count as adults")
 

@@ -2448,19 +2448,19 @@
      {"text": "Ein Fest für alle Fürsten.", "effects": {"dip": 40, "prestige": 3}},
      {"text": "Den Palast dem Volk zeigen.", "effects": {"estate": {"buerger": 5}, "prestige": 2}}]},
   {"id": "heir_coming_of_age", "tag": "*", "title": "Der Erbe wird volljährig", "text": "Mit Glockengeläut feiert die Hauptstadt die Volljährigkeit des Erben. Nun soll er zeigen, was in ihm steckt.", "image": "heir",
-   "trigger": {"year_min": 1446},
+   "trigger": {"year_min": 1446, "heir_age_min": 15, "heir_age_max": 30},
    "options": [
      {"text": "Ein Dankgottesdienst genügt.", "effects": {"prestige": 3}},
      {"text": "Ein großes Turnier!", "effects": {"gold": -60, "prestige": 8, "estate": {"adel": 5}}, "ai": 2},
      {"text": "Ein Sitz im Kronrat.", "effects": {"adm": -20, "heir": {"adm": 1}}}]},
   {"id": "heir_famous_tutor", "once": false, "tag": "*", "title": "Ein berühmter Lehrer", "text": "Ein weitgereister Gelehrter bietet an, den Erben zu unterrichten, wenn der Preis stimmt.", "image": "scholar",
-   "trigger": {"heir_skill_max": 5, "year_min": 1450},
+   "trigger": {"heir_skill_max": 5, "year_min": 1450, "heir_age_max": 20},
    "options": [
      {"text": "Ein Hofgelehrter aus dem eigenen Land.", "effects": {"adm": -30, "heir": {"adm": 1}}},
      {"text": "Den Gelehrten aus Italien holen.", "effects": {"gold": -70, "heir": {"adm": 1, "dip": 1}}, "ai": 2},
      {"text": "Der Erbe lernt im Feldlager.", "effects": {"mil": -25, "heir": {"mil": 1}}}]},
   {"id": "heir_disappointing_heir", "once": false, "tag": "*", "title": "Ein enttäuschender Erbe", "text": "Die Lehrer klagen: Der Erbe schläft im Unterricht und versäumt die Ratssitzungen. Am Hof wird getuschelt.", "image": "court",
-   "trigger": {"heir_skill_max": 2, "year_min": 1450},
+   "trigger": {"heir_skill_max": 2, "year_min": 1450, "heir_age_min": 10},
    "options": [
      {"text": "Auf die Zeit vertrauen.", "effects": {"prestige": -3}},
      {"text": "Strenge Erziehung.", "effects": {"adm": -50, "heir": {"adm": 1, "dip": 1}}},
