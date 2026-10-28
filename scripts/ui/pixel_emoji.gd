@@ -26,6 +26,10 @@ static func install() -> void:
 	font = FontFile.new()
 	font.fixed_size = SIZE
 	font.fixed_size_scale_mode = TextServer.FIXED_SIZE_SCALE_ENABLED
+	# Own oversampling: a font that follows the global one gets its size cache wiped whenever that changes
+	# (window resize with canvas stretch, UI-size button, Windows DPI), and with it every glyph added here.
+	# All pixel glyphs then showed as hex boxes, and Windows drew its own emoji instead.
+	font.oversampling = 1.0
 	font.set_cache_ascent(0, SIZE, 50)
 	font.set_cache_descent(0, SIZE, 10)
 	var f := FileAccess.open(DIR + "emoji.json", FileAccess.READ)
