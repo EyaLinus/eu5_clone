@@ -35,6 +35,7 @@ static func start(g, tag: String, id: String) -> String:
 	var n = g.nations[tag]
 	n.gold -= cost(g, tag, id)
 	n.monument_build = {"id": id, "months": int(g.monument_defs[id].months)}
+	g.fire_event(tag, "mon_%s_start" % id)
 	return ""
 
 
@@ -43,14 +44,18 @@ static func tick(g, n) -> void:
 	if n.monument_build.is_empty() or g.provinces[n.capital].controller != n.tag:
 		return
 	n.monument_build.months -= 1
+	var id: String = n.monument_build.id
+	# context events: "mon_<id>_start" (in start), "_half" once half the time is done, "_done" on completion
+	if int(n.monument_build.months) * 2 <= int(g.monument_defs[id].months):
+		g.fire_event(n.tag, "mon_%s_half" % id)
 	if n.monument_build.months > 0:
 		return
-	var id: String = n.monument_build.id
 	n.monument_build = {}
 	n.monuments[id] = true
 	refresh(g, n)
 	var m: Dictionary = g.monument_defs[id]
 	g.log_msg("%s %s vollendet: %s." % [m.emoji, n.name, m.name])
+	g.fire_event(n.tag, "mon_%s_done" % id)
 
 
 static func refresh(g, n) -> void:

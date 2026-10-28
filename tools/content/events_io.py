@@ -13,7 +13,7 @@ PATH = os.path.join(ROOT, "data/events.json")
 
 
 def render_event(e):
-    head = {k: e[k] for k in ("id", "once", "tag", "title", "text", "image") if k in e}
+    head = {k: e[k] for k in ("id", "once", "manual", "tag", "title", "text", "image") if k in e}
     s = "  " + json.dumps(head, ensure_ascii=False)[:-1] + ",\n"
     s += '   "trigger": ' + json.dumps(e["trigger"], ensure_ascii=False) + ",\n"
     s += '   "options": [\n'

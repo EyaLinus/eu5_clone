@@ -10,6 +10,8 @@ const WASTE := Color("55574d")
 const ARMY_R := 15.0
 const Icons = preload("res://scripts/ui/icons.gd")
 const PixelEmoji = preload("res://scripts/ui/pixel_emoji.gd")
+const Warfare = preload("res://scripts/core/warfare.gd")
+const Naval = preload("res://scripts/core/naval.gd")
 ## Painted base map (tools/art/map_terrain.py). Without it the map falls back to flat SEA/WASTE.
 const TERRAIN_PATH := "res://assets/art/map/terrain.png"
 const TERRAIN_HALF_PATH := "res://assets/art/map/terrain_half.png"
@@ -281,6 +283,7 @@ func _draw() -> void:
 				_draw_hatch(poly, bboxes[p.id], cc)
 	_draw_borders(view)
 	_draw_roads(view)
+	_draw_sea_routes(view)
 	if hover_pid >= 0 and hover_pid != selected_pid:
 		# with an army selected the pointer shows the march target
 		_outline(hover_pid, SELECT if selected_army >= 0 else Color(1, 1, 1, 0.7), 2.0)
@@ -295,6 +298,7 @@ func _draw() -> void:
 			_outline(f.pid, gc, 4.0)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_draw_labels()
+	_draw_seas()
 	_draw_armies()
 	_draw_hover_tip()
 
@@ -318,6 +322,59 @@ func _draw_roads(view: Rect2) -> void:
 			var w := (1.2 + 0.8 * mini(lv, lo)) / zoom
 			draw_line(p.center, o.center, Color(0.1, 0.07, 0.04, 0.7), w + 2.0 / zoom)
 			draw_dashed_line(p.center, o.center, ROAD, w, 7.0 / zoom)
+
+
+## Sea crossings: a dotted ferry line; red while an enemy fleet rules that sea for the player.
+func _draw_sea_routes(view: Rect2) -> void:
+	if zoom < 0.45:
+		return
+	var v := view.grow(200.0)
+	for k in game.straits:
+		var a: int = int(k / 10000)
+		var b: int = int(k % 10000)
+		var pa: Vector2 = game.provinces[a].center
+		var pb: Vector2 = game.provinces[b].center
+		if not v.has_point(pa) and not v.has_point(pb):
+			continue
+		var blocked: bool = game.player != "" and not Naval.can_cross(game, game.player, a, b)
+		var col := Color(0.95, 0.3, 0.25, 0.95) if blocked else Color(0.85, 0.93, 1.0, 0.75)
+		draw_dashed_line(pa, pb, Color(0, 0, 0, 0.5), 4.0 / zoom, 6.0 / zoom)
+		draw_dashed_line(pa, pb, col, 2.0 / zoom, 6.0 / zoom)
+
+
+## Sea names; while the player is at war also who rules each sea (our ships : enemy ships).
+func _draw_seas() -> void:
+	var me: String = game.player
+	var war: bool = me != "" and game.is_at_war(me)
+	if not war and map_mode != MODE_WAR:
+		return
+	var ours := [me]
+	for w in game.wars_of(me):
+		for t in game.side_tags(w, game.is_attacker(w, me)):
+			if not ours.has(t):
+				ours.append(t)
+	var foes: Array = game.enemies_of(me) if war else []
+	for s in game.seas:
+		var sp := to_screen(s.center)
+		if not Rect2(Vector2(-80, -40), size + Vector2(160, 80)).has_point(sp):
+			continue
+		var txt: String = "⚓ " + s.name
+		var col := Color(0.8, 0.9, 1.0, 0.85)
+		if war:
+			var us := Naval.side_power(game, ours, s.id)
+			var them := Naval.side_power(game, foes, s.id)
+			if us > 0.0 or them > 0.0:
+				txt += "  %s : %s" % [Naval.fmt(us), Naval.fmt(them)]
+				if game.sea_blocked.get(me, {}).has(s.id):
+					col = Color(1.0, 0.45, 0.4)
+				elif us > 0.0 and us >= them * float(game.bal.sea_control_ratio):
+					col = Color(0.5, 1.0, 0.5)
+				else:
+					col = Color(1.0, 0.9, 0.5)
+		var fs := 15
+		var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		draw_string_outline(font, sp - Vector2(w / 2, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color(0, 0, 0, 0.85))
+		draw_string(font, sp - Vector2(w / 2, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 
 
 ## Province outline with a constant on-screen width (world-space transform must be active).
@@ -369,7 +426,12 @@ func _draw_hover_tip() -> void:
 	var txt := "%s · %s %s" % [p.name, PixelEmoji.nation(p.owner, game.nations[p.owner].emoji), game.nations[p.owner].name]
 	if p.controller != p.owner:
 		txt += " (besetzt: %s)" % game.nations[p.controller].name
-	var line2 := "Entwicklung %d" % p.dev
+	var line2 := "Entwicklung %d · %s" % [p.dev, Warfare.terrain_name(game, p.id)]
+	var fight = Warfare.battle_at(game, p.id)
+	if fight != null:
+		line2 += " · ⚔️ Schlacht (%s)" % Warfare.phase(fight)
+	if Naval.is_blockaded(game, p.id):
+		line2 += " · ⚓ blockiert"
 	for bid in p.buildings:
 		var lv: int = int(p.buildings[bid])
 		if lv > 0 and game.buildings_def.has(bid):
@@ -584,7 +646,11 @@ func army_positions() -> Dictionary:
 		var i: int = per.get(a.pid, 0)
 		per[a.pid] = i + 1
 		var step := 12.0 if zoom < 0.8 else 22.0
-		out[a.id] = to_screen(game.provinces[a.pid].center) + Vector2(i * 6, 8 + i * step)
+		var c: Vector2 = game.provinces[a.pid].center
+		if a.path.size() >= 2 and a.path[0] == a.pid:
+			# on the march: the counter slides up to halfway towards the next province
+			c = c.lerp(game.provinces[a.path[1]].center, 0.5 * Warfare.step_progress(game, a))
+		out[a.id] = to_screen(c) + Vector2(i * 6, 8 + i * step)
 	return out
 
 
@@ -624,7 +690,32 @@ func _draw_armies() -> void:
 		draw_string_outline(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 3, Color.BLACK)
 		draw_string(font, tp, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
 		_draw_power_bar(a, Rect2(s.x - ARMY_R, s.y + ARMY_R + 3, ARMY_R * 2, 4))
+	_draw_battles()
 	_draw_flashes()
+
+
+## Running battles: crossed swords over the province, both sides' battle morale as bars.
+func _draw_battles() -> void:
+	for b in game.battles:
+		# right of the army counters, so the province name stays readable
+		var s := to_screen(game.provinces[b.pid].center) + (Vector2(66, 4) if zoom >= 0.8 else Vector2(34, 4))
+		if not Rect2(Vector2(-60, -60), size + Vector2(120, 120)).has_point(s):
+			continue
+		var pulse := 0.75 + 0.25 * sin(_now() * 6.0)
+		draw_circle(s, 17.0, Color(0, 0, 0, 0.9))
+		draw_circle(s, 15.0, Color(0.6, 0.1, 0.05, pulse))
+		var fs := 20
+		var w := font.get_string_size("⚔️", HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		draw_string(font, s + Vector2(-w / 2, 7), "⚔️", HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
+		# battle morale: attacker on top, defender below, in their nation colours
+		var bw := 40.0
+		for i in 2:
+			var arms: Array = b.att if i == 0 else b.def
+			var col: Color = game.nations[arms[0].owner].color if not arms.is_empty() else Color.GRAY
+			var m: float = clampf(b.morale_att if i == 0 else b.morale_def, 0.0, 1.0)
+			var r := Rect2(s.x - bw / 2, s.y + 20 + i * 8, bw, 6)
+			draw_rect(r.grow(1.0), Color(0, 0, 0, 0.9))
+			draw_rect(Rect2(r.position, Vector2(bw * m, 6)), col.lightened(0.15))
 
 
 # ---------------------------------------------------------------- development feedback

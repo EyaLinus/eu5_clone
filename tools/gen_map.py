@@ -369,6 +369,9 @@ def main(land_path):
     out = {"size": [round(maxx, 1), round(min(maxy, (LAT0 - MIN_LAT - 0.5) * SCALE), 1)], "provinces": provinces, "background": bg}
     with open("data/map.json", "w") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
+    # sea crossings: slower marches, need sea control in war (scripts/core/warfare.gd)
+    with open("data/straits.json", "w") as f:
+        f.write("[\n" + ",\n".join(json.dumps([a, b]) for a, b in STRAITS) + "\n]\n")
     print(len(provinces), "provinces, bg polys:", len(bg), "size", out["size"])
 
 

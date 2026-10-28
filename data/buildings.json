@@ -8,7 +8,13 @@
    "trade_power": 0.3,
    "tax": 0.1
   },
-  "text": "je Stufe: +30 % Handelsmacht, +10 % Steuern der Provinz"
+  "text": "je Stufe: +30 % Handelsmacht, +10 % Steuern der Provinz",
+  "level_tech": {
+   "2": "dip_gilden",
+   "3": "dip_boersen",
+   "4": "dip_aktien",
+   "5": "dip_handelsbilanz"
+  }
  },
  "workshop": {
   "name": "Werkstatt",
@@ -18,7 +24,13 @@
   "local": {
    "production": 0.2
   },
-  "text": "je Stufe: +20 % Produktion der Provinz"
+  "text": "je Stufe: +20 % Produktion der Provinz",
+  "level_tech": {
+   "2": "adm_saigerhuetten",
+   "3": "adm_verlag",
+   "4": "adm_manufaktur",
+   "5": "adm_merkantil"
+  }
  },
  "manufactory": {
   "name": "Manufaktur",
@@ -30,7 +42,14 @@
   "local": {
    "production": 0.35
   },
-  "text": "je Stufe: +35 % Produktion (braucht Werkstatt, Entwicklung 12)"
+  "text": "je Stufe: +35 % Produktion (braucht Werkstatt, Entwicklung 12)",
+  "level_tech": {
+   "1": "adm_saigerhuetten",
+   "2": "adm_verlag",
+   "3": "adm_manufaktur",
+   "4": "adm_merkantil",
+   "5": "adm_colbert"
+  }
  },
  "estate": {
   "name": "Gutshof",
@@ -41,7 +60,13 @@
    "production": 0.05,
    "manpower": 0.3
   },
-  "text": "je Stufe: +5 % Produktion, +30 % Mannschaften der Provinz"
+  "text": "je Stufe: +5 % Produktion, +30 % Mannschaften der Provinz",
+  "level_tech": {
+   "2": "adm_kataster",
+   "3": "adm_beamte",
+   "4": "adm_kameral",
+   "5": "adm_absolut"
+  }
  },
  "barracks": {
   "name": "Kaserne",
@@ -54,7 +79,13 @@
   "nation": {
    "force_limit": 1.0
   },
-  "text": "je Stufe: +1 Truppenlimit, +15 % Mannschaften der Provinz"
+  "text": "je Stufe: +1 Truppenlimit, +15 % Mannschaften der Provinz",
+  "level_tech": {
+   "2": "mil_landsknechte",
+   "3": "mil_musterrollen",
+   "4": "mil_garnisonen",
+   "5": "mil_stehendes_heer"
+  }
  },
  "fortress": {
   "name": "Festung",
@@ -67,7 +98,10 @@
    "unrest": -1.0
   },
   "text": "je Stufe: Belagerung dauert viel länger, -1 Unruhe. Unterhalt 0,15 Gold/Monat je Stufe",
-  "max_level": 2
+  "max_level": 2,
+  "level_tech": {
+   "2": "mil_bastionen"
+  }
  },
  "courthouse": {
   "name": "Gerichtshof",
@@ -79,7 +113,10 @@
    "uncored_income": 0.15
   },
   "text": "je Stufe: -1,5 Unruhe, frisch eroberte Provinzen bringen +15 % Einkommen",
-  "max_level": 2
+  "max_level": 2,
+  "level_tech": {
+   "2": "adm_gerichte"
+  }
  },
  "harbor": {
   "name": "Hafen",
@@ -96,7 +133,11 @@
   "nation": {
    "trade": 0.02
   },
-  "text": "nur an der Küste. je Stufe: +3 Handelsmacht, +25 % Handelsmacht und +10 % Produktion der Provinz, +2 % Handelseinnahmen im Reich"
+  "text": "nur an der Küste. je Stufe: +3 Handelsmacht, +25 % Handelsmacht und +10 % Produktion der Provinz, +2 % Handelseinnahmen im Reich",
+  "level_tech": {
+   "2": "dip_karavellen",
+   "3": "dip_fernhandel"
+  }
  },
  "road": {
   "name": "Straßen",
@@ -110,6 +151,72 @@
    "production": 0.05
   },
   "text": "je Stufe: Armeen erholen ihre Kampfkraft hier 25 % schneller und marschieren zwischen eigenen Straßen-Provinzen schneller, +10 % Handelsmacht, +5 % Produktion. Straßen geben keine Entwicklung.",
-  "no_dev": true
+  "no_dev": true,
+  "level_tech": {
+   "2": "adm_baukunst",
+   "3": "adm_kanaele"
+  }
+ },
+ "university": {
+  "name": "Universität",
+  "emoji": "🎓",
+  "cost": 260,
+  "months": 36,
+  "max_level": 1,
+  "min_dev": 18,
+  "max_count": 3,
+  "level_tech": {
+   "1": "adm_akademien"
+  },
+  "local": {
+   "unrest": -0.5
+  },
+  "nation": {
+   "tech_cost": -0.02,
+   "prestige": 0.25
+  },
+  "text": "+2 % billigere Technologien und +0,25 Prestige/Jahr fürs ganze Reich, −0,5 Unruhe (höchstens 3 im Reich, Entwicklung 18)"
+ },
+ "exchange": {
+  "name": "Börse",
+  "emoji": "🏦",
+  "cost": 280,
+  "months": 36,
+  "max_level": 1,
+  "min_dev": 16,
+  "max_count": 3,
+  "requires": "marketplace",
+  "level_tech": {
+   "1": "dip_boersen"
+  },
+  "local": {
+   "trade_power": 0.5,
+   "tax": 0.1
+  },
+  "nation": {
+   "income": 0.02
+  },
+  "text": "+2 % Einkommen fürs ganze Reich, +50 % Handelsmacht und +10 % Steuern der Provinz (braucht Marktplatz, höchstens 3 im Reich, Entwicklung 16)"
+ },
+ "arsenal": {
+  "name": "Zeughaus",
+  "emoji": "🛡",
+  "cost": 240,
+  "months": 36,
+  "max_level": 1,
+  "min_dev": 14,
+  "max_count": 3,
+  "requires": "barracks",
+  "level_tech": {
+   "1": "mil_kriegskanzlei"
+  },
+  "local": {
+   "manpower": 0.2
+  },
+  "nation": {
+   "maintenance": -0.03,
+   "force_limit": 2.0
+  },
+  "text": "−3 % Armeeunterhalt und +2 Truppenlimit fürs ganze Reich, +20 % Mannschaften der Provinz (braucht Kaserne, höchstens 3 im Reich, Entwicklung 14)"
  }
 }
