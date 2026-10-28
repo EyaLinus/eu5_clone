@@ -409,6 +409,12 @@ static func refresh_goods_leaders(g) -> void:
 	for k in best:
 		if best_v[k] >= float(g.bal.goods_leader_share) * maxf(0.01, s[k]):
 			g.goods_leader[k] = best[k]
+	apply_goods_leaders(g)
+
+
+## Leader bonuses from g.goods_leader (also after loading a save, where the leaders of the last yearly
+## update are restored rather than recomputed from the current map).
+static func apply_goods_leaders(g) -> void:
 	for tag in g.order:
 		var b := {}
 		for k in g.goods_leader:

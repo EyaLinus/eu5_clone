@@ -148,5 +148,18 @@ func _run() -> void:
 		fails.append("slider drag scrolled the panel")
 	if sl.value <= 0.0:
 		fails.append("slider did not move")
+	# at the largest UI size the top bar's menu button stays on screen and the pixel glyphs survive the
+	# scale change (both broke on PC/phones before v0.9.4)
+	var flag: String = m.PixelEmoji.nation("FRA")
+	get_root().content_scale_factor = m.UI_SCALES[-1]
+	await process_frame
+	await process_frame
+	var vis: Rect2 = get_root().get_visible_rect()
+	for c in m.hud.find_children("*", "Button", true, false):
+		if c.text == "☰" and not vis.encloses(c.get_global_rect()):
+			fails.append("menu button off screen at UI size %.0f %%" % (m.UI_SCALES[-1] * 100))
+	if not m.PixelEmoji.font.has_char(flag.unicode_at(0)) or not m.PixelEmoji.font.has_char(0x1F4B0):
+		fails.append("pixel glyphs lost after UI size change")
+	get_root().content_scale_factor = 1.0
 	print("TOUCH ok" if fails.is_empty() else "TOUCH FAIL " + "; ".join(fails))
 	quit(0 if fails.is_empty() else 1)

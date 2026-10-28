@@ -54,6 +54,9 @@ func build() -> void:
 	var tips := []
 	if rt != "":
 		tips.append("Eigenschaft %s: %s" % [gv.trait_name(rt), Tech.effects_text(gv.trait_effects(rt))])
+	if gv.regency_until(n) > 0:
+		head.text += " · 🛡 Regentschaft bis %d" % gv.regency_until(n)
+		tips.append("Regentschaftsrat (der Herrscher ist minderjährig): %s" % Tech.effects_text(gv.cfg.get("regency_effects", {})))
 	if n.idea != "":
 		tips.append("Nationalgeist: " + n.idea)
 	if not tips.is_empty():
@@ -148,6 +151,7 @@ func _build_court(g, gv, me: String, n) -> void:
 		var title: String = gv.heir_title(me)
 		_section("👑 %s" % title, "Übernimmt die Herrschaft, wenn die Zeit des Herrschers endet. Seine Fähigkeiten bestimmen dann die Punkte pro Monat.")
 		var sub := "📜%d 🕊️%d ⚔️%d · übernimmt in ca. %d Jahren" % [int(h.adm), int(h.dip), int(h.mil), n.ruler.years]
+		sub += _age_note(g, gv, n)
 		var ht: String = str(h.get("trait", ""))
 		var hname: String = str(h.name) if str(h.name) != "" else title
 		if ht != "":
@@ -203,6 +207,32 @@ func _build_law(g, gv, n) -> void:
 			locked.append("%s ab %d" % [t.name, int(t.year)])
 	if not locked.is_empty():
 		m.side_box.add_child(m._lbl("🔒 " + ", ".join(locked), 14, Color(0.65, 0.68, 0.75)))
+	_section("🏛 Staatsform", "Ein Wechsel der Staatsform kostet %d Verwaltungspunkte und %d Prestige, ist nur im Frieden möglich und danach %d Jahre gesperrt. Gewechselt wird nur innerhalb der Familie (Monarchie, Republik, Kirche, Stämme)." % [
+			int(gv.cfg.get("form_change_cost", 250)), int(gv.cfg.get("form_change_prestige", 20)), int(gv.cfg.get("form_change_years", 40))])
+	var fcd: int = gv.form_cooldown_left(g, n)
+	var fsub: String = "Staatsform" + (" · änderbar in " + _wait(fcd) if fcd > 0 else _alternatives(gv.form_change_options(n.tag).filter(
+			func(c): return gv.form_change_block(g, n.tag, c.form) == "").size()))
+	m.side_box.add_child(_card(gv.form_name(n.tag), fsub, gv.form_effects(n.tag), false, "Ändern", _pick_form, true))
+
+
+func _pick_form() -> void:
+	var g = m.game
+	var gv = g.govt
+	var me: String = g.player
+	m._open_modal()
+	m.modal_box.add_child(m._lbl("🏛 Staatsform ändern", 26))
+	m.modal_box.add_child(m._lbl("Jetzt: %s. Kosten %d %s und %d Prestige." % [gv.form_name(me), gv.form_change_cost(g, g.nations[me]),
+			Icons.emoji("adm"), int(gv.cfg.get("form_change_prestige", 20))], 16))
+	var opts: Array = gv.form_change_options(me)
+	if opts.is_empty():
+		m.modal_box.add_child(m._lbl("Von dieser Staatsform aus ist kein Wechsel möglich.", 16, Color(0.65, 0.68, 0.75)))
+	for c in opts:
+		var eff: Dictionary = gv.cfg.get("form_effects", {}).get(c.form, {})
+		m.modal_box.add_child(_choice(c.form, c.text, eff, false, "Wechseln", gv.form_change_block(g, me, c.form), func():
+			var err: String = gv.change_form(g, me, c.form)
+			m._close_modal()
+			m._act(err, "🏛 Neue Staatsform: %s" % c.form)))
+	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
 
 
 func _build_estates(gv) -> void:
@@ -219,13 +249,27 @@ func _overview() -> void:
 	var n = g.nations[g.player]
 	m._open_modal()
 	m.modal_box.add_child(m._lbl("📈 Gesamtwirkung", 26))
-	for src in [["gov", "⚖️ Berater, Kompanien, Gesetze, Reformen"], ["budget", "💰 Haushalt"], ["estates", "👥 Stände"], ["empire", "👑 Reichsreformen"]]:
-		var e: Dictionary = n.bonus.get(src[0], {})
-		if e.is_empty() and src[0] != "gov":
-			continue
-		m.modal_box.add_child(m._lbl(src[1], 18))
-		m.modal_box.add_child(TechScreen.effects_rich(e, 16))
+	var srcs: Array = g.govt.gov_sources(n).filter(func(s): return not s[1].is_empty())
+	for src in [["budget", "💰 Haushalt"], ["estates", "👥 Stände"], ["empire", "👑 Reichsreformen"]]:
+		if not n.bonus.get(src[0], {}).is_empty():
+			srcs.append([src[1], n.bonus[src[0]]])
+	if srcs.is_empty():
+		m.modal_box.add_child(m._lbl("Noch keine Boni.", 16, Color(0.65, 0.68, 0.75)))
+	for src in srcs:
+		m.modal_box.add_child(m._lbl(src[0], 18))
+		m.modal_box.add_child(TechScreen.effects_rich(src[1], 16))
 	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
+
+
+## " · 12 Jahre alt", plus a regency warning when the heir would still be a child at the expected succession.
+func _age_note(g, gv, n) -> String:
+	var age: int = gv.heir_age(g, n)
+	if age >= 99:
+		return ""
+	var t := " · %d Jahre alt" % age
+	if age + int(n.ruler.years) < gv.regency_age() and not gv.cfg.get("elective_forms", []).has(gv.form_name(n.tag)):
+		t += " · droht Regentschaft"
+	return t
 
 
 ## Cooldown as "8 Monaten" or, from two years on, "10 Jahren".
@@ -288,6 +332,9 @@ func _heir() -> void:
 	box.add_child(m._lbl("👑 %s: %s" % [title, str(h.name) if str(h.name) != "" else "unbenannt"], 26))
 	box.add_child(m._lbl("Übernimmt in ca. %d Jahren. Einmal im Jahr kannst du ihn in einem Fach unterrichten lassen: +1 auf diese Fähigkeit (höchstens %d). Jede Stufe macht den nächsten Unterricht teurer." % [
 			n.ruler.years, int(g.bal.ruler_max)], 15, Color(0.72, 0.75, 0.82)))
+	var note := _age_note(g, gv, n)
+	if note != "":
+		box.add_child(m._lbl(note.trim_prefix(" · "), 15, UiTheme.GOLD if note.contains("Regentschaft") else Color(0.72, 0.75, 0.82)))
 	var ht: String = str(h.get("trait", ""))
 	if ht != "":
 		box.add_child(m._lbl("Eigenschaft: " + gv.trait_name(ht), 18))
@@ -358,7 +405,8 @@ func _advisor(id: String) -> void:
 	box.add_child(m._row(row))
 
 
-func _pick_advisor() -> void:
+## Advisor picker, filtered by power type ("" = all) so the list of ~50 stays short.
+func _pick_advisor(kind: String = "") -> void:
 	var g = m.game
 	var gv = g.govt
 	var me: String = g.player
@@ -366,11 +414,23 @@ func _pick_advisor() -> void:
 	m._open_modal()
 	m.modal_box.add_child(m._lbl("🎓 Berater ernennen", 26))
 	m.modal_box.add_child(m._lbl("Kosten: %d Punkte der jeweiligen Art. Historische Persönlichkeiten dienen nur zu ihren Lebzeiten." % gv.advisor_cost(g, n, ""), 16))
-	var pool: Array = gv.advisor_pool(g, me).duplicate()
-	pool.sort_custom(func(x, y): return x.has("tag") and not y.has("tag"))
+	var pool: Array = gv.advisor_pool(g, me).filter(func(a): return not n.gov.advisors.has(a.id))
+	var tabs := []
+	for k in ["", "adm", "dip", "mil"]:
+		var cnt: int = pool.filter(func(a): return k == "" or a.type == k).size()
+		var b: Button = m._btn("Alle %d" % cnt if k == "" else "%s %d" % [Icons.emoji(k), cnt], _pick_advisor.bind(k),
+				"Alle Berater" if k == "" else POWER_NAMES[k])
+		if k == kind:
+			b.add_theme_color_override("font_color", UiTheme.GOLD)
+		tabs.append(b)
+	m.modal_box.add_child(m._row(tabs))
+	pool = pool.filter(func(a): return kind == "" or a.type == kind)
+	# Historical figures first, then what you can afford right now.
+	pool.sort_custom(func(x, y):
+		if x.has("tag") != y.has("tag"):
+			return x.has("tag")
+		return gv.advisor_block(g, me, x.id) == "" and gv.advisor_block(g, me, y.id) != "")
 	for a in pool:
-		if n.gov.advisors.has(a.id):
-			continue
 		var sub: String = "%s %d %s" % [Icons.emoji(a.type), gv.advisor_cost(g, n, a.id), POWER_NAMES[a.type]] + (" · lebt bis %d" % int(a.to) if a.has("to") else "")
 		m.modal_box.add_child(_choice(a.name, sub, a.effects, a.has("tag"), "Ernennen", gv.advisor_block(g, me, a.id), func():
 			var err: String = gv.hire(g, me, a.id)

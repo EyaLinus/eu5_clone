@@ -20,6 +20,7 @@ var comp_by_id := {}
 var laws: Array = []
 var law_by_id := {}
 var forms := {}
+var form_override := {}  # tag -> form after a change of government (saved as n.gov.form)
 var estates: Array = []
 var budget: Array = []
 var reforms: Array = []
@@ -64,6 +65,7 @@ func init_nation(n) -> void:
 	var bu := {}
 	for b in budget:
 		bu[b.id] = budget_default()
+	form_override.erase(n.tag)
 	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}, "invest": {}, "estates": es, "estate_month": {}, "budget": bu, "reforms": {}, "reform_month": {}, "ages": {}, "adv_skill": {}, "adv_since": {}}
 	refresh(n)
 	refresh_estates(n)
@@ -82,7 +84,38 @@ func ensure_heir(g, n) -> void:
 		h.erase("years")
 		h["edu"] = 0
 		h["trait"] = roll_trait(g)
+		h["born"] = g.year() - g.rng.randi_range(0, int(cfg.get("heir_start_age_max", 12)))
 		n.gov.heir = h
+
+
+## Heir age in years; heirs from saves before v0.9.4 count as adults.
+func heir_age(g, n) -> int:
+	var born: int = int(n.gov.get("heir", {}).get("born", -1))
+	return g.year() - born if born >= 0 else 99
+
+
+func regency_age() -> int:
+	return int(cfg.get("regency_age", 15))
+
+
+## Year a regency ends, 0 if none.
+func regency_until(n) -> int:
+	return int(n.gov.get("regency_until", 0))
+
+
+## Yearly: the regency council steps down once the young ruler comes of age.
+func regency_tick(g, n) -> void:
+	if regency_until(n) > 0 and g.year() >= regency_until(n):
+		end_regency(g, n)
+
+
+func end_regency(g, n) -> void:
+	if regency_until(n) == 0:
+		return
+	n.gov.erase("regency_until")
+	refresh(n)
+	if n.tag == g.player:
+		g.log_msg("👑 %s ist volljährig und regiert nun selbst." % (n.ruler_name if n.ruler_name != "" else "Der Herrscher"), [n.tag])
 
 
 ## A random trait id by weight, "" (none) with trait_none_chance.
@@ -114,6 +147,12 @@ func court_condition(g, n, k: String, v) -> bool:
 			return not h.is_empty() and int(h.adm) + int(h.dip) + int(h.mil) >= int(v)
 		"reign_years_max":
 			return int(n.ruler.years) <= int(v)
+		"regency":
+			return (regency_until(n) > 0) == bool(v)
+		"heir_age_min":
+			return not h.is_empty() and heir_age(g, n) >= int(v)
+		"heir_age_max":
+			return not h.is_empty() and heir_age(g, n) <= int(v)
 	return true
 
 
@@ -136,6 +175,8 @@ func apply_court_effect(g, n, k: String, v) -> void:
 		"ruler_trait":
 			n.gov.ruler_trait = roll_trait(g) if str(v) == "random" else str(v)
 			refresh(n)
+		"end_regency":
+			end_regency(g, n)
 
 
 func trait_effects(id: String) -> Dictionary:
@@ -159,6 +200,11 @@ func succession(g, n) -> void:
 	else:
 		n.ruler = {"adm": int(h.adm), "dip": int(h.dip), "mil": int(h.mil), "years": g.rng.randi_range(8, 35)}
 		n.ruler_name = str(h.name)
+		var age := heir_age(g, n)
+		n.gov.erase("regency_until")
+		if age < regency_age() and not cfg.get("elective_forms", []).has(form_name(n.tag)):
+			n.gov.regency_until = g.year() + regency_age() - age
+			n.ruler.years += regency_age() - age
 	n.gov.ruler_trait = str(h.get("trait", "")) if not h.is_empty() else roll_trait(g)
 	n.gov.heir = {}
 	ensure_heir(g, n)
@@ -223,7 +269,71 @@ func disinherit(g, tag: String) -> String:
 
 
 func form_name(tag: String) -> String:
-	return forms.get(tag, forms.get("default", "Monarchie"))
+	return form_override.get(tag, forms.get(tag, forms.get("default", "Monarchie")))
+
+
+func form_family(form: String) -> String:
+	var fam: Dictionary = cfg.get("form_family", {})
+	for k in fam:
+		if fam[k].has(form):
+			return k
+	return ""
+
+
+## Forms `tag` could switch to (any year), as cfg form_changes entries.
+func form_change_options(tag: String) -> Array:
+	var fam := form_family(form_name(tag))
+	return cfg.get("form_changes", []).filter(func(c): return c.form != form_name(tag) and c.from.has(fam))
+
+
+func form_change_cost(g, n) -> int:
+	return int(cfg.get("form_change_cost", 250))
+
+
+func form_cooldown_left(g, n) -> int:
+	if not n.gov.has("form_month"):
+		return 0
+	return maxi(0, int(n.gov.form_month) + int(cfg.get("form_change_years", 40)) * 12 - g.month)
+
+
+func form_change_block(g, tag: String, form: String) -> String:
+	var n = g.nations[tag]
+	var opt: Array = form_change_options(tag).filter(func(c): return c.form == form)
+	if opt.is_empty():
+		return "Von %s aus nicht möglich." % form_name(tag)
+	if g.year() < int(opt[0].year):
+		return "Verfügbar ab %d." % int(opt[0].year)
+	if g.provinces_of(tag).size() < int(opt[0].get("min_provinces", 0)):
+		return "Braucht mindestens %d Provinzen." % int(opt[0].min_provinces)
+	if g.is_at_war(tag):
+		return "Nicht während eines Krieges."
+	var cd := form_cooldown_left(g, n)
+	if cd > 0:
+		return "Erst in %d Jahren wieder möglich." % ceili(cd / 12.0)
+	var c := form_change_cost(g, n)
+	if n.adm < c:
+		return "Zu wenig Verwaltungspunkte (%d benötigt)." % c
+	var pr := float(cfg.get("form_change_prestige", 20))
+	if n.prestige < pr:
+		return "Zu wenig Prestige (%d benötigt)." % int(pr)
+	return ""
+
+
+func change_form(g, tag: String, form: String) -> String:
+	var err := form_change_block(g, tag, form)
+	if err != "":
+		return err
+	var n = g.nations[tag]
+	n.adm -= form_change_cost(g, n)
+	n.prestige -= float(cfg.get("form_change_prestige", 20))
+	n.gov.form = form
+	n.gov.form_month = g.month
+	form_override[tag] = form
+	if cfg.get("elective_forms", []).has(form):
+		end_regency(g, n)
+	refresh(n)
+	g._update_cached(n)
+	return ""
 
 
 ## Effects of `tag`'s form of government (part of the gov bonus source).
@@ -533,28 +643,49 @@ func _changed(g, n) -> void:
 	g._update_cached(n)
 
 
-func refresh(n) -> void:
-	var b := {}
-	var effs := [form_effects(n.tag), trait_effects(n.gov.get("ruler_trait", ""))]
-	for id in n.gov.advisors:
-		effs.append(advisor_effects(id, advisor_skill(n, id)))
-	for id in n.gov.companies:
-		effs.append(company_effects(id, invest_level(n, id)))
+## Government modifiers grouped by source, [[label, effects], ...], for refresh and the overview popup.
+func gov_sources(n) -> Array:
+	var groups := [["🏛 Staatsform: " + form_name(n.tag), [form_effects(n.tag)]]]
+	var tr: String = n.gov.get("ruler_trait", "")
+	if tr != "":
+		groups.append(["👑 Herrscher: " + trait_name(tr), [trait_effects(tr)]])
+	if regency_until(n) > 0:
+		groups.append(["🛡 Regentschaftsrat bis %d" % regency_until(n), [cfg.get("regency_effects", {})]])
+	groups.append(["🎓 Berater", n.gov.advisors.map(func(id): return advisor_effects(id, advisor_skill(n, id)))])
+	groups.append(["🏦 Kompanien", n.gov.companies.map(func(id): return company_effects(id, invest_level(n, id)))])
+	var laws := []
 	for law_id in n.gov.laws:
 		if law_by_id.has(law_id):
-			effs.append(law_option(law_id, n.gov.laws[law_id]).get("effects", {}))
+			laws.append(law_option(law_id, n.gov.laws[law_id]).get("effects", {}))
+	groups.append(["📜 Gesetze", laws])
+	var reforms := []
 	for tier in n.gov.get("reforms", {}):
-		effs.append(reform_option(tier, n.gov.reforms[tier]).get("effects", {}))
+		reforms.append(reform_option(tier, n.gov.reforms[tier]).get("effects", {}))
+	groups.append(["⚖️ Reformen", reforms])
+	var ages_eff := []
 	var done: Dictionary = n.gov.get("ages", {})
 	for age in ages():
 		for goal in age.goals:
 			if done.has(goal.id):
-				effs.append(goal.reward)
+				ages_eff.append(goal.reward)
 		if done.has(age.id):
-			effs.append(age.triumph.reward)
-	for e in effs:
-		for k in e:
-			b[k] = b.get(k, 0.0) + float(e[k])
+			ages_eff.append(age.triumph.reward)
+	groups.append(["⭐ Zeitalter-Ziele", ages_eff])
+	var out := []
+	for grp in groups:
+		var sum := {}
+		for e in grp[1]:
+			for k in e:
+				sum[k] = sum.get(k, 0.0) + float(e[k])
+		out.append([grp[0], sum])
+	return out
+
+
+func refresh(n) -> void:
+	var b := {}
+	for src in gov_sources(n):
+		for k in src[1]:
+			b[k] = b.get(k, 0.0) + float(src[1][k])
 	n.bonus["gov"] = b
 	var bb := {}
 	for id in n.gov.get("budget", {}):
@@ -797,6 +928,7 @@ func empire_yearly(g) -> void:
 
 ## Yearly: prestige drift from all sources, national advisors leave court after their time.
 func yearly(g, n) -> void:
+	regency_tick(g, n)
 	var p: float = g.mod(n, "prestige")
 	if p != 0.0:
 		n.prestige = maxf(-50.0, n.prestige + p)
@@ -1073,7 +1205,15 @@ func load_save(n, d) -> void:
 	var h: Dictionary = d.get("heir", {})
 	if not h.is_empty():
 		n.gov.heir = {"adm": int(h.get("adm", 0)), "dip": int(h.get("dip", 0)), "mil": int(h.get("mil", 0)),
-				"name": str(h.get("name", "")), "edu": int(h.get("edu", 0)), "trait": str(h.get("trait", ""))}
+				"name": str(h.get("name", "")), "edu": int(h.get("edu", 0)), "trait": str(h.get("trait", "")),
+				"born": int(h.get("born", -1))}
+	if d.has("regency_until"):
+		n.gov.regency_until = int(d.regency_until)
+	if d.has("form") and cfg.get("form_effects", {}).has(str(d.form)):
+		n.gov.form = str(d.form)
+		form_override[n.tag] = n.gov.form
+	if d.has("form_month"):
+		n.gov.form_month = int(d.form_month)
 	if d.has("ruler_trait"):
 		n.gov.ruler_trait = str(d.ruler_trait)
 	refresh(n)
@@ -1098,6 +1238,7 @@ func ai_think(g, n) -> void:
 		_ai_budget(g, n)
 	elif slot == 6:
 		_ai_reforms(g, n)
+		_ai_form(g, n)
 	elif slot == 10:
 		_ai_heir(g, n)
 
@@ -1247,6 +1388,26 @@ func _ai_budget(g, n) -> void:
 
 
 ## AI: fill the oldest open reform tier with its most valuable option, keeping half a tech in reserve.
+## AI changes its form of government rarely: only with spare administration and prestige, at peace, and only for a
+## clearly better form (effect value) than the current one.
+func _ai_form(g, n) -> void:
+	if cfg.get("ai_keep_forms", []).has(form_name(n.tag)):
+		return
+	if g.rng.randf() > float(cfg.get("ai_form_chance", 0.1)) or n.adm < form_change_cost(g, n) + g.tech_cost(n.tag, "adm") * 0.5 or n.prestige < 40.0:
+		return
+	var best := ""
+	var best_v: float = Tech.effect_value(form_effects(n.tag), n.aggression) + 1.0
+	for c in form_change_options(n.tag):
+		if form_change_block(g, n.tag, c.form) != "":
+			continue
+		var v: float = Tech.effect_value(cfg.get("form_effects", {}).get(c.form, {}), n.aggression)
+		if v > best_v:
+			best_v = v
+			best = c.form
+	if best != "":
+		change_form(g, n.tag, best)
+
+
 func _ai_reforms(g, n) -> void:
 	var open := open_reform_tiers(g, n)
 	if open.is_empty():
