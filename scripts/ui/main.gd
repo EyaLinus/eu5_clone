@@ -944,6 +944,7 @@ const MODE_LEGENDS := [
 	"Einzugsgebiete der Märkte, das Zentrum leuchtet hell (eigene Provinzen hell).",
 	"Gebäudestufen je Provinz: dunkel = nichts gebaut, gold = gut ausgebaut, bläulich = Baustelle. Fremde Provinzen dunkler.",
 	"Glaube der Bevölkerung. Gestreift: anderer Glaube als der Herrscher (+Unruhe).",
+	"Heiliges Römisches Reich: Kaiser, Kurfürsten und Mitglieder. Deine Provinzen etwas heller.",
 ]
 ## Color keys per map mode: [color, text]
 const MODE_KEYS := {
@@ -951,6 +952,7 @@ const MODE_KEYS := {
 		["e0a030", "Ansprüche"], ["8e3a8e", "Koalition gegen dich"], ["3fae9e", "Garantie"],
 		["c08ab8", "verheiratet"], ["b09a62", "Durchmarschrecht"], ["9aa7b0", "Waffenstillstand"]],
 	4: [["3a9d4a", "du"], ["4a7fd0", "Mitkämpfer"], ["c0392b", "Feinde"], ["5a5a52", "unbeteiligt"]],
+	9: [["f0c040", "Kaiser"], ["c87a2a", "Kurfürsten"], ["7a5a9a", "Reichsmitglieder"], ["3b3a40", "außerhalb des Reichs"]],
 	8: [["e8d27a", "katholisch"], ["9a5ac8", "protestantisch"], ["6a9ae0", "orthodox"], ["3fa860", "sunnitisch"]],
 }
 
@@ -963,7 +965,7 @@ func _set_map_mode(i: int) -> void:
 	map.map_mode = i
 	map.queue_redraw()
 	_toast("🗺️ Kartenmodus: " + map.MODE_NAMES[i])
-	if panel_mode == "mapmodes":
+	if panel_mode == "mapmodes" or panel_mode == "hre":
 		_refresh()
 
 
@@ -2780,6 +2782,8 @@ func _panel_hre() -> void:
 		b.add_theme_constant_override("icon_max_width", 36)  # room for the candidate's flag in three columns
 		els.append(b)
 	side_box.add_child(_grid(els, 3))
+	if map.map_mode != map.MODE_HRE:
+		side_box.add_child(_btn("🗺️ Reich auf der Karte zeigen", _set_map_mode.bind(map.MODE_HRE), "Kartenmodus „Reich“: Kaiser, Kurfürsten und Mitglieder."))
 	var tip_votes := "Bessere Beziehungen, Bündnisse und Prestige bringen Stimmen."
 	var chips := [_chip("👥 %d Mitglieder" % game.hre_members().size(), "Reichsmitglieder")]
 	if game.hre.has(me):
