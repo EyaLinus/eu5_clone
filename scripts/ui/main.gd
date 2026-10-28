@@ -34,6 +34,13 @@ var data: Dictionary
 var game
 var speed := 0
 var acc := 0.0
+# At high speed a month passes every frame. Rebuilding the open side panel and writing the autosave that
+# often cost a phone more than the tick itself, so both are spaced out in real time.
+const PANEL_REFRESH_MS := 300
+const AUTOSAVE_MS := 30000
+var _last_refresh_ms := 0
+var _refresh_pending := false
+var _last_autosave_ms := 0
 var panel_mode := ""
 var panel_arg = null
 var econ_tab := "overview"  # sub-tab of the economy panel
@@ -706,7 +713,7 @@ func _show_slots(saving: bool) -> void:
 			if not m.is_empty():
 				tip = "%d Punkte · %s" % [int(m.get("score", 0)), Game.DIFFICULTY_NAMES.get(m.get("difficulty", "normal"), "Normal")]
 		if slot == "auto":
-			tip += ("\n" if tip != "" else "") + "Wird jedes Jahr und beim Verlassen überschrieben."
+			tip += ("\n" if tip != "" else "") + "Wird beim Verlassen und während des Spiels regelmäßig (spätestens jedes Spieljahr, höchstens alle 30 Sekunden) überschrieben."
 		var text := "%s: %s" % ["💾 Autosave" if slot == "auto" else "💾 Platz " + slot, info]
 		if saving:
 			modal_box.add_child(_btn(text, func():
@@ -887,6 +894,12 @@ func _process(delta: float) -> void:
 		if toast_time <= 0.0:
 			toast.text = ""
 			toast.visible = false
+	# a month skipped by the refresh spacing still shows, also once the game is paused
+	if _refresh_pending and Time.get_ticks_msec() - _last_refresh_ms >= PANEL_REFRESH_MS:
+		_refresh_pending = false
+		_last_refresh_ms = Time.get_ticks_msec()
+		if game != null and side_panel.visible and panel_mode != "peace":
+			_refresh()
 	if game == null or modal.visible or speed == 0 or game.game_over:
 		return
 	acc += delta
@@ -899,8 +912,9 @@ func _process(delta: float) -> void:
 		acc -= spm
 		game.tick()
 		steps += 1
-		if game.month % 12 == 0:
+		if game.month % 12 == 0 and Time.get_ticks_msec() - _last_autosave_ms >= AUTOSAVE_MS:
 			_save_game()
+			_last_autosave_ms = Time.get_ticks_msec()
 		if not game.pending_events.is_empty() or not game.pending_peace.is_empty() or game.game_over:
 			break
 	if steps > 0:
@@ -931,7 +945,12 @@ func _after_tick() -> void:
 		_show_peace_offer(game.pending_peace[0])
 		return
 	if side_panel.visible and panel_mode != "peace":
-		_refresh()
+		if Time.get_ticks_msec() - _last_refresh_ms >= PANEL_REFRESH_MS:
+			_refresh_pending = false
+			_last_refresh_ms = Time.get_ticks_msec()
+			_refresh()
+		else:
+			_refresh_pending = true
 
 
 const MODE_LEGENDS := [
@@ -944,6 +963,7 @@ const MODE_LEGENDS := [
 	"Einzugsgebiete der Märkte, das Zentrum leuchtet hell (eigene Provinzen hell).",
 	"Gebäudestufen je Provinz: dunkel = nichts gebaut, gold = gut ausgebaut, bläulich = Baustelle. Fremde Provinzen dunkler.",
 	"Glaube der Bevölkerung. Gestreift: anderer Glaube als der Herrscher (+Unruhe).",
+	"Heiliges Römisches Reich: Kaiser, Kurfürsten und Mitglieder. Deine Provinzen etwas heller.",
 ]
 ## Color keys per map mode: [color, text]
 const MODE_KEYS := {
@@ -951,6 +971,7 @@ const MODE_KEYS := {
 		["e0a030", "Ansprüche"], ["8e3a8e", "Koalition gegen dich"], ["3fae9e", "Garantie"],
 		["c08ab8", "verheiratet"], ["b09a62", "Durchmarschrecht"], ["9aa7b0", "Waffenstillstand"]],
 	4: [["3a9d4a", "du"], ["4a7fd0", "Mitkämpfer"], ["c0392b", "Feinde"], ["5a5a52", "unbeteiligt"]],
+	9: [["f0c040", "Kaiser"], ["c87a2a", "Kurfürsten"], ["7a5a9a", "Reichsmitglieder"], ["3b3a40", "außerhalb des Reichs"]],
 	8: [["e8d27a", "katholisch"], ["9a5ac8", "protestantisch"], ["6a9ae0", "orthodox"], ["3fa860", "sunnitisch"]],
 }
 
@@ -963,7 +984,7 @@ func _set_map_mode(i: int) -> void:
 	map.map_mode = i
 	map.queue_redraw()
 	_toast("🗺️ Kartenmodus: " + map.MODE_NAMES[i])
-	if panel_mode == "mapmodes":
+	if panel_mode == "mapmodes" or panel_mode == "hre":
 		_refresh()
 
 
@@ -2780,6 +2801,8 @@ func _panel_hre() -> void:
 		b.add_theme_constant_override("icon_max_width", 36)  # room for the candidate's flag in three columns
 		els.append(b)
 	side_box.add_child(_grid(els, 3))
+	if map.map_mode != map.MODE_HRE:
+		side_box.add_child(_btn("🗺️ Reich auf der Karte zeigen", _set_map_mode.bind(map.MODE_HRE), "Kartenmodus „Reich“: Kaiser, Kurfürsten und Mitglieder."))
 	var tip_votes := "Bessere Beziehungen, Bündnisse und Prestige bringen Stimmen."
 	var chips := [_chip("👥 %d Mitglieder" % game.hre_members().size(), "Reichsmitglieder")]
 	if game.hre.has(me):
@@ -3108,6 +3131,8 @@ func effect_parts(e: Dictionary) -> Array:
 		elif k == "heir":
 			for sk in v:
 				parts.append(["👑 Erbe %s %+d" % [icons[sk], int(v[sk])], sgn.call(float(v[sk]))])
+		elif k == "end_regency":
+			parts.append(["🛡 Regentschaft endet", 1])
 		elif k == "heir_trait" or k == "ruler_trait":
 			var who := "Erbe" if k == "heir_trait" else "Herrscher"
 			if str(v) == "":

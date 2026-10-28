@@ -140,10 +140,13 @@ static func tone_bb(text: String, tone: int, px: int = 14) -> String:
 
 
 ## Modifier dictionary as one BBCode line or block (Tech.LABELS wording), buffs and nerfs marked.
-static func mods_bb(eff: Dictionary, sep: String = "   ", px: int = 14) -> String:
+## keep_together: no line break inside one modifier ("−10 % Mannschaften"), only between modifiers.
+static func mods_bb(eff: Dictionary, sep: String = "   ", px: int = 14, keep_together: bool = false) -> String:
 	var parts := []
 	for r in mod_rows(eff):
-		parts.append(tone_bb("%s %s" % [r[1], r[0]], 1 if r[2] else -1, px))
+		var t: String = "%s %s" % [r[1], r[0]]
+		var bb := tone_bb(t.replace(" ", "\u00a0") if keep_together else t, 1 if r[2] else -1, px)
+		parts.append(bb.replace("[/img] ", "[/img]\u00a0") if keep_together else bb)
 	return sep.join(parts)
 
 

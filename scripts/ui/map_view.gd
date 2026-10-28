@@ -54,12 +54,15 @@ var font: Font
 ## 0 political, 1 diplomatic (player view), 2 development, 3 unrest, 4 war, 5 goods, 6 trade (markets)
 var map_mode := 0
 var label_scale := 1.0  # >1 on phones / big UI: larger map text
-const MODE_NAMES := ["Politisch", "Diplomatisch", "Entwicklung", "Unruhe", "Krieg", "Güter", "Handel", "Bauten", "Glaube"]
+const MODE_NAMES := ["Politisch", "Diplomatisch", "Entwicklung", "Unruhe", "Krieg", "Güter", "Handel", "Bauten", "Glaube", "Reich"]
 const MODE_WAR := 4
 const MODE_GOODS := 5
 const MODE_TRADE := 6
 const MODE_BUILD := 7
 const MODE_FAITH := 8
+const MODE_HRE := 9
+## Holy Roman Empire map mode: tag -> "emperor", "elector" or "member" (rebuilt every draw)
+var _hre_role := {}
 const Faith = preload("res://scripts/core/religion.gd")
 const MARKET_COLORS := ["c0392b", "2e5bd4", "e3b21b", "1e8449", "8e44ad", "d35400", "16a085", "7f8c8d", "e84393",
 		"6c5ce7", "00b894", "fdcb6e", "a0522d"]
@@ -260,6 +263,14 @@ func _draw() -> void:
 	var view := Rect2(to_world(Vector2.ZERO), size / zoom)
 	if map_mode == MODE_WAR:
 		_build_war_sides()
+	elif map_mode == MODE_HRE:
+		_hre_role = {}
+		for t in game.hre:
+			_hre_role[t] = "member"
+		for t in game.current_electors():
+			_hre_role[t] = "elector"
+		if game.emperor != "":
+			_hre_role[game.emperor] = "emperor"
 	for p in game.provinces:
 		if not view.intersects(bboxes[p.id]):
 			continue
@@ -548,6 +559,16 @@ func province_color(p) -> Color:
 			if not p.constructing.is_empty():
 				bc = bc.lerp(Color("4a9fd0"), 0.35)
 			return bc if p.owner == game.player or game.player == "" else bc.darkened(0.4)
+		MODE_HRE:
+			var hc := Color("3b3a40")
+			match _hre_role.get(p.owner, ""):
+				"emperor":
+					hc = Color("f0c040")
+				"elector":
+					hc = Color("c87a2a")
+				"member":
+					hc = Color("7a5a9a")
+			return hc.lightened(0.15) if p.owner == game.player else hc
 		MODE_TRADE:
 			var i: int = game.markets.find(p.market)
 			var mc := Color(MARKET_COLORS[i % MARKET_COLORS.size()])
