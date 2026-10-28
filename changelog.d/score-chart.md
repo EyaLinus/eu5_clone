@@ -1,1 +1,0 @@
-- Neu: „📈 Verlauf der Großmächte“ in der Rangliste und am Spielende. Das Diagramm zeigt die Punkte der fünf besten Reiche und deine eigenen, Jahr für Jahr, jede Linie in Kartenfarbe und mit Flagge am Ende.

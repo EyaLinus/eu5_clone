@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.9.4 – 2026-10-28
+- **Volle Punkte gehen nicht mehr verloren:** Erreicht Verwaltung, Diplomatie oder Militär das Maximum, entwickelt
+  das Spiel automatisch die billigste eigene Provinz mit dem Überschuss (nach dem Forschungsplan).
+- **Verwaltung wieder wie die anderen:** Die Grundrate ist wieder für alle drei Punktearten gleich (2 pro Monat).
+- Neu: „📈 Verlauf der Großmächte“ in der Rangliste und am Spielende. Das Diagramm zeigt die Punkte der fünf besten Reiche und deine eigenen, Jahr für Jahr, jede Linie in Kartenfarbe und mit Flagge am Ende.
+- Reichsfenster: Die Stimme jedes Kurfürsten zeigt jetzt die Flagge des Kandidaten statt eines Kürzels wie „HAB“.
+- Obere Leiste: Bei großer UI-Größe auf schmalen Bildschirmen verschwinden Geschwindigkeit und Menü (☰) nicht mehr hinter dem Rand; die Ressourcen lassen sich stattdessen seitlich wischen.
+- Rangliste: eine Nation pro Zeile, damit bei langen Namen die Punktzahl sichtbar bleibt.
+- Fix: Flaggen und Pixel-Symbole wurden nach Ändern der UI-Größe oder des Fensters (vor allem auf PC) zu Kästchen mit Hex-Codes bzw. Windows-Emoji. Die Pixel-Schrift behält ihre Glyphen jetzt bei jeder Skalierung.
+
 ## v0.9.3 – 2026-10-28
 - **KI-Armeen marschieren zielstrebiger:** Sie bleiben bei ihrem Marschziel, solange kein deutlich besseres
   auftaucht (ein Richtungswechsel setzt den Marsch zurück), fliehen vor Übermacht in die nächste sichere eigene

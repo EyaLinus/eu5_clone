@@ -1,1 +1,0 @@
-- Fix: Flaggen und Pixel-Symbole wurden nach Ändern der UI-Größe oder des Fensters (vor allem auf PC) zu Kästchen mit Hex-Codes bzw. Windows-Emoji. Die Pixel-Schrift behält ihre Glyphen jetzt bei jeder Skalierung.
