@@ -21,8 +21,8 @@ const UI_SCALES := [0.85, 1.0, 1.2, 1.4]
 const SPEEDS := [0.0, 1.2, 0.6, 0.3, 0.12, 0.04]
 const HUD_TIPS := {
 	"nation": "Deine Nation (antippen für Details)", "gold": "Gold (Monatsbilanz inkl. Tribut)",
-	"adm": "Verwaltung: Technologie, Entwickeln, Integration", "dip": "Diplomatie: Bündnisse, Ansprüche, Annexion",
-	"mil": "Militär: Technologie, Unruhe unterdrücken", "manpower": "Mannschaften für neue Regimenter",
+	"adm": "Verwaltung: Technologie, Entwickeln, Reformen", "dip": "Diplomatie: Bündnisse, Ansprüche, Integration, Entwickeln",
+	"mil": "Militär: Technologie, Generäle, Unruhe unterdrücken, Entwickeln", "manpower": "Mannschaften für neue Regimenter",
 	"army": "Regimenter / Truppenlimit", "ae": "Aggressive Expansion: ab der Koalitionsgrenze drohen Koalitionen",
 }
 const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP"]
@@ -1621,7 +1621,7 @@ func _panel_province(pid: int) -> void:
 	if p.siege > 0:
 		notes.append(["🔥 Belagerung: %d%%" % int(p.siege), "Bei 100 % fällt die Provinz an den Belagerer (bis zum Frieden).", Color(1.0, 0.6, 0.5)])
 	if n.claims.has(pid):
-		notes.append(["📜 Du hast einen Anspruch", "Ein Anspruch ist ein Kriegsgrund und macht die Provinz im Frieden billiger.", Color(0.95, 0.8, 0.4)])
+		notes.append(["🎯 Du hast einen Anspruch", "Ein Anspruch ist ein Kriegsgrund und macht die Provinz im Frieden billiger.", Color(0.95, 0.8, 0.4)])
 	if own and p.prev_owner != "" and p.core_months > 0 and game.nations[p.prev_owner].alive:
 		notes.append(["⚠️ Bei einem Aufstand fällt die Provinz an %s zurück." % game.nations[p.prev_owner].name, "", Color(1.0, 0.6, 0.5)])
 	if own and not p.constructing.is_empty():
@@ -1635,8 +1635,11 @@ func _panel_province(pid: int) -> void:
 		side_box.add_child(l)
 	if own:
 		var acts: Array = []
-		acts.append(_btn("📜 Entwickeln %d" % game.develop_cost(pid), func(): _act(game.develop(me, pid), "🏘️ Entwicklung erhöht"),
-				"Kostet %d Verwaltung. +1 Entwicklung: mehr Steuer, Güter, Handelsmacht und Mannschaften. Alle %d Stufen ein Bauplatz mehr." % [game.develop_cost(pid), int(game.bal.dev_per_building_slot)]))
+		var dc: int = int(game.develop_cost(pid))
+		for k in [["adm", "📜", "Verwaltung"], ["dip", "🕊️", "Diplomatie"], ["mil", "⚔️", "Militär"]]:
+			acts.append(_btn("🏘️ %d %s" % [dc, k[1]], func(): _act(game.develop(me, pid, k[0]), "🏘️ Entwicklung erhöht"),
+					"Entwickeln mit %s: kostet %d. +1 Entwicklung: mehr Steuer, Güter, Handelsmacht und Mannschaften. Alle %d Stufen ein Bauplatz mehr."
+					% [k[2], dc, int(game.bal.dev_per_building_slot)]))
 		if game.unrest(pid) > 0.0 and p.suppress_months == 0:
 			acts.append(_btn("✊ Beruhigen %d ⚔️" % int(game.suppress_cost(pid)), func(): _act(game.suppress_unrest(me, pid), "✊ Ruhe wiederhergestellt"),
 					"Unruhe unterdrücken: Militär-Macht einsetzen, die Unruhe sinkt für 2 Jahre."))
@@ -1663,7 +1666,7 @@ func _panel_province(pid: int) -> void:
 				borders = true
 		var acts: Array = []
 		if borders and not n.claims.has(pid):
-			acts.append(_btn("📜 Anspruch %d 🕊️" % int(game.bal.claim_cost), func(): _act(game.fabricate_claim(me, pid), "📜 Anspruch erhoben"),
+			acts.append(_btn("🎯 Anspruch %d 🕊️" % int(game.bal.claim_cost), func(): _act(game.fabricate_claim(me, pid), "🎯 Anspruch erhoben"),
 					"Anspruch fabrizieren: ein Kriegsgrund gegen %s, die Provinz wird im Frieden billiger." % game.nations[p.owner].name))
 		if not game.at_war(me, p.owner):
 			acts.append(_btn("🔥 Krieg…", _confirm_war.bind(p.owner), "Krieg gegen %s erklären" % game.nations[p.owner].name))
@@ -2022,7 +2025,7 @@ func _panel_nation() -> void:
 			_btn("📈 Boni", _open_panel.bind("modifiers"), "Jeder Modifikator mit Gesamtwert und woher er kommt")]
 	side_box.add_child(_grid(nav, 3))
 	if _section("nat_power", "👑 Macht einsetzen", true,
-			"Außerdem: 📜 Entwickeln, ✊ Unruhe unterdrücken (⚔️) und 🤝 Integrieren (🕊️) im Provinzfenster, 🔥 Drill (⚔️) im Armeefenster, ❤️ Beziehungen, Bündnisse, Ansprüche und Handelsabkommen (🕊️) bei anderen Nationen, Technologie mit allen drei."):
+			"Außerdem: 🏘️ Entwickeln (mit 📜, 🕊️ oder ⚔️), ✊ Unruhe unterdrücken (⚔️) und 🤝 Integrieren (🕊️) im Provinzfenster, 🔥 Drill (⚔️) im Armeefenster, ❤️ Beziehungen, Bündnisse, Ansprüche und Handelsabkommen (🕊️) bei anderen Nationen, Technologie mit allen drei."):
 		var cr: int = game.conscript_ready_in(me)
 		var acts := [
 			_btn("😩 −2 · %d🕊️" % int(game.bal.we_reduce_cost), func(): _act(game.reduce_we(me), "🕊️ Das Volk ist beruhigt"),
@@ -2226,7 +2229,7 @@ func _panel_other(tag: String) -> void:
 	if game.has_truce(me, tag):
 		chips.append(_chip("🕊️ bis %s" % game.date_string(o.truces.get(me, 0)), "Waffenstillstand: bis dahin kein Krieg möglich."))
 	if game.has_claim_on(me, tag):
-		chips.append(_chip("📜 Anspruch", "Du hast Ansprüche auf sein Land: ein Kriegsgrund.", "gold"))
+		chips.append(_chip("🎯 Anspruch", "Du hast Ansprüche auf sein Land: ein Kriegsgrund.", "gold"))
 	if o.overlord != "":
 		chips.append(_chip("⛓️ Vasall", "Vasall von %s." % game.nations[o.overlord].name))
 	var ovs := []
@@ -2382,7 +2385,7 @@ func _panel_wars() -> void:
 					"Du steigst aus dem Krieg aus: Waffenstillstand mit allen Gegnern, besetzte Provinzen gehen an ihre Besitzer zurück. Der Kriegsführer %s ist verärgert (−%d Beziehung).%s" % [
 					game.nations[game.side_tags(w, att)[0]].name, int(game.bal.separate_peace_rel), ("\n❌ " + why) if why != "" else ""], why != ""))
 	var n = game.nations[me]
-	if not n.claims.is_empty() and _section("wars_claims", "📜 Deine Ansprüche (%d)" % n.claims.size(), false):
+	if not n.claims.is_empty() and _section("wars_claims", "🎯 Deine Ansprüche (%d)" % n.claims.size(), false):
 		var names := []
 		for pid in n.claims:
 			names.append("%s (%s)" % [game.provinces[pid].name, game.nations[game.provinces[pid].owner].name])
@@ -2896,7 +2899,7 @@ func effect_parts(e: Dictionary) -> Array:
 			var names := []
 			for key in v:
 				names.append(game.provinces[game.key_to_pid[key]].name)
-			parts.append(["📜 Anspruch: " + ", ".join(names), 1])
+			parts.append(["🎯 Anspruch: " + ", ".join(names), 1])
 		elif k == "mods":
 			for m in v:
 				var lab: Array = UiTheme.label(m)

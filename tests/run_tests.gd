@@ -151,6 +151,15 @@ func test_develop_and_tech() -> void:
 	check(g.buy_tech("FRA", "mil") == "", "tech bought")
 	check(n.tech.mil == lvl + 1, "tech level up")
 	check(g.develop("FRA", g.key_to_pid["london"]) != "", "cannot develop foreign province")
+	n.adm = 0
+	n.dip = 500
+	var d2: int = g.provinces[pid].dev
+	check(g.develop("FRA", pid, "dip") == "", "develop with diplomacy")
+	check(g.provinces[pid].dev == d2 + 1 and n.dip < 500 and n.adm == 0, "diplomacy paid, admin untouched")
+	n.mil = 0
+	check(g.develop("FRA", pid, "mil") != "", "develop fails without mil")
+	check(g.monthly_power(n, "adm") - g.monthly_power(n, "dip") == float(g.bal.base_power_adm_extra) + n.ruler.adm - n.ruler.dip \
+			+ g.mod(n, "adm") - g.mod(n, "dip") - (float(g.bal.emperor_dip) if g.emperor == "FRA" else 0.0), "admin base bonus")
 
 
 func test_recruit_limits() -> void:

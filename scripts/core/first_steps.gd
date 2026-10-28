@@ -5,7 +5,7 @@ extends RefCounted
 ## (saved with the game), so old saves start from their current state. Static helpers on the game `g`.
 
 const STEPS := [
-	["develop", "📜 Entwickeln", "Eine Provinz entwickeln: Provinzfenster → 📜 Entwickeln. Mehr Entwicklung bringt Steuern, Mannschaften und Punkte."],
+	["develop", "🏘️ Entwickeln", "Eine Provinz entwickeln: Provinzfenster → 🏘️ mit 📜, 🕊️ oder ⚔️ bezahlen. Mehr Entwicklung bringt Steuern, Mannschaften und Punkte."],
 	["build", "🏗️ Bauen", "Ein Gebäude bauen: Provinzfenster → Bauen. Gebäude steigern Steuer, Produktion oder Truppenlimit."],
 	["tech", "🔬 Forschen", "Eine Technologie erforschen: unter 🔬 Technik mit Macht bezahlen. Jede Technologie bringt dauerhafte Boni."],
 	["advisor", "👔 Berater", "Einen Berater einstellen: unter ⚖️ Staat → Hof. Berater liefern Macht und Boni, kosten aber Gold pro Monat."],

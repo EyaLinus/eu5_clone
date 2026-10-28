@@ -7,7 +7,7 @@ extends RefCounted
 const DIR := "res://assets/art/icons/"
 const EMOJI := {
 	"gold": "💰", "adm": "📜", "dip": "🕊️", "mil": "⚔️", "manpower": "👥", "army": "🛡️", "ae": "😠",
-	"prestige": "⭐", "dev": "🏘️", "fort": "🏰", "date": "📅", "siege": "🔥", "claim": "📜",
+	"prestige": "⭐", "dev": "🏘️", "fort": "🏰", "date": "📅", "siege": "🔥", "claim": "🎯",
 	"tab_nation": "🏛️", "tab_economy": "💰", "tab_tech": "🔬", "tab_government": "⚖️", "tab_diplomacy": "🤝", "tab_wars": "⚔️", "tab_missions": "🎯", "tab_log": "📜",
 	"tab_mapmode": "🗺️", "tab_advice": "💡", "event": "📯", "peace": "🕊️", "war": "🔥", "coalition": "⚠️",
 	"vassal": "⛓️", "annex": "📜",

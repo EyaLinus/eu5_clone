@@ -540,6 +540,8 @@ func power_of(n: Nation, kind: String) -> float:
 
 func monthly_power(n: Nation, kind: String) -> float:
 	var v: float = float(bal.base_power) + n.ruler[kind] + mod(n, kind)
+	if kind == "adm":
+		v += float(bal.base_power_adm_extra)
 	if n.tag == emperor and kind == "dip":
 		v += float(bal.emperor_dip)
 	return v
@@ -1796,17 +1798,21 @@ func join_coalition(tag: String, target: String) -> String:
 
 # ---------------------------------------------------------------- actions
 
-func develop(tag: String, pid: int) -> String:
+## Development can be paid with any of the three powers (same price), so diplomatic and
+## military surplus has a use too.
+func develop(tag: String, pid: int, kind: String = "adm") -> String:
 	var n: Nation = nations[tag]
 	var p: Province = provinces[pid]
 	if p.owner != tag:
 		return "Nicht deine Provinz."
 	if p.dev >= int(bal.max_dev):
 		return "Maximale Entwicklung erreicht."
+	if not POWERS.has(kind):
+		return "Unbekannte Macht."
 	var c := develop_cost(pid)
-	if n.adm < c:
-		return "Zu wenig Admin (%d benötigt)." % c
-	n.adm -= c
+	if n.get(kind) < c:
+		return "Zu wenig %s (%d benötigt)." % [{"adm": "Verwaltung", "dip": "Diplomatie", "mil": "Militär"}[kind], c]
+	n.set(kind, n.get(kind) - c)
 	p.dev += 1
 	_update_cached(n)
 	return ""
