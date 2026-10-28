@@ -1495,7 +1495,7 @@ func test_difficulty() -> void:
 	check(g.nations.FRA.bonus.difficulty.is_empty(), "easy gives AI no bonus")
 	g.set_difficulty("very_hard")
 	check(g.nations.ENG.bonus.difficulty.is_empty(), "very hard: no player bonus")
-	check(g.mod(g.nations.FRA, "income") >= 0.15 - 0.001, "very hard: AI income bonus")
+	check(float(g.nations.FRA.bonus.difficulty.get("income", 0.0)) >= 0.15 - 0.001, "very hard: AI income bonus")
 	check(g.diff("ai_vs_player") > 1.0, "very hard: AI targets player more")
 	g.set_difficulty("nonsense")
 	check(g.difficulty == "normal", "unknown difficulty falls back to normal")
@@ -2106,6 +2106,28 @@ func test_heir() -> void:
 	g.tick()
 	check(n.ruler_name == str(old.name) and int(n.ruler.adm) == int(old.adm) and int(n.ruler.mil) == int(old.mil), "heir takes the throne")
 	check(n.ruler.years >= 8 and not n.gov.heir.is_empty() and n.gov.heir.name != old.name, "new reign and a new heir")
+	check(n.gov.ruler_trait == str(old.get("trait", "")) and n.gov.heir.has("trait"), "the heir's trait comes to the throne")
+	# traits count as a government source
+	n.gov.ruler_trait = "baumeister"
+	gv.refresh(n)
+	var bc: float = g.mod(n, "build_cost")
+	n.gov.ruler_trait = ""
+	gv.refresh(n)
+	check(is_equal_approx(g.mod(n, "build_cost") - bc, 0.1), "ruler trait effects apply")
+	# event hooks: conditions and effects on ruler and heir
+	n.gov.heir.trait = "grausam"
+	check(g.check_conditions("FRA", {"heir_trait": "grausam"}) and g.check_conditions("FRA", {"heir_trait": "any"}), "heir trait condition")
+	check(not g.check_conditions("FRA", {"heir_trait": ""}), "heir trait none condition")
+	g.apply_effects("FRA", {"heir_trait": "fromm", "heir": {"adm": 1}})
+	check(n.gov.heir.trait == "fromm", "event changes the heir's trait")
+	g.apply_effects("FRA", {"ruler_trait": "gelehrt"})
+	check(g.check_conditions("FRA", {"ruler_trait": "gelehrt"}) and n.bonus.gov.get("tech_cost", 0.0) <= -0.05 + 0.001, "event gives the ruler a trait")
+	n.gov.ruler_trait = ""
+	gv.refresh(n)
+	var seen := {}
+	for i in 200:
+		seen[gv.roll_trait(g)] = true
+	check(seen.has("") and seen.size() >= 8, "traits roll with a chance of none")
 	# disinheriting: prestige for a new heir, then a cooldown
 	n.prestige = 30.0
 	var before: String = n.gov.heir.name

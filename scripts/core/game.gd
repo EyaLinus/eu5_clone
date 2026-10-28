@@ -861,7 +861,8 @@ func _yearly() -> void:
 		if n.ruler.years <= 0:
 			govt.succession(self, n)
 			var who: String = n.ruler_name if n.ruler_name != "" else "Ein neuer Herrscher"
-			log_msg("👑 %s besteigt den Thron (📜%d 🕊️%d ⚔️%d)." % [who, n.ruler.adm, n.ruler.dip, n.ruler.mil], [tag])
+			var tr: String = govt.trait_name(n.gov.get("ruler_trait", ""))
+			log_msg("👑 %s besteigt den Thron (📜%d 🕊️%d ⚔️%d%s)." % [who, n.ruler.adm, n.ruler.dip, n.ruler.mil, ", " + tr if tr != "" else ""], [tag])
 			_marriage_succession(n)
 			if tag == emperor:
 				hre_election()
@@ -2367,6 +2368,8 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 						and n.overlord == "" and not nations[v].major and not at_war(tag, v):
 					_vassalize(tag, v, true)
 					log_msg("⛓️ %s wird Vasall von %s." % [nations[v].name, n.name], [tag, v])
+			"heir", "heir_trait", "ruler_trait":
+				govt.apply_court_effect(self, n, k, v)
 	_update_cached(n)
 
 
@@ -2587,6 +2590,9 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 					return false
 			"religion":
 				if n.religion != str(v):
+					return false
+			"ruler_trait", "heir_trait", "heir_skill_max", "heir_skill_min", "reign_years_max":
+				if not govt.court_condition(self, n, k, v):
 					return false
 			"unrest_min":
 				var top := 0.0
