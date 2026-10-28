@@ -7,6 +7,131 @@
  "advisor_promote_mult": 1.5,
  "advisor_retire_years": 20,
  "advisor_retire_chance": 0.15,
+ "traits": [
+  {
+   "id": "baumeister",
+   "name": "Baumeister",
+   "weight": 3,
+   "effects": {
+    "build_cost": -0.1
+   }
+  },
+  {
+   "id": "feldherr",
+   "name": "Feldherr",
+   "weight": 3,
+   "effects": {
+    "combat": 0.05,
+    "army_power": 0.05
+   }
+  },
+  {
+   "id": "kaufmann",
+   "name": "Kaufmannsgeist",
+   "weight": 3,
+   "effects": {
+    "trade": 0.1
+   }
+  },
+  {
+   "id": "fromm",
+   "name": "Fromm",
+   "weight": 3,
+   "effects": {
+    "conversion": 0.25,
+    "estate_klerus": 5
+   }
+  },
+  {
+   "id": "diplomat",
+   "name": "Geschickter Diplomat",
+   "weight": 3,
+   "effects": {
+    "ae_gen": -0.1,
+    "ae_decay": 0.1
+   }
+  },
+  {
+   "id": "sparsam",
+   "name": "Sparsam",
+   "weight": 3,
+   "effects": {
+    "maintenance": -0.05,
+    "income": 0.02
+   }
+  },
+  {
+   "id": "gelehrt",
+   "name": "Gelehrt",
+   "weight": 3,
+   "effects": {
+    "tech_cost": -0.05
+   }
+  },
+  {
+   "id": "gerecht",
+   "name": "Gerecht",
+   "weight": 3,
+   "effects": {
+    "unrest": -0.5
+   }
+  },
+  {
+   "id": "leutselig",
+   "name": "Leutselig",
+   "weight": 3,
+   "effects": {
+    "estate_buerger": 5,
+    "estate_adel": 5
+   }
+  },
+  {
+   "id": "prunk",
+   "name": "Prunksüchtig",
+   "weight": 2,
+   "effects": {
+    "prestige": 1,
+    "income": -0.03
+   }
+  },
+  {
+   "id": "grausam",
+   "name": "Grausam",
+   "weight": 2,
+   "effects": {
+    "unrest": 0.5,
+    "coring": -0.15
+   }
+  },
+  {
+   "id": "zaghaft",
+   "name": "Zaghaft",
+   "weight": 2,
+   "effects": {
+    "combat": -0.03,
+    "ae_gen": -0.05
+   }
+  },
+  {
+   "id": "verschwender",
+   "name": "Verschwender",
+   "weight": 2,
+   "effects": {
+    "income": -0.05,
+    "estate_adel": 5
+   }
+  },
+  {
+   "id": "misstrauisch",
+   "name": "Misstrauisch",
+   "weight": 2,
+   "effects": {
+    "estate_adel": -5,
+    "unrest": -0.25
+   }
+  }
+ ],
+ "trait_none_chance": 0.2,
  "heir_edu_cost": 60,
  "heir_edu_step": 0.5,
  "ai_heir_share": 0.6,

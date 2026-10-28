@@ -48,8 +48,16 @@ func build() -> void:
 	var ruler: String = n.ruler_name if n.ruler_name != "" else "Herrscher"
 	var head: Label = m._lbl("%s · %s\n👑 %s  📜%d 🕊️%d ⚔️%d · noch ca. %d Jahre" % [m.nname(me), gv.form_name(me), ruler,
 			n.ruler.adm, n.ruler.dip, n.ruler.mil, n.ruler.years], 16)
+	var rt: String = n.gov.get("ruler_trait", "")
+	if rt != "":
+		head.text += " · " + gv.trait_name(rt)
+	var tips := []
+	if rt != "":
+		tips.append("Eigenschaft %s: %s" % [gv.trait_name(rt), Tech.effects_text(gv.trait_effects(rt))])
 	if n.idea != "":
-		head.tooltip_text = "Nationalgeist: " + n.idea
+		tips.append("Nationalgeist: " + n.idea)
+	if not tips.is_empty():
+		head.tooltip_text = "\n".join(tips)
 		head.mouse_filter = Control.MOUSE_FILTER_STOP
 	var sum: Button = m._btn("📈 Gesamt", _overview, "Gesamtwirkung von Regierung, Haushalt, Ständen und Reich")
 	sum.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -140,7 +148,11 @@ func _build_court(g, gv, me: String, n) -> void:
 		var title: String = gv.heir_title(me)
 		_section("👑 %s" % title, "Übernimmt die Herrschaft, wenn die Zeit des Herrschers endet. Seine Fähigkeiten bestimmen dann die Punkte pro Monat.")
 		var sub := "📜%d 🕊️%d ⚔️%d · übernimmt in ca. %d Jahren" % [int(h.adm), int(h.dip), int(h.mil), n.ruler.years]
-		var card := _card(str(h.name) if str(h.name) != "" else title, sub, {}, false, "Erziehen", _heir, true)
+		var ht: String = str(h.get("trait", ""))
+		var hname: String = str(h.name) if str(h.name) != "" else title
+		if ht != "":
+			hname += " · " + gv.trait_name(ht)
+		var card := _card(hname, sub, gv.trait_effects(ht), false, "Erziehen", _heir, true)
 		if g.POWERS.any(func(k): return gv.educate_block(g, me, k) == ""):
 			card.get_child(0).get_child(1).add_theme_color_override("font_color", UiTheme.GOLD)
 		m.side_box.add_child(card)
@@ -276,6 +288,10 @@ func _heir() -> void:
 	box.add_child(m._lbl("👑 %s: %s" % [title, str(h.name) if str(h.name) != "" else "unbenannt"], 26))
 	box.add_child(m._lbl("Übernimmt in ca. %d Jahren. Einmal im Jahr kannst du ihn in einem Fach unterrichten lassen: +1 auf diese Fähigkeit (höchstens %d). Jede Stufe macht den nächsten Unterricht teurer." % [
 			n.ruler.years, int(g.bal.ruler_max)], 15, Color(0.72, 0.75, 0.82)))
+	var ht: String = str(h.get("trait", ""))
+	if ht != "":
+		box.add_child(m._lbl("Eigenschaft: " + gv.trait_name(ht), 18))
+		box.add_child(TechScreen.effects_rich(gv.trait_effects(ht), 16))
 	var names := {"adm": "Verwaltung", "dip": "Diplomatie", "mil": "Militär"}
 	for k in g.POWERS:
 		var v: int = int(h[k])

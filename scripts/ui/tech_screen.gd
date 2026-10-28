@@ -52,11 +52,11 @@ func build() -> void:
 	var lvl: int = n.tech[cat]
 	var expected: float = (g.year() - int(g.bal.start_year)) / float(g.bal.tech_years_per_level)
 	var ahead: float = maxf(0.0, lvl + 1 - expected)
-	var info := "Zeitalter der %s · Stufe %d · nächste Technologie %d %s" % [Tech.age_name(g.year()), lvl, g.tech_cost(me, cat), Icons.emoji(cat)]
+	var info := "%s · Stufe %d\nGrundpreis %d %s" % [Tech.age_name(g.year()), lvl, g.tech_cost(me, cat), Icons.emoji(cat)]
 	if ahead >= 1.0:
-		info += "\nDu bist der Zeit voraus: +%d %% Kosten." % roundi(ahead * float(g.bal.tech_ahead_penalty) * 100.0)
+		info += " (+%d %% voraus)" % roundi(ahead * float(g.bal.tech_ahead_penalty) * 100.0)
 	var il: Label = m._lbl(info, 15, Color(0.8, 0.82, 0.9))
-	il.tooltip_text = "Gold umrandet: jetzt erforschbar · 🔒 Vorgänger fehlt · Antippen zeigt Details"
+	il.tooltip_text = "Zeitalter der %s. Gold umrandet: jetzt erforschbar · 🔒 Vorgänger fehlt · ▶ früh (Aufschlag) · 🏗 schaltet Gebäude frei · Antippen zeigt Details" % Tech.age_name(g.year())
 	il.mouse_filter = Control.MOUSE_FILTER_STOP
 	il.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var gv = g.govt
@@ -210,14 +210,14 @@ func _cell(g, me: String, t: Dictionary, special: bool) -> Button:
 	var ready: bool = reason == "" and n.get(t.cat) >= cost
 	var foot := "✓ erforscht" if done else ("ab %d" % from if g.year() < from else "%d %s" % [cost, Icons.emoji(t.cat)])
 	if not done and g.year() >= from and g.tree.years_ahead(g, t.id) > 0:
-		foot += " · früh"
+		foot = "▶ " + foot
 	if not done and reason != "" and g.year() >= from:
 		foot = "🔒 " + foot
 	if g.tree.unlocks.has(t.id):
-		foot += " · 🏗"
+		foot += " 🏗"
 	var qi: int = g.tree.queue_of(n, t.cat).find(t.id)
 	if qi >= 0:
-		foot = "📜 %d · %s" % [qi + 1, foot]
+		foot = "📜%d %s" % [qi + 1, foot]
 	var tip: String = "%s\n%s\n%s" % [t.name, Tech.effects_text(t.effects), "Erforscht" if done else (reason if reason != "" else "Kosten %d" % cost)]
 	if g.tree.unlocks.has(t.id):
 		tip += "\n🏗 " + unlock_text(g, t.id)
