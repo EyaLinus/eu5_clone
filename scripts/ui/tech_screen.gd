@@ -426,7 +426,7 @@ static func effects_rich(eff: Dictionary, fs: int = 16, compact: bool = false) -
 	r.custom_minimum_size.x = 100
 	r.add_theme_font_size_override("normal_font_size", fs)
 	var px: int = 0 if compact else clampi(fs - 2, 12, 18)  # narrow tiles: colour only, no arrows
-	var txt: String = UiTheme.mods_bb(eff, "\n" if compact else "   ", px)
+	var txt: String = UiTheme.mods_bb(eff, "\n" if compact else "   ", px, not compact)
 	r.text = txt if txt != "" else "[color=#999999]keine Wirkung[/color]"
 	if compact:
 		r.text = "[center]" + r.text + "[/center]"
