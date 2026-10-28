@@ -302,6 +302,8 @@ func _detail(id: String) -> void:
 		box.add_child(m._lbl("✓ Erforscht", 18, Color(0.7, 0.95, 0.7)))
 	elif reason != "" and not reason.begins_with("Benötigt"):
 		box.add_child(m._lbl(reason, 17, Color(0.95, 0.6, 0.55)))
+	elif g.year() < int(t.year) - g.tree.early_years - g.tree.ahead_years:  # missing predecessor and still too early
+		box.add_child(m._lbl("Verfügbar ab %d." % (int(t.year) - g.tree.early_years - g.tree.ahead_years), 17, Color(0.95, 0.6, 0.55)))
 	else:
 		box.add_child(m._lbl("Kosten: %d %s (du hast %d)" % [cost, Icons.emoji(t.cat), n.get(t.cat)], 18))
 		var ya: int = g.tree.years_ahead(g, id)
