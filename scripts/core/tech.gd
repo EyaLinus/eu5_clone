@@ -64,6 +64,7 @@ var ahead_penalty: float = 0.0
 var ai_ahead_reserve: float = 0.5
 var spread_max: float = 0.3
 var spread_factor: float = 0.5
+var unlocks := {}  # tech id -> [[building id, level], ...] it unlocks (data/buildings.json "level_tech")
 
 
 func _init(d: Dictionary = {}) -> void:
@@ -80,6 +81,16 @@ func _init(d: Dictionary = {}) -> void:
 	for t in d.get("special", []):
 		defs.append(t)
 		by_id[t.id] = t
+
+
+func set_unlocks(buildings: Dictionary) -> void:
+	unlocks = {}
+	for bid in buildings:
+		var lt: Dictionary = buildings[bid].get("level_tech", {})
+		for lvl in lt:
+			if not unlocks.has(lt[lvl]):
+				unlocks[lt[lvl]] = []
+			unlocks[lt[lvl]].append([bid, int(lvl)])
 
 
 static func is_special(t: Dictionary) -> bool:
@@ -199,7 +210,7 @@ func best_choice(g, tag: String, cat: String) -> String:
 		# research ahead of time only with power to spare
 		if years_ahead(g, t.id) > 0 and n.get(cat) < cost(g, tag, t.id) * (1.0 + ai_ahead_reserve):
 			continue
-		var v: float = effect_value(t.effects, n.aggression) - 0.15 * (int(t.year) - g.year())
+		var v: float = effect_value(t.effects, n.aggression) - 0.15 * (int(t.year) - g.year()) + 2.0 * unlocks.get(t.id, []).size()
 		if is_special(t):
 			v += 1000.0
 		if v > best_v:
