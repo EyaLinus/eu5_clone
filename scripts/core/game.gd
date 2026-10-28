@@ -690,7 +690,8 @@ func _economy(n: Nation) -> void:
 	_unrest_tick(n)
 	Religion.monthly(self, n)
 	Monuments.tick(self, n)
-	n.expenses = maint + Naval.upkeep(self, n) + Economy.upkeep(self, n.tag) + Economy.interest(self, n) + govt.budget_cost(self, n)
+	n.expenses = maint + Naval.upkeep(self, n) + Economy.upkeep(self, n.tag) + Economy.interest(self, n) + govt.budget_cost(self, n) \
+			+ Economy.realm_cost(self, n)
 	if n.overlord != "":
 		var tribute: float = maxf(0.0, n.income * float(bal.vassal_tribute))
 		n.expenses += tribute

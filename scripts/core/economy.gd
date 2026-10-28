@@ -240,6 +240,17 @@ static func fort_level(g, p) -> int:
 	return p.fort + int(local(g, p, "fort"))
 
 
+## Administration of a large realm: a share of the income that grows with total development
+## (none up to realm_cost_free_dev). Keeps great powers from hoarding gold in the late game.
+static func realm_cost_share(g, n) -> float:
+	var dev: float = float(n.dev_total) - float(g.bal.realm_cost_free_dev)
+	return clampf(dev * float(g.bal.realm_cost_per_dev), 0.0, float(g.bal.realm_cost_max))
+
+
+static func realm_cost(g, n) -> float:
+	return maxf(0.0, n.income) * realm_cost_share(g, n)
+
+
 static func upkeep(g, tag: String) -> float:
 	var v := 0.0
 	for pid in g.provinces_of(tag):
