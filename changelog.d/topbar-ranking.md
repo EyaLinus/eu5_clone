@@ -1,0 +1,2 @@
+- Obere Leiste: Bei großer UI-Größe auf schmalen Bildschirmen verschwinden Geschwindigkeit und Menü (☰) nicht mehr hinter dem Rand; die Ressourcen lassen sich stattdessen seitlich wischen.
+- Rangliste: eine Nation pro Zeile, damit bei langen Namen die Punktzahl sichtbar bleibt.
