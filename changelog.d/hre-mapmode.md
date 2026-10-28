@@ -1,0 +1,1 @@
+- Neuer Kartenmodus „Reich“: Kaiser (gold), Kurfürsten (orange) und Reichsmitglieder (violett) auf einen Blick. Er ist auch direkt aus dem Reichsfenster erreichbar („🗺️ Reich auf der Karte zeigen“).
