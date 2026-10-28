@@ -583,6 +583,8 @@ def build():
            "advisor_promote_mult": 1.5, "advisor_retire_years": 20, "advisor_retire_chance": 0.15,
            "traits": [{"id": i, "name": nm, "weight": w, "effects": e} for i, nm, w, e in TRAITS], "trait_none_chance": 0.2,
            "heir_edu_cost": 60, "heir_edu_step": 0.5, "ai_heir_share": 0.6, "heir_disinherit_prestige": 25, "heir_disinherit_years": 10,
+           "heir_start_age_max": 12, "regency_age": 15,
+           "regency_effects": {"estate_adel": 10, "unrest": 0.5, "prestige": -1, "ae_gen": 0.1},
            "elective_forms": ["Kaufmannsrepublik", "Stadtrepublik", "Städtebund", "Theokratie", "Ordensstaat", "Wahlmonarchie"],
            "ai_promote_chance": 0.3, "company_slots": 2, "company_months": 18, "company_min_gold": 60,
            "invest_max_level": 5, "invest_step": 0.5, "invest_cost_mult": 0.5,

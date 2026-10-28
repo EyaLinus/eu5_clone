@@ -38,6 +38,7 @@ func _init() -> void:
 		"test_heir",
 		"test_building_tech",
 		"test_gov_sources",
+		"test_regency",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -2052,6 +2053,37 @@ func test_gov_sources() -> void:
 			sum[k] = sum.get(k, 0.0) + float(s[1][k])
 	for k in n.bonus.gov:
 		check(absf(sum.get(k, 0.0) - float(n.bonus.gov[k])) < 0.0001, "sources add up to bonus.gov: " + k)
+
+
+func test_regency() -> void:
+	var g = new_game("FRA", 5)
+	var gv = g.govt
+	var n = g.nations.FRA
+	var age: int = gv.heir_age(g, n)
+	check(age >= 0 and age <= 12, "new heirs are children or adults up to 12")
+	n.gov.heir.born = g.year() - 5
+	n.gov.heir.trait = ""
+	gv.succession(g, n)
+	check(gv.regency_until(n) == g.year() + 10, "child ruler gets a regency until age 15")
+	check(n.ruler.years > 10, "reign outlasts the regency")
+	check(gv.gov_sources(n).any(func(s): return s[0].contains("Regentschaft")), "regency is a gov source")
+	check(gv.court_condition(g, n, "regency", true) and not gv.court_condition(g, n, "regency", false), "regency condition")
+	var save: Dictionary = gv.to_save(n).duplicate(true)
+	var n2 = g.nations.ENG
+	gv.load_save(n2, save)
+	check(gv.regency_until(n2) == gv.regency_until(n), "regency survives save/load")
+	gv.apply_court_effect(g, n, "end_regency", true)
+	check(gv.regency_until(n) == 0 and not gv.gov_sources(n).any(func(s): return s[0].contains("Regentschaft")), "end_regency clears it")
+	n.gov.heir.born = g.year() - 5
+	n.gov.regency_until = g.year() + 3
+	g.month += 36
+	gv.regency_tick(g, n)
+	check(gv.regency_until(n) == 0, "regency ends when the ruler comes of age")
+	n.gov.heir.born = g.year() - 30
+	gv.succession(g, n)
+	check(gv.regency_until(n) == 0, "adult heir: no regency")
+	n.gov.heir.erase("born")
+	check(gv.heir_age(g, n) == 99, "old-save heirs count as adults")
 
 
 func test_building_tech() -> void:

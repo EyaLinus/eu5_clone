@@ -82,7 +82,38 @@ func ensure_heir(g, n) -> void:
 		h.erase("years")
 		h["edu"] = 0
 		h["trait"] = roll_trait(g)
+		h["born"] = g.year() - g.rng.randi_range(0, int(cfg.get("heir_start_age_max", 12)))
 		n.gov.heir = h
+
+
+## Heir age in years; heirs from saves before v0.9.4 count as adults.
+func heir_age(g, n) -> int:
+	var born: int = int(n.gov.get("heir", {}).get("born", -1))
+	return g.year() - born if born >= 0 else 99
+
+
+func regency_age() -> int:
+	return int(cfg.get("regency_age", 15))
+
+
+## Year a regency ends, 0 if none.
+func regency_until(n) -> int:
+	return int(n.gov.get("regency_until", 0))
+
+
+## Yearly: the regency council steps down once the young ruler comes of age.
+func regency_tick(g, n) -> void:
+	if regency_until(n) > 0 and g.year() >= regency_until(n):
+		end_regency(g, n)
+
+
+func end_regency(g, n) -> void:
+	if regency_until(n) == 0:
+		return
+	n.gov.erase("regency_until")
+	refresh(n)
+	if n.tag == g.player:
+		g.log_msg("👑 %s ist volljährig und regiert nun selbst." % (n.ruler_name if n.ruler_name != "" else "Der Herrscher"), [n.tag])
 
 
 ## A random trait id by weight, "" (none) with trait_none_chance.
@@ -114,6 +145,8 @@ func court_condition(g, n, k: String, v) -> bool:
 			return not h.is_empty() and int(h.adm) + int(h.dip) + int(h.mil) >= int(v)
 		"reign_years_max":
 			return int(n.ruler.years) <= int(v)
+		"regency":
+			return (regency_until(n) > 0) == bool(v)
 	return true
 
 
@@ -136,6 +169,8 @@ func apply_court_effect(g, n, k: String, v) -> void:
 		"ruler_trait":
 			n.gov.ruler_trait = roll_trait(g) if str(v) == "random" else str(v)
 			refresh(n)
+		"end_regency":
+			end_regency(g, n)
 
 
 func trait_effects(id: String) -> Dictionary:
@@ -159,6 +194,11 @@ func succession(g, n) -> void:
 	else:
 		n.ruler = {"adm": int(h.adm), "dip": int(h.dip), "mil": int(h.mil), "years": g.rng.randi_range(8, 35)}
 		n.ruler_name = str(h.name)
+		var age := heir_age(g, n)
+		n.gov.erase("regency_until")
+		if age < regency_age() and not cfg.get("elective_forms", []).has(form_name(n.tag)):
+			n.gov.regency_until = g.year() + regency_age() - age
+			n.ruler.years += regency_age() - age
 	n.gov.ruler_trait = str(h.get("trait", "")) if not h.is_empty() else roll_trait(g)
 	n.gov.heir = {}
 	ensure_heir(g, n)
@@ -539,6 +579,8 @@ func gov_sources(n) -> Array:
 	var tr: String = n.gov.get("ruler_trait", "")
 	if tr != "":
 		groups.append(["👑 Herrscher: " + trait_name(tr), [trait_effects(tr)]])
+	if regency_until(n) > 0:
+		groups.append(["🛡 Regentschaftsrat bis %d" % regency_until(n), [cfg.get("regency_effects", {})]])
 	groups.append(["🎓 Berater", n.gov.advisors.map(func(id): return advisor_effects(id, advisor_skill(n, id)))])
 	groups.append(["🏦 Kompanien", n.gov.companies.map(func(id): return company_effects(id, invest_level(n, id)))])
 	var laws := []
@@ -816,6 +858,7 @@ func empire_yearly(g) -> void:
 
 ## Yearly: prestige drift from all sources, national advisors leave court after their time.
 func yearly(g, n) -> void:
+	regency_tick(g, n)
 	var p: float = g.mod(n, "prestige")
 	if p != 0.0:
 		n.prestige = maxf(-50.0, n.prestige + p)
@@ -1092,7 +1135,10 @@ func load_save(n, d) -> void:
 	var h: Dictionary = d.get("heir", {})
 	if not h.is_empty():
 		n.gov.heir = {"adm": int(h.get("adm", 0)), "dip": int(h.get("dip", 0)), "mil": int(h.get("mil", 0)),
-				"name": str(h.get("name", "")), "edu": int(h.get("edu", 0)), "trait": str(h.get("trait", ""))}
+				"name": str(h.get("name", "")), "edu": int(h.get("edu", 0)), "trait": str(h.get("trait", "")),
+				"born": int(h.get("born", -1))}
+	if d.has("regency_until"):
+		n.gov.regency_until = int(d.regency_until)
 	if d.has("ruler_trait"):
 		n.gov.ruler_trait = str(d.ruler_trait)
 	refresh(n)

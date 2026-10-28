@@ -3106,6 +3106,8 @@ func effect_parts(e: Dictionary) -> Array:
 		elif k == "heir":
 			for sk in v:
 				parts.append(["👑 Erbe %s %+d" % [icons[sk], int(v[sk])], sgn.call(float(v[sk]))])
+		elif k == "end_regency":
+			parts.append(["🛡 Regentschaft endet", 1])
 		elif k == "heir_trait" or k == "ruler_trait":
 			var who := "Erbe" if k == "heir_trait" else "Herrscher"
 			if str(v) == "":

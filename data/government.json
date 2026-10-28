@@ -137,6 +137,14 @@
  "ai_heir_share": 0.6,
  "heir_disinherit_prestige": 25,
  "heir_disinherit_years": 10,
+ "heir_start_age_max": 12,
+ "regency_age": 15,
+ "regency_effects": {
+  "estate_adel": 10,
+  "unrest": 0.5,
+  "prestige": -1,
+  "ae_gen": 0.1
+ },
  "elective_forms": [
   "Kaufmannsrepublik",
   "Stadtrepublik",

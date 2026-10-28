@@ -129,6 +129,25 @@ EVENTS = [
        [("Weiter so.", {"estate": {"buerger": 5, "adel": -3}}),
         ("Auch dem Adel Ehre erweisen.", {"dip": -25, "estate": {"adel": 6}}),
         ("Ein Volksfest auf Staatskosten.", {"gold": -40, "prestige": 4, "estate": {"buerger": 6}})]),
+    # --- regency (child ruler, government.gd regency_until; effect end_regency ends it early)
+    ev("regency_council", "Streit im Regentschaftsrat",
+       "Die Regenten des jungen Herrschers sind sich in nichts einig. Jede Sitzung endet im Geschrei.", "court",
+       {"regency": True},
+       [("Der Rat soll sich zusammenraufen.", {"prestige": -2}),
+        ("Die Mutter des Herrschers führt die Geschäfte.", {"dip": -30, "estate": {"adel": -4, "buerger": 4}}),
+        ("Den Adel mit Ämtern beruhigen.", {"gold": -50, "estate": {"adel": 8}})]),
+    ev("regency_majority", "Vorzeitig volljährig?",
+       "Der junge Herrscher will nicht länger warten. Er verlangt, schon jetzt für mündig erklärt zu werden.",
+       "coronation", {"regency": True},
+       [("Er muss sich gedulden.", {"prestige": 1}),
+        ("Für mündig erklären.", {"adm": -60, "end_regency": True, "estate": {"adel": -6}}),
+        ("Die Zustimmung der Räte erkaufen.", {"gold": -80, "end_regency": True})]),
+    ev("regency_regent", "Ein ehrgeiziger Regent",
+       "Der erste Regent siegelt Urkunden schon mit eigenem Wappen. Manche flüstern, er wolle selbst die Krone.",
+       "conspiracy", {"regency": True},
+       [("Ihn gewähren lassen.", {"estate": {"adel": 5}, "prestige": -3}),
+        ("Ihn als Statthalter an die Grenze schicken.", {"mil": -40, "estate": {"adel": -3}}),
+        ("Ihn mit einem reichen Lehen abfinden.", {"gold": -60, "estate": {"adel": 3}})]),
 ]
 
 

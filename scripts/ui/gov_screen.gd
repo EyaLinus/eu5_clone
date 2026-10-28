@@ -54,6 +54,9 @@ func build() -> void:
 	var tips := []
 	if rt != "":
 		tips.append("Eigenschaft %s: %s" % [gv.trait_name(rt), Tech.effects_text(gv.trait_effects(rt))])
+	if gv.regency_until(n) > 0:
+		head.text += " · 🛡 Regentschaft bis %d" % gv.regency_until(n)
+		tips.append("Regentschaftsrat (der Herrscher ist minderjährig): %s" % Tech.effects_text(gv.cfg.get("regency_effects", {})))
 	if n.idea != "":
 		tips.append("Nationalgeist: " + n.idea)
 	if not tips.is_empty():
@@ -148,6 +151,7 @@ func _build_court(g, gv, me: String, n) -> void:
 		var title: String = gv.heir_title(me)
 		_section("👑 %s" % title, "Übernimmt die Herrschaft, wenn die Zeit des Herrschers endet. Seine Fähigkeiten bestimmen dann die Punkte pro Monat.")
 		var sub := "📜%d 🕊️%d ⚔️%d · übernimmt in ca. %d Jahren" % [int(h.adm), int(h.dip), int(h.mil), n.ruler.years]
+		sub += _age_note(g, gv, n)
 		var ht: String = str(h.get("trait", ""))
 		var hname: String = str(h.name) if str(h.name) != "" else title
 		if ht != "":
@@ -231,6 +235,17 @@ func _overview() -> void:
 	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
 
 
+## " · 12 Jahre alt", plus a regency warning when the heir would still be a child at the expected succession.
+func _age_note(g, gv, n) -> String:
+	var age: int = gv.heir_age(g, n)
+	if age >= 99:
+		return ""
+	var t := " · %d Jahre alt" % age
+	if age + int(n.ruler.years) < gv.regency_age() and not gv.cfg.get("elective_forms", []).has(gv.form_name(n.tag)):
+		t += " · droht Regentschaft"
+	return t
+
+
 ## Cooldown as "8 Monaten" or, from two years on, "10 Jahren".
 func _wait(months: int) -> String:
 	return "%d Jahren" % ceili(months / 12.0) if months >= 24 else "%d Monaten" % months
@@ -291,6 +306,9 @@ func _heir() -> void:
 	box.add_child(m._lbl("👑 %s: %s" % [title, str(h.name) if str(h.name) != "" else "unbenannt"], 26))
 	box.add_child(m._lbl("Übernimmt in ca. %d Jahren. Einmal im Jahr kannst du ihn in einem Fach unterrichten lassen: +1 auf diese Fähigkeit (höchstens %d). Jede Stufe macht den nächsten Unterricht teurer." % [
 			n.ruler.years, int(g.bal.ruler_max)], 15, Color(0.72, 0.75, 0.82)))
+	var note := _age_note(g, gv, n)
+	if note != "":
+		box.add_child(m._lbl(note.trim_prefix(" · "), 15, UiTheme.GOLD if note.contains("Regentschaft") else Color(0.72, 0.75, 0.82)))
 	var ht: String = str(h.get("trait", ""))
 	if ht != "":
 		box.add_child(m._lbl("Eigenschaft: " + gv.trait_name(ht), 18))

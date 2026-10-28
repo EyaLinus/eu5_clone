@@ -2549,6 +2549,24 @@
      {"text": "Weiter so.", "effects": {"estate": {"buerger": 5, "adel": -3}}},
      {"text": "Auch dem Adel Ehre erweisen.", "effects": {"dip": -25, "estate": {"adel": 6}}},
      {"text": "Ein Volksfest auf Staatskosten.", "effects": {"gold": -40, "prestige": 4, "estate": {"buerger": 6}}, "ai": 2}]},
+  {"id": "heir_regency_council", "once": false, "tag": "*", "title": "Streit im Regentschaftsrat", "text": "Die Regenten des jungen Herrschers sind sich in nichts einig. Jede Sitzung endet im Geschrei.", "image": "court",
+   "trigger": {"regency": true},
+   "options": [
+     {"text": "Der Rat soll sich zusammenraufen.", "effects": {"prestige": -2}},
+     {"text": "Die Mutter des Herrschers führt die Geschäfte.", "effects": {"dip": -30, "estate": {"adel": -4, "buerger": 4}}},
+     {"text": "Den Adel mit Ämtern beruhigen.", "effects": {"gold": -50, "estate": {"adel": 8}}, "ai": 2}]},
+  {"id": "heir_regency_majority", "once": false, "tag": "*", "title": "Vorzeitig volljährig?", "text": "Der junge Herrscher will nicht länger warten. Er verlangt, schon jetzt für mündig erklärt zu werden.", "image": "coronation",
+   "trigger": {"regency": true},
+   "options": [
+     {"text": "Er muss sich gedulden.", "effects": {"prestige": 1}},
+     {"text": "Für mündig erklären.", "effects": {"adm": -60, "end_regency": true, "estate": {"adel": -6}}},
+     {"text": "Die Zustimmung der Räte erkaufen.", "effects": {"gold": -80, "end_regency": true}, "ai": 2}]},
+  {"id": "heir_regency_regent", "once": false, "tag": "*", "title": "Ein ehrgeiziger Regent", "text": "Der erste Regent siegelt Urkunden schon mit eigenem Wappen. Manche flüstern, er wolle selbst die Krone.", "image": "conspiracy",
+   "trigger": {"regency": true},
+   "options": [
+     {"text": "Ihn gewähren lassen.", "effects": {"estate": {"adel": 5}, "prestige": -3}},
+     {"text": "Ihn als Statthalter an die Grenze schicken.", "effects": {"mil": -40, "estate": {"adel": -3}}},
+     {"text": "Ihn mit einem reichen Lehen abfinden.", "effects": {"gold": -60, "estate": {"adel": 3}}, "ai": 2}]},
   {"id": "gov_guild_charter", "tag": "*", "title": "Die Zünfte wollen Privilegien", "text": "Die Städte blühen unter deinem Schutz. Nun verlangen die Zünfte ein Monopol auf ihr Handwerk.", "image": "city",
    "trigger": {"law": {"wirtschaft": "staedtefoerderung"}, "year_min": 1450},
    "options": [
