@@ -669,10 +669,8 @@ static func best_building(g, n, war: bool) -> Array:
 			continue
 		var ctx := {}  # per-province values shared by all building types (unrest, exposed border)
 		for bid in g.buildings_def:
-			if _build_block_no_gold(g, n.tag, p, bid) != "":
-				continue
 			var cost := building_cost(g, n.tag, pid, bid, mult)
-			if n.gold < cost:
+			if n.gold < cost or _build_block_no_gold(g, n.tag, p, bid) != "":  # gold first: the cheap test
 				continue
 			var s := _building_value(g, n, p, bid, war, ctx) / cost
 			if not p.buildings.has(bid):
