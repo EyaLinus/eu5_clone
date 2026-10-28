@@ -3028,6 +3028,18 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["❤️ Verschwägerte %+d" % int(v), sgn.call(float(v))])
 		elif k == "convert_random":
 			parts.append(["⛪ %d Provinzen nehmen deinen Glauben an" % int(v), 1])
+		elif k == "heir":
+			for sk in v:
+				parts.append(["👑 Erbe %s %+d" % [icons[sk], int(v[sk])], sgn.call(float(v[sk]))])
+		elif k == "heir_trait" or k == "ruler_trait":
+			var who := "Erbe" if k == "heir_trait" else "Herrscher"
+			if str(v) == "":
+				parts.append(["👑 %s verliert seine Eigenschaft" % who, 0])
+			elif str(v) == "random":
+				parts.append(["👑 %s: neue Eigenschaft" % who, 0])
+			else:
+				var val: float = game.tree.effect_value(game.govt.trait_effects(str(v)))
+				parts.append(["👑 %s wird %s" % [who, game.govt.trait_name(str(v))], 1 if val > 0.0 else -1])
 	return parts
 
 

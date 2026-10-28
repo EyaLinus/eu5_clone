@@ -100,6 +100,44 @@ func roll_trait(g) -> String:
 	return ""
 
 
+## Event conditions on ruler and heir (game.check_conditions). Trait values: an id, "any" or "" (none).
+func court_condition(g, n, k: String, v) -> bool:
+	var h: Dictionary = n.gov.get("heir", {})
+	match k:
+		"ruler_trait":
+			return _trait_match(str(n.gov.get("ruler_trait", "")), str(v))
+		"heir_trait":
+			return not h.is_empty() and _trait_match(str(h.get("trait", "")), str(v))
+		"heir_skill_max":
+			return not h.is_empty() and int(h.adm) + int(h.dip) + int(h.mil) <= int(v)
+		"heir_skill_min":
+			return not h.is_empty() and int(h.adm) + int(h.dip) + int(h.mil) >= int(v)
+		"reign_years_max":
+			return int(n.ruler.years) <= int(v)
+	return true
+
+
+func _trait_match(have: String, want: String) -> bool:
+	if want == "any":
+		return have != ""
+	return have == want
+
+
+## Event effects: "heir" {adm/dip/mil: +-n}, "heir_trait" / "ruler_trait": a trait id ("" removes, "random" rolls).
+func apply_court_effect(g, n, k: String, v) -> void:
+	match k:
+		"heir":
+			ensure_heir(g, n)
+			for s in v:
+				n.gov.heir[s] = clampi(int(n.gov.heir.get(s, 0)) + int(v[s]), 0, int(g.bal.ruler_max))
+		"heir_trait":
+			ensure_heir(g, n)
+			n.gov.heir.trait = roll_trait(g) if str(v) == "random" else str(v)
+		"ruler_trait":
+			n.gov.ruler_trait = roll_trait(g) if str(v) == "random" else str(v)
+			refresh(n)
+
+
 func trait_effects(id: String) -> Dictionary:
 	return trait_by_id.get(id, {}).get("effects", {})
 

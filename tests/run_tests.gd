@@ -2085,6 +2085,16 @@ func test_heir() -> void:
 	n.gov.ruler_trait = ""
 	gv.refresh(n)
 	check(is_equal_approx(g.mod(n, "build_cost") - bc, 0.1), "ruler trait effects apply")
+	# event hooks: conditions and effects on ruler and heir
+	n.gov.heir.trait = "grausam"
+	check(g.check_conditions("FRA", {"heir_trait": "grausam"}) and g.check_conditions("FRA", {"heir_trait": "any"}), "heir trait condition")
+	check(not g.check_conditions("FRA", {"heir_trait": ""}), "heir trait none condition")
+	g.apply_effects("FRA", {"heir_trait": "fromm", "heir": {"adm": 1}})
+	check(n.gov.heir.trait == "fromm", "event changes the heir's trait")
+	g.apply_effects("FRA", {"ruler_trait": "gelehrt"})
+	check(g.check_conditions("FRA", {"ruler_trait": "gelehrt"}) and n.bonus.gov.get("tech_cost", 0.0) <= -0.05 + 0.001, "event gives the ruler a trait")
+	n.gov.ruler_trait = ""
+	gv.refresh(n)
 	var seen := {}
 	for i in 200:
 		seen[gv.roll_trait(g)] = true

@@ -2329,6 +2329,8 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 						and n.overlord == "" and not nations[v].major and not at_war(tag, v):
 					_vassalize(tag, v, true)
 					log_msg("⛓️ %s wird Vasall von %s." % [nations[v].name, n.name], [tag, v])
+			"heir", "heir_trait", "ruler_trait":
+				govt.apply_court_effect(self, n, k, v)
 	_update_cached(n)
 
 
@@ -2549,6 +2551,9 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 					return false
 			"religion":
 				if n.religion != str(v):
+					return false
+			"ruler_trait", "heir_trait", "heir_skill_max", "heir_skill_min", "reign_years_max":
+				if not govt.court_condition(self, n, k, v):
 					return false
 			"unrest_min":
 				var top := 0.0
