@@ -533,28 +533,47 @@ func _changed(g, n) -> void:
 	g._update_cached(n)
 
 
-func refresh(n) -> void:
-	var b := {}
-	var effs := [form_effects(n.tag), trait_effects(n.gov.get("ruler_trait", ""))]
-	for id in n.gov.advisors:
-		effs.append(advisor_effects(id, advisor_skill(n, id)))
-	for id in n.gov.companies:
-		effs.append(company_effects(id, invest_level(n, id)))
+## Government modifiers grouped by source, [[label, effects], ...], for refresh and the overview popup.
+func gov_sources(n) -> Array:
+	var groups := [["🏛 Staatsform: " + form_name(n.tag), [form_effects(n.tag)]]]
+	var tr: String = n.gov.get("ruler_trait", "")
+	if tr != "":
+		groups.append(["👑 Herrscher: " + trait_name(tr), [trait_effects(tr)]])
+	groups.append(["🎓 Berater", n.gov.advisors.map(func(id): return advisor_effects(id, advisor_skill(n, id)))])
+	groups.append(["🏦 Kompanien", n.gov.companies.map(func(id): return company_effects(id, invest_level(n, id)))])
+	var laws := []
 	for law_id in n.gov.laws:
 		if law_by_id.has(law_id):
-			effs.append(law_option(law_id, n.gov.laws[law_id]).get("effects", {}))
+			laws.append(law_option(law_id, n.gov.laws[law_id]).get("effects", {}))
+	groups.append(["📜 Gesetze", laws])
+	var reforms := []
 	for tier in n.gov.get("reforms", {}):
-		effs.append(reform_option(tier, n.gov.reforms[tier]).get("effects", {}))
+		reforms.append(reform_option(tier, n.gov.reforms[tier]).get("effects", {}))
+	groups.append(["⚖️ Reformen", reforms])
+	var ages_eff := []
 	var done: Dictionary = n.gov.get("ages", {})
 	for age in ages():
 		for goal in age.goals:
 			if done.has(goal.id):
-				effs.append(goal.reward)
+				ages_eff.append(goal.reward)
 		if done.has(age.id):
-			effs.append(age.triumph.reward)
-	for e in effs:
-		for k in e:
-			b[k] = b.get(k, 0.0) + float(e[k])
+			ages_eff.append(age.triumph.reward)
+	groups.append(["⭐ Zeitalter-Ziele", ages_eff])
+	var out := []
+	for grp in groups:
+		var sum := {}
+		for e in grp[1]:
+			for k in e:
+				sum[k] = sum.get(k, 0.0) + float(e[k])
+		out.append([grp[0], sum])
+	return out
+
+
+func refresh(n) -> void:
+	var b := {}
+	for src in gov_sources(n):
+		for k in src[1]:
+			b[k] = b.get(k, 0.0) + float(src[1][k])
 	n.bonus["gov"] = b
 	var bb := {}
 	for id in n.gov.get("budget", {}):

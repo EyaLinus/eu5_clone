@@ -37,6 +37,7 @@ func _init() -> void:
 		"test_tech_queue",
 		"test_heir",
 		"test_building_tech",
+		"test_gov_sources",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -2037,6 +2038,22 @@ func test_religion_modifiers() -> void:
 
 
 ## Age goals: count only in their age, give permanent rewards, two of three win the triumph.
+func test_gov_sources() -> void:
+	var g = new_game("FRA", 5)
+	var n = g.nations.FRA
+	n.gov.ruler_trait = "kaufmann"
+	g.govt.refresh(n)
+	var srcs: Array = g.govt.gov_sources(n)
+	check(srcs[0][0].begins_with("🏛"), "first source is the state form")
+	check(srcs.any(func(s): return s[0].contains("Herrscher") and not s[1].is_empty()), "ruler trait listed as a source")
+	var sum := {}
+	for s in srcs:
+		for k in s[1]:
+			sum[k] = sum.get(k, 0.0) + float(s[1][k])
+	for k in n.bonus.gov:
+		check(absf(sum.get(k, 0.0) - float(n.bonus.gov[k])) < 0.0001, "sources add up to bonus.gov: " + k)
+
+
 func test_building_tech() -> void:
 	var g = new_game("FRA", 5)
 	var Eco = g.Economy

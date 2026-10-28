@@ -219,12 +219,15 @@ func _overview() -> void:
 	var n = g.nations[g.player]
 	m._open_modal()
 	m.modal_box.add_child(m._lbl("📈 Gesamtwirkung", 26))
-	for src in [["gov", "⚖️ Berater, Kompanien, Gesetze, Reformen"], ["budget", "💰 Haushalt"], ["estates", "👥 Stände"], ["empire", "👑 Reichsreformen"]]:
-		var e: Dictionary = n.bonus.get(src[0], {})
-		if e.is_empty() and src[0] != "gov":
-			continue
-		m.modal_box.add_child(m._lbl(src[1], 18))
-		m.modal_box.add_child(TechScreen.effects_rich(e, 16))
+	var srcs: Array = g.govt.gov_sources(n).filter(func(s): return not s[1].is_empty())
+	for src in [["budget", "💰 Haushalt"], ["estates", "👥 Stände"], ["empire", "👑 Reichsreformen"]]:
+		if not n.bonus.get(src[0], {}).is_empty():
+			srcs.append([src[1], n.bonus[src[0]]])
+	if srcs.is_empty():
+		m.modal_box.add_child(m._lbl("Noch keine Boni.", 16, Color(0.65, 0.68, 0.75)))
+	for src in srcs:
+		m.modal_box.add_child(m._lbl(src[0], 18))
+		m.modal_box.add_child(TechScreen.effects_rich(src[1], 16))
 	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
 
 
