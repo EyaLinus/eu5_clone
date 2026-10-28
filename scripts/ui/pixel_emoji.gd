@@ -44,11 +44,12 @@ static func install() -> void:
 	base.fallbacks = fb
 
 
-## A one-character string showing the nation's pixel flag; falls back to its emoji when there is no flag.
-static func nation(tag: String, fallback: String) -> String:
+## A one-character string showing the nation's pixel flag; a white flag when the nation has none (its own
+## animal or symbol emoji has no pixel glyph and would show as a box).
+static func nation(tag: String, _fallback: String = "") -> String:
 	if _nations.has(tag):
 		return _nations[tag]
-	var s := fallback
+	var s := "🏳"
 	var tex: Texture2D = Icons.flag(tag)
 	if font != null and tex != null:
 		var img := tex.get_image()
@@ -59,6 +60,13 @@ static func nation(tag: String, fallback: String) -> String:
 		s = char(cp)
 	_nations[tag] = s
 	return s
+
+
+## Adds every flag glyph up front. A glyph added later, while text is being drawn (map hover tip), could
+## show as a garbled character on some PCs because the font texture changed mid-frame.
+static func add_nations(tags: Array) -> void:
+	for t in tags:
+		nation(String(t))
 
 
 static func _add(cp: int, img: Image) -> void:

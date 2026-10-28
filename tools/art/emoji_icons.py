@@ -134,6 +134,13 @@ add("⛪", "church", layer([".....YY.....", "....YYYY....", ".....YD.....", "...
 add("🔒", "lock", layer(["...aaaa...", "..ag..ga..", "..a....g..", "..a....g..", "YYYYYYYYYD", "YGGGGGGGGD", "YGGGkkGGGD", "YGGGkkGGGD", "YGGGGkGGGD", "DDDDDDDDDD"], 3, 3))
 add("✓", "tick", layer([".........ll", "........lLF", ".......lLF.", "ll....lLF..", "lLl..lLF...", ".lLllLF....", "..lLLF.....", "...LF......"], 2, 4))
 
+# ---- terrain (march time and defence, scripts/core/warfare.gd)
+add("🌲", "forest", layer(["....L.....", "...LLF....", "..LLLLF...", "...LLF....", "..LLLLF...", ".LLLLLLF..", "..LLLLF...", ".LLLLLLF..", "LLLLLLLLF.", "....OH....", "....OH...."], 3, 2))
+add("⛰", "hills", layer([".....a......", "....aag.....", "...aaggd....", "..aaggggd...", ".aagggggdd..", "aaggggggggdd", "LLLLLLLLLLLF"], 2, 5))
+add("🏔", "mountains", layer([".....w......", "....wwa.....", "...wwaag....", "..aaggggd...", ".aaggggddd..", ".aggggggdd..", "aagggggggddd", "agggggggggdd"], 2, 4))
+add("🏜", "desert", layer(["........YY..", ".......YGGD.", "........DD..", "............", "......GGGD..", "...GGGGGGGD.", ".GGGGGGGGGGD", "GGGGGGGGGGGG", "DDDDDDDDDDDD"], 2, 4))
+add("💧", "marsh", layer(["....B.....", "...BBN....", "..BBBBN...", ".BwBBBBN..", ".BwBBBBN..", ".BBBBBBN..", "..BBBBN...", "...NNN...."], 3, 4))
+
 if __name__ == "__main__":
     os.makedirs(SRC, exist_ok=True)
     os.makedirs(OUT, exist_ok=True)

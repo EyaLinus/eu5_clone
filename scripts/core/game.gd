@@ -9,6 +9,7 @@ const Tech = preload("res://scripts/core/tech.gd")
 const Government = preload("res://scripts/core/government.gd")
 const Religion = preload("res://scripts/core/religion.gd")
 const Monuments = preload("res://scripts/core/monuments.gd")
+const Warfare = preload("res://scripts/core/warfare.gd")
 
 const POWERS := ["adm", "dip", "mil"]
 const MONTH_NAMES := ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
@@ -36,6 +37,7 @@ class Province:
 	var loc := {}  # cached local building effects (Economy.refresh_local)
 	var religion: String = "catholic"  # faith of the people (Religion)
 	var convert_months: int = 0  # a missionary is at work
+	var terrain: String = "plains"  # data/terrain.json: march time and defence (Warfare)
 
 
 class Nation:
@@ -113,6 +115,8 @@ class Army:
 	var path: Array = []
 	var power: float = 1.0  # fighting power 0..power_max: recovers with supply over time, battles drain it
 	var general: int = 0  # 0 = none, 1..3 = skill of the commanding general
+	var move: float = 0.0  # march progress (months) towards path[1] (Warfare)
+	var landing: bool = false  # just came off the ships: fights worse in its next battle
 
 
 class War:
@@ -133,6 +137,8 @@ var nations := {}
 var order: Array = []
 var armies: Array = []
 var wars: Array = []
+var battles: Array = []  # running Warfare.Battle
+var straits := {}  # sea crossings, Warfare.strait_key -> true
 var month: int = 0
 var rng := RandomNumberGenerator.new()
 var player: String = ""
@@ -220,6 +226,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 			p.adj.append(int(a))
 		provinces.append(p)
 		key_to_pid[p.key] = p.id
+	Warfare.setup(self, data)
 	for tag in data.nations:
 		var nd: Dictionary = data.nations[tag]
 		var n := Nation.new()
@@ -251,6 +258,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	Religion.setup(self, data)
 	monument_defs = data.get("monuments", {})
 	Economy.setup(self, data)
+	tree.set_unlocks(buildings_def)
 	Economy.refresh_goods_leaders(self)
 	Economy.update_markets(self)
 	Economy.check_pacts(self)
@@ -984,16 +992,6 @@ func spawn_army(tag: String, pid: int, regs: float) -> Army:
 	return a
 
 
-## Chance for an extra march step between two own, roaded provinces (per road level of the worse one).
-func road_step_chance(tag: String, from_pid: int, to_pid: int) -> float:
-	var a: Province = provinces[from_pid]
-	var b: Province = provinces[to_pid]
-	if a.owner != tag or b.owner != tag or a.controller != tag or b.controller != tag:
-		return 0.0
-	var lv := mini(Economy.level(a, "road"), Economy.level(b, "road"))
-	return float(bal.get("road_move_chance", 0.25)) * lv
-
-
 func army_by_id(id: int) -> Army:
 	for a in armies:
 		if a.id == id:
@@ -1010,52 +1008,15 @@ func armies_in(pid: int) -> Array:
 
 
 func _armies_tick() -> void:
-	for a in armies.duplicate():
-		if a.target >= 0 and a.target != a.pid:
-			if a.path.size() < 2 or a.path[0] != a.pid or a.path[-1] != a.target or not can_enter(a.owner, a.path[1]):
-				a.path = find_path(a.owner, a.pid, a.target)
-			if a.path.size() >= 2:
-				a.path.pop_front()
-				a.pid = a.path[0]
-				if a.path.size() >= 2 and a.path[0] != a.target and rng.randf() < road_step_chance(a.owner, a.pid, a.path[1]):
-					a.path.pop_front()  # roads on own land: a second march step this month
-					a.pid = a.path[0]
-			else:
-				a.target = -1
-		if a.target == a.pid:
-			a.target = -1
-	var touched := {}
-	for a in armies:
-		touched[a.pid] = true
-	for pid in touched:
-		_resolve_battles(pid)
+	Warfare.move_armies(self)
+	Warfare.battles_tick(self)
 	for p in provinces:
 		_siege(p)
 	for a in armies:
+		if Warfare.in_battle(self, a):
+			continue
 		_reinforce(a)
 		_recover_power(a)
-
-
-func _resolve_battles(pid: int) -> void:
-	for _i in 4:
-		var here := armies_in(pid)
-		var war: War = null
-		var side_a := []
-		var side_b := []
-		for x in here:
-			for y in here:
-				if war == null and at_war(x.owner, y.owner):
-					war = war_between(x.owner, y.owner)
-		if war == null:
-			return
-		for x in here:
-			if war.attackers.has(x.owner):
-				side_a.append(x)
-			elif war.defenders.has(x.owner):
-				side_b.append(x)
-		if side_a.is_empty() or side_b.is_empty():
-			return
-		_battle(war, side_a, side_b, pid)
 
 
 func _side_power(arms: Array, pid: int) -> float:
@@ -1069,57 +1030,9 @@ func _side_power(arms: Array, pid: int) -> float:
 	return s
 
 
+## Fights a whole battle at once (tests); in play Warfare runs battles round by round.
 func _battle(war: War, att: Array, def: Array, pid: int) -> void:
-	stats.battles += 1
-	var pa := _side_power(att, pid) * rng.randf_range(0.75, 1.25)
-	var pd := _side_power(def, pid) * rng.randf_range(0.75, 1.25)
-	var att_wins := pa >= pd
-	var win: Array = att if att_wins else def
-	var lose: Array = def if att_wins else att
-	var ratio: float = minf(pa, pd) / maxf(maxf(pa, pd), 0.01)
-	var lose_frac: float = clampf(float(bal.battle_loser_loss) / sqrt(maxf(ratio, 0.05)), 0.2, 0.85)
-	var win_frac: float = clampf(float(bal.battle_winner_loss) * sqrt(ratio), 0.03, 0.4)
-	var lost := 0.0
-	for a in win:
-		a.power = maxf(0.0, a.power - power_max(a.owner) * float(bal.army_power_loss_win))
-	for a in lose:
-		a.power = maxf(0.0, a.power - power_max(a.owner) * float(bal.army_power_loss_lose))
-	for a in win + lose:
-		if a.general > 0 and rng.randf() < float(bal.general_death_chance) * (2.0 if lose.has(a) else 1.0):
-			a.general = 0
-			if a.owner == player:
-				log_msg("⭐ Dein General bei %s ist in der Schlacht gefallen." % provinces[pid].name, [player])
-		if a.owner == player and a.power < 0.3 * power_max(a.owner):
-			log_msg("🔥 Deine Armee bei %s ist erschöpft (Moral %d %%). Drill (⚔️) oder Rückzug auf eigenes Land hilft." % [provinces[pid].name, int(a.power * 100)], [player])
-	for a in win:
-		a.regs *= 1.0 - win_frac
-	for a in lose:
-		lost += a.regs * lose_frac
-		a.regs *= 1.0 - lose_frac
-	for a in lose:
-		var ln: Nation = nations[a.owner]
-		ln.we = minf(float(bal.we_max), ln.we + lost * float(bal.we_per_reg_lost) / lose.size())
-	var ws: float = lost * float(bal.battle_ws_per_reg)
-	var cap := float(bal.battle_ws_cap)
-	war.battle_score = clampf(war.battle_score + (ws if att_wins else -ws), -cap, cap)
-	var winner_tag: String = win[0].owner
-	var loser_tag: String = lose[0].owner
-	if player != "":
-		for a in win:
-			if a.owner == player:
-				stats.player_battles_won = stats.get("player_battles_won", 0) + 1
-				break
-		for a in lose:
-			if a.owner == player:
-				stats.player_battles_lost = stats.get("player_battles_lost", 0) + 1
-				break
-	var involved := []
-	for a in att + def:
-		involved.append(a.owner)
-	log_msg("⚔️ Schlacht bei %s: %s siegt über %s (%.1f Regimenter verloren)." % [
-			provinces[pid].name, nations[winner_tag].name, nations[loser_tag].name, lost], involved)
-	for a in lose:
-		_retreat(a)
+	Warfare.fight_out(self, war, att, def, pid)
 
 
 func _retreat(a: Army) -> void:
@@ -1138,6 +1051,8 @@ func _retreat(a: Army) -> void:
 				best = nb
 				if p.owner == a.owner:
 					break
+	a.path = []
+	a.move = 0.0
 	if best < 0:
 		armies.erase(a)
 		log_msg("💀 Eine Armee von %s wurde aufgerieben." % nations[a.owner].name, [a.owner])
@@ -2029,7 +1944,7 @@ func disband(army: Army, count: float) -> void:
 func merge_armies(tag: String, pid: int) -> void:
 	var here := []
 	for a in armies_in(pid):
-		if a.owner == tag:
+		if a.owner == tag and not Warfare.in_battle(self, a):
 			here.append(a)
 	for i in range(1, here.size()):
 		var tot: float = here[0].regs + here[i].regs
@@ -2055,9 +1970,14 @@ func split_army(army: Army) -> Army:
 
 
 func move_army(army: Army, pid: int) -> String:
+	var b = Warfare.battle_of(self, army)
+	if b != null:
+		return "Die Armee steckt in der Schlacht bei %s." % provinces[b.pid].name
 	var path := find_path(army.owner, army.pid, pid)
 	if path.is_empty():
 		return "Kein Weg dorthin. Fremdes Land braucht 🚶 Durchmarschrecht (Diplomatie-Fenster des Landes)."
+	if army.path.size() < 2 or path.size() < 2 or army.path[1] != path[1]:
+		army.move = 0.0  # a new direction starts the step over
 	army.target = pid
 	army.path = path
 	return ""
@@ -2722,8 +2642,10 @@ func to_dict() -> Dictionary:
 	var ar := []
 	for a in armies:
 		ar.append({"id": a.id, "owner": a.owner, "pid": a.pid, "regs": a.regs, "full": a.full,
-				"target": a.target, "auto": a.auto, "stance": a.stance, "power": a.power, "general": a.general})
+				"target": a.target, "auto": a.auto, "stance": a.stance, "power": a.power, "general": a.general,
+				"move": a.move, "landing": a.landing, "path": a.path})
 	d.armies = ar
+	d.battles = Warfare.to_save(self)
 	var ws := []
 	for w in wars:
 		ws.append({"id": w.id, "name": w.name, "attackers": w.attackers, "defenders": w.defenders,
@@ -2869,6 +2791,10 @@ func from_dict(d: Dictionary) -> void:
 		a.stance = e.get("stance", "attack")
 		a.power = float(e.get("power", 1.0))
 		a.general = int(e.get("general", 0))
+		a.move = float(e.get("move", 0.0))
+		for x in e.get("path", []):
+			a.path.append(int(x))
+		a.landing = e.get("landing", false)
 		armies.append(a)
 	wars.clear()
 	for e in d.wars:
@@ -2882,6 +2808,7 @@ func from_dict(d: Dictionary) -> void:
 		w.coalition = e.coalition
 		w.goal = int(e.goal)
 		wars.append(w)
+	Warfare.load_save(self, d.get("battles", []))
 	_rebuild_owned()
 	for tag in order:
 		nations[tag].bonus["empire"] = govt.empire_effects(self, tag) if nations[tag].alive else {}
