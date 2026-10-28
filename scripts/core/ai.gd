@@ -540,6 +540,8 @@ func _friendly(g, tag: String, owner: String) -> bool:
 
 func _command(g, a, enemies: Array, enemy_power: Dictionary) -> void:
 	var tag: String = a.owner
+	if g.Warfare.in_battle(g, a):
+		return  # locked in battle until it is decided
 	var defend: bool = a.stance == "defend"
 	var my_power: float = a.regs * g.combat_mult(tag) * g.power_factor(a)
 	# exhausted armies fall back to friendly land to recover before fighting again
@@ -548,12 +550,15 @@ func _command(g, a, enemies: Array, enemy_power: Dictionary) -> void:
 		if back >= 0:
 			g.move_army(a, back)
 			return
-	# flee if a much stronger enemy stands next to us
+	# flee from a much stronger neighbour to the nearest safe friendly province (marching to a far
+	# capital just gets the army caught on the way since armies march at similar speeds)
 	for nb in g.provinces[a.pid].adj:
 		if enemy_power.get(nb, 0.0) > my_power * 1.4 and enemy_power.get(a.pid, 0.0) == 0.0:
-			var home: int = g.nations[tag].capital
-			if a.pid != home and enemy_power.get(home, 0.0) < my_power:
-				g.move_army(a, home)
+			var safe: int = _nearest(g, a, func(pid): return _friendly(g, tag, g.provinces[pid].controller) \
+					and not _threatened(g, pid, enemy_power, my_power))
+			if safe >= 0 and safe != a.target:
+				g.move_army(a, safe)
+			if safe >= 0:
 				return
 	# BFS over reachable provinces, pick the best target
 	var dist := {a.pid: 0}
@@ -561,6 +566,7 @@ func _command(g, a, enemies: Array, enemy_power: Dictionary) -> void:
 	var head := 0
 	var best := -1
 	var best_score := -1e9
+	var cur_score := -1e9  # score of the target the army is already marching to
 	while head < queue.size():
 		var cur: int = queue[head]
 		head += 1
@@ -588,6 +594,8 @@ func _command(g, a, enemies: Array, enemy_power: Dictionary) -> void:
 				s += 15.0
 			if g.nations[p.owner].capital == cur:
 				s += 10.0
+		if cur == a.target:
+			cur_score = s
 		if s > best_score:
 			best_score = s
 			best = cur
@@ -600,6 +608,9 @@ func _command(g, a, enemies: Array, enemy_power: Dictionary) -> void:
 				continue
 			dist[nb] = d + 1
 			queue.append(nb)
+	# stick to the current target unless another is clearly better: re-targeting resets the march
+	if a.target >= 0 and a.target != a.pid and cur_score > -1e8 and cur_score >= best_score - float(g.bal.ai_retarget_margin):
+		return
 	if best >= 0 and best != a.pid and best_score > -1e8:
 		if a.target != best:
 			g.move_army(a, best)
@@ -630,6 +641,15 @@ func nearest_enemy_army(g, a) -> int:
 func nearest_lost_province(g, a) -> int:
 	var tag: String = a.owner
 	return _nearest(g, a, func(pid): return g.provinces[pid].owner == tag and g.provinces[pid].controller != tag)
+
+
+func _threatened(g, pid: int, enemy_power: Dictionary, my_power: float) -> bool:
+	if enemy_power.get(pid, 0.0) > 0.0:
+		return true
+	for nb in g.provinces[pid].adj:
+		if enemy_power.get(nb, 0.0) > my_power * 1.4:
+			return true
+	return false
 
 
 func _nearest(g, a, ok: Callable) -> int:
