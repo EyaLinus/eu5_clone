@@ -20,6 +20,7 @@ var comp_by_id := {}
 var laws: Array = []
 var law_by_id := {}
 var forms := {}
+var form_override := {}  # tag -> form after a change of government (saved as n.gov.form)
 var estates: Array = []
 var budget: Array = []
 var reforms: Array = []
@@ -64,6 +65,7 @@ func init_nation(n) -> void:
 	var bu := {}
 	for b in budget:
 		bu[b.id] = budget_default()
+	form_override.erase(n.tag)
 	n.gov = {"advisors": [], "companies": [], "laws": lw, "law_month": {}, "invest": {}, "estates": es, "estate_month": {}, "budget": bu, "reforms": {}, "reform_month": {}, "ages": {}, "adv_skill": {}, "adv_since": {}}
 	refresh(n)
 	refresh_estates(n)
@@ -267,7 +269,69 @@ func disinherit(g, tag: String) -> String:
 
 
 func form_name(tag: String) -> String:
-	return forms.get(tag, forms.get("default", "Monarchie"))
+	return form_override.get(tag, forms.get(tag, forms.get("default", "Monarchie")))
+
+
+func form_family(form: String) -> String:
+	var fam: Dictionary = cfg.get("form_family", {})
+	for k in fam:
+		if fam[k].has(form):
+			return k
+	return ""
+
+
+## Forms `tag` could switch to (any year), as cfg form_changes entries.
+func form_change_options(tag: String) -> Array:
+	var fam := form_family(form_name(tag))
+	return cfg.get("form_changes", []).filter(func(c): return c.form != form_name(tag) and c.from.has(fam))
+
+
+func form_change_cost(g, n) -> int:
+	return int(cfg.get("form_change_cost", 250))
+
+
+func form_cooldown_left(g, n) -> int:
+	if not n.gov.has("form_month"):
+		return 0
+	return maxi(0, int(n.gov.form_month) + int(cfg.get("form_change_years", 40)) * 12 - g.month)
+
+
+func form_change_block(g, tag: String, form: String) -> String:
+	var n = g.nations[tag]
+	var opt: Array = form_change_options(tag).filter(func(c): return c.form == form)
+	if opt.is_empty():
+		return "Von %s aus nicht möglich." % form_name(tag)
+	if g.year() < int(opt[0].year):
+		return "Verfügbar ab %d." % int(opt[0].year)
+	if g.is_at_war(tag):
+		return "Nicht während eines Krieges."
+	var cd := form_cooldown_left(g, n)
+	if cd > 0:
+		return "Erst in %d Jahren wieder möglich." % ceili(cd / 12.0)
+	var c := form_change_cost(g, n)
+	if n.adm < c:
+		return "Zu wenig Verwaltungspunkte (%d benötigt)." % c
+	var pr := float(cfg.get("form_change_prestige", 20))
+	if n.prestige < pr:
+		return "Zu wenig Prestige (%d benötigt)." % int(pr)
+	return ""
+
+
+func change_form(g, tag: String, form: String) -> String:
+	var err := form_change_block(g, tag, form)
+	if err != "":
+		return err
+	var n = g.nations[tag]
+	n.adm -= form_change_cost(g, n)
+	n.prestige -= float(cfg.get("form_change_prestige", 20))
+	n.gov.form = form
+	n.gov.form_month = g.month
+	form_override[tag] = form
+	if cfg.get("elective_forms", []).has(form):
+		end_regency(g, n)
+	refresh(n)
+	g._update_cached(n)
+	return ""
 
 
 ## Effects of `tag`'s form of government (part of the gov bonus source).
@@ -1143,6 +1207,11 @@ func load_save(n, d) -> void:
 				"born": int(h.get("born", -1))}
 	if d.has("regency_until"):
 		n.gov.regency_until = int(d.regency_until)
+	if d.has("form") and cfg.get("form_effects", {}).has(str(d.form)):
+		n.gov.form = str(d.form)
+		form_override[n.tag] = n.gov.form
+	if d.has("form_month"):
+		n.gov.form_month = int(d.form_month)
 	if d.has("ruler_trait"):
 		n.gov.ruler_trait = str(d.ruler_trait)
 	refresh(n)
@@ -1167,6 +1236,7 @@ func ai_think(g, n) -> void:
 		_ai_budget(g, n)
 	elif slot == 6:
 		_ai_reforms(g, n)
+		_ai_form(g, n)
 	elif slot == 10:
 		_ai_heir(g, n)
 
@@ -1316,6 +1386,24 @@ func _ai_budget(g, n) -> void:
 
 
 ## AI: fill the oldest open reform tier with its most valuable option, keeping half a tech in reserve.
+## AI changes its form of government rarely: only with spare administration and prestige, at peace, and only for a
+## clearly better form (effect value) than the current one.
+func _ai_form(g, n) -> void:
+	if g.rng.randf() > 0.2 or n.adm < form_change_cost(g, n) + g.tech_cost(n.tag, "adm") * 0.5 or n.prestige < 40.0:
+		return
+	var best := ""
+	var best_v: float = Tech.effect_value(form_effects(n.tag), n.aggression) + 1.0
+	for c in form_change_options(n.tag):
+		if form_change_block(g, n.tag, c.form) != "":
+			continue
+		var v: float = Tech.effect_value(cfg.get("form_effects", {}).get(c.form, {}), n.aggression)
+		if v > best_v:
+			best_v = v
+			best = c.form
+	if best != "":
+		change_form(g, n.tag, best)
+
+
 func _ai_reforms(g, n) -> void:
 	var open := open_reform_tiers(g, n)
 	if open.is_empty():

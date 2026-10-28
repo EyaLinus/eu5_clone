@@ -39,6 +39,7 @@ func _init() -> void:
 		"test_building_tech",
 		"test_gov_sources",
 		"test_regency",
+		"test_form_change",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -2086,6 +2087,33 @@ func test_regency() -> void:
 	check(gv.court_condition(g, n, "heir_age_max", 10) and not gv.court_condition(g, n, "heir_age_min", 15), "heir age conditions")
 	n.gov.heir.erase("born")
 	check(gv.heir_age(g, n) == 99, "old-save heirs count as adults")
+
+
+func test_form_change() -> void:
+	var g = new_game("FRA", 5)
+	var gv = g.govt
+	var n = g.nations.FRA
+	check(gv.form_name("FRA") == "Feudalmonarchie", "France starts feudal")
+	var opts: Array = gv.form_change_options("FRA").map(func(c): return c.form)
+	check(opts.has("Wahlmonarchie") and opts.has("Absolute Monarchie") and not opts.has("Kaufmannsrepublik"), "monarchy options only")
+	check(gv.form_change_block(g, "FRA", "Absolute Monarchie").begins_with("Verfügbar ab"), "absolutism needs 1580")
+	check(gv.form_change_block(g, "FRA", "Kaufmannsrepublik") != "", "no switch across families")
+	n.adm = 0.0
+	check(gv.form_change_block(g, "FRA", "Wahlmonarchie").contains("Verwaltungspunkte"), "needs admin power")
+	n.adm = 900.0
+	n.prestige = 50.0
+	for w in g.wars.duplicate():
+		g.wars.erase(w)
+	check(gv.change_form(g, "FRA", "Wahlmonarchie") == "", "switch to elective monarchy")
+	check(gv.form_name("FRA") == "Wahlmonarchie" and gv.heir_title("FRA") == "Nachfolger", "new form applies")
+	check(float(n.bonus.gov.get("dip", 0.0)) >= 0.5 - 0.001, "new form effects in gov bonus")
+	check(n.adm == 650.0 and n.prestige == 30.0, "cost paid")
+	check(gv.form_change_block(g, "FRA", "Feudalmonarchie").contains("Jahren"), "cooldown after a change")
+	var save: Dictionary = gv.to_save(n).duplicate(true)
+	gv.load_save(n, save)
+	check(gv.form_name("FRA") == "Wahlmonarchie" and gv.form_cooldown_left(g, n) > 0, "form survives save/load")
+	gv.init_nation(n)
+	check(gv.form_name("FRA") == "Feudalmonarchie", "fresh nation state drops the override")
 
 
 func test_building_tech() -> void:

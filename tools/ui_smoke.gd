@@ -122,6 +122,8 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 		m._close_modal()
 	m.gov_screen._pick_advisor(["", "adm", "dip", "mil"][month % 4])
 	m._close_modal()
+	m.gov_screen._pick_form()
+	m._close_modal()
 	if not g.nations[tag].gov.get("heir", {}).is_empty():
 		m.gov_screen._heir()
 		m._close_modal()

@@ -1001,8 +1001,114 @@
    "prestige": 0.25,
    "tax": 0.05,
    "estate_adel": 5
+  },
+  "Absolute Monarchie": {
+   "adm": 0.5,
+   "tax": 0.1,
+   "estate_adel": -10,
+   "unrest": 0.25
   }
  },
+ "form_family": {
+  "monarchie": [
+   "Feudalmonarchie",
+   "Wahlmonarchie",
+   "Kaiserreich",
+   "Erzherzogtum",
+   "Herzogtum",
+   "Großfürstentum",
+   "Kurfürstentum",
+   "Sultanat",
+   "Absolute Monarchie"
+  ],
+  "republik": [
+   "Kaufmannsrepublik",
+   "Stadtrepublik",
+   "Städtebund",
+   "Eidgenossenschaft",
+   "Freie Reichsstadt"
+  ],
+  "kirche": [
+   "Theokratie",
+   "Ordensstaat",
+   "Kurfürstliches Erzstift"
+  ],
+  "stamm": [
+   "Beylik",
+   "Stammesföderation",
+   "Khanat"
+  ]
+ },
+ "form_changes": [
+  {
+   "form": "Feudalmonarchie",
+   "from": [
+    "monarchie",
+    "stamm"
+   ],
+   "year": 1444,
+   "text": "Der Adel trägt die Krone, die Krone schützt den Adel."
+  },
+  {
+   "form": "Wahlmonarchie",
+   "from": [
+    "monarchie"
+   ],
+   "year": 1444,
+   "text": "Die Großen des Reiches wählen den König. Mehr Mitsprache, weniger Steuern."
+  },
+  {
+   "form": "Absolute Monarchie",
+   "from": [
+    "monarchie"
+   ],
+   "year": 1580,
+   "text": "Der Herrscher regiert ohne Stände: mehr Steuern und Verwaltung, der Adel grollt."
+  },
+  {
+   "form": "Kaufmannsrepublik",
+   "from": [
+    "republik"
+   ],
+   "year": 1444,
+   "text": "Die reichen Handelshäuser lenken den Staat."
+  },
+  {
+   "form": "Stadtrepublik",
+   "from": [
+    "republik"
+   ],
+   "year": 1444,
+   "text": "Räte und Zünfte regieren gemeinsam."
+  },
+  {
+   "form": "Theokratie",
+   "from": [
+    "kirche"
+   ],
+   "year": 1444,
+   "text": "Die Kirche regiert unmittelbar."
+  },
+  {
+   "form": "Stammesföderation",
+   "from": [
+    "stamm"
+   ],
+   "year": 1444,
+   "text": "Die Stämme regieren sich selbst, vereint im Krieg."
+  },
+  {
+   "form": "Khanat",
+   "from": [
+    "stamm"
+   ],
+   "year": 1444,
+   "text": "Ein Khan herrscht über die Reiterheere."
+  }
+ ],
+ "form_change_cost": 250,
+ "form_change_prestige": 20,
+ "form_change_years": 40,
  "advisors": [
   {
    "id": "kaemmerer",

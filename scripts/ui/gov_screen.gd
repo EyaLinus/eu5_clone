@@ -207,6 +207,32 @@ func _build_law(g, gv, n) -> void:
 			locked.append("%s ab %d" % [t.name, int(t.year)])
 	if not locked.is_empty():
 		m.side_box.add_child(m._lbl("🔒 " + ", ".join(locked), 14, Color(0.65, 0.68, 0.75)))
+	_section("🏛 Staatsform", "Ein Wechsel der Staatsform kostet %d Verwaltungspunkte und %d Prestige, ist nur im Frieden möglich und danach %d Jahre gesperrt. Gewechselt wird nur innerhalb der Familie (Monarchie, Republik, Kirche, Stämme)." % [
+			int(gv.cfg.get("form_change_cost", 250)), int(gv.cfg.get("form_change_prestige", 20)), int(gv.cfg.get("form_change_years", 40))])
+	var fcd: int = gv.form_cooldown_left(g, n)
+	var fsub: String = "Staatsform" + (" · änderbar in " + _wait(fcd) if fcd > 0 else _alternatives(gv.form_change_options(n.tag).filter(
+			func(c): return gv.form_change_block(g, n.tag, c.form) == "").size()))
+	m.side_box.add_child(_card(gv.form_name(n.tag), fsub, gv.form_effects(n.tag), false, "Ändern", _pick_form, true))
+
+
+func _pick_form() -> void:
+	var g = m.game
+	var gv = g.govt
+	var me: String = g.player
+	m._open_modal()
+	m.modal_box.add_child(m._lbl("🏛 Staatsform ändern", 26))
+	m.modal_box.add_child(m._lbl("Jetzt: %s. Kosten %d %s und %d Prestige." % [gv.form_name(me), gv.form_change_cost(g, g.nations[me]),
+			Icons.emoji("adm"), int(gv.cfg.get("form_change_prestige", 20))], 16))
+	var opts: Array = gv.form_change_options(me)
+	if opts.is_empty():
+		m.modal_box.add_child(m._lbl("Von dieser Staatsform aus ist kein Wechsel möglich.", 16, Color(0.65, 0.68, 0.75)))
+	for c in opts:
+		var eff: Dictionary = gv.cfg.get("form_effects", {}).get(c.form, {})
+		m.modal_box.add_child(_choice(c.form, c.text, eff, false, "Wechseln", gv.form_change_block(g, me, c.form), func():
+			var err: String = gv.change_form(g, me, c.form)
+			m._close_modal()
+			m._act(err, "🏛 Neue Staatsform: %s" % c.form)))
+	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
 
 
 func _build_estates(gv) -> void:
