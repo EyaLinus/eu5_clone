@@ -176,6 +176,8 @@ var electors: Array = []
 var hre_authority: float = 0.0  # imperial authority, spent by the emperor on reforms (govt.empire_*)
 var hre_reforms: Array = []  # passed imperial reform ids, in order
 var history: Array = []  # player's yearly snapshot: [year, dev, rank, provinces]
+var score_history: Array = []  # yearly [year, {tag: score}] of the SCORE_HISTORY_TOP best realms and the player
+const SCORE_HISTORY_TOP := 8
 # economy (scripts/core/economy.gd)
 var goods_def := {}
 var buildings_def := {}
@@ -565,8 +567,6 @@ func power_of(n: Nation, kind: String) -> float:
 
 func monthly_power(n: Nation, kind: String) -> float:
 	var v: float = float(bal.base_power) + n.ruler[kind] + mod(n, kind)
-	if kind == "adm":
-		v += float(bal.base_power_adm_extra)
 	if n.tag == emperor and kind == "dip":
 		v += float(bal.emperor_dip)
 	return v
@@ -642,6 +642,7 @@ func tick() -> void:
 		Economy.autobuild(self, nations[player])
 		for t in tree.queue_tick(self, nations[player]):
 			log_msg("🔬 Forschungsplan: %s erforscht." % t, [player])
+		_overflow_develop(nations[player])
 	month += 1
 	if month % 12 == 0:
 		_yearly()
@@ -891,6 +892,17 @@ func rank_of(tag: String) -> int:
 
 
 func _record_history() -> void:
+	var ranked := []
+	for t in order:
+		if nations[t].alive:
+			ranked.append([score(t), t])
+	ranked.sort_custom(func(a, b): return a[0] > b[0])
+	var top := {}
+	for i in mini(SCORE_HISTORY_TOP, ranked.size()):
+		top[ranked[i][1]] = int(ranked[i][0])
+	if player != "" and nations[player].alive:
+		top[player] = int(score(player))
+	score_history.append([year(), top])
 	if player == "" or not nations[player].alive:
 		return
 	history.append([year(), nations[player].dev_total, rank_of(player), provinces_of(player).size()])
@@ -1735,6 +1747,33 @@ func join_coalition(tag: String, target: String) -> String:
 
 
 # ---------------------------------------------------------------- actions
+
+## Province where one more point of development is cheapest (own, controlled, below the cap); -1 if none.
+func cheapest_develop(tag: String) -> int:
+	var best := -1
+	var best_cost := INF
+	for pid in provinces_of(tag):
+		var p: Province = provinces[pid]
+		if p.dev >= int(bal.max_dev) or p.controller != tag:
+			continue
+		var c := develop_cost(pid)
+		if c < best_cost:
+			best_cost = c
+			best = pid
+	return best
+
+
+## Power that reached the cap would be lost: spend it on the cheapest development instead
+## (after the research plan had its turn).
+func _overflow_develop(n: Nation) -> void:
+	var cap := float(bal.power_cap)
+	for kind in POWERS:
+		if n.get(kind) < cap:
+			continue
+		var pid := cheapest_develop(n.tag)
+		if pid >= 0 and develop(n.tag, pid, kind) == "":
+			log_msg("🏘️ Volle %s-Punkte: %s automatisch entwickelt." % [{"adm": "Verwaltungs", "dip": "Diplomatie", "mil": "Militär"}[kind], provinces[pid].name], [n.tag])
+
 
 ## Development can be paid with any of the three powers (same price), so diplomatic and
 ## military surplus has a use too.
@@ -2664,7 +2703,7 @@ func to_dict() -> Dictionary:
 			"next_army_id": next_army_id, "next_war_id": next_war_id, "pending_events": pending_events,
 			"pending_peace": pending_peace, "peace_offer_memo": peace_offer_memo, "log": log_lines, "stats": stats, "game_over": game_over, "emperor": emperor,
 			"hre_authority": hre_authority, "hre_reforms": hre_reforms,
-			"history": history, "prices": prices, "prev_prices": prev_prices, "shocks": shocks}
+			"history": history, "score_history": score_history, "prices": prices, "prev_prices": prev_prices, "shocks": shocks}
 	var ps := []
 	for p in provinces:
 		ps.append([p.owner, p.controller, p.dev, p.core_months, p.siege, p.fort, p.prev_owner, p.suppress_months,
@@ -2731,6 +2770,12 @@ func from_dict(d: Dictionary) -> void:
 	history = []
 	for h in d.get("history", []):
 		history.append([int(h[0]), int(h[1]), int(h[2]), int(h[3])])
+	score_history = []
+	for h in d.get("score_history", []):
+		var top := {}
+		for t in h[1]:
+			top[t] = int(h[1][t])
+		score_history.append([int(h[0]), top])
 	for k in d.stats:
 		stats[k] = d.stats[k]
 	for k in d.get("prices", {}):

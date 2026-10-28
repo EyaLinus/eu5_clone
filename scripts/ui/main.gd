@@ -186,19 +186,27 @@ func _build_hud() -> void:
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 14)
 	top.add_child(hb)
+	# resources sit in a clipping strip (swipe to see the rest), so with a large UI size on a narrow
+	# screen the date, speed and menu buttons on the right stay on screen
+	var strip := ScrollContainer.new()
+	strip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	strip.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	strip.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	hb.add_child(strip)
+	var res := HBoxContainer.new()
+	res.add_theme_constant_override("separation", 14)
+	res.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	strip.add_child(res)
 	for k in ["nation", "gold", "adm", "dip", "mil", "manpower", "army", "ae"]:
 		var tex := Icons.texture(k)
 		if tex != null:
-			hb.add_child(_icon_rect(tex, 32))
+			res.add_child(_icon_rect(tex, 32))
 		var l := Label.new()
-		l.mouse_filter = Control.MOUSE_FILTER_STOP
+		l.mouse_filter = Control.MOUSE_FILTER_PASS  # tooltip, and a drag still reaches the strip
 		l.tooltip_text = HUD_TIPS.get(k, "")
-		hb.add_child(l)
+		res.add_child(l)
 		top_labels[k] = l
 	top_labels.nation.gui_input.connect(func(e): if _is_click(e): _open_panel("nation"))
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hb.add_child(spacer)
 	top_labels["date"] = Label.new()
 	hb.add_child(top_labels.date)
 	hb.add_child(_btn("⏸", func(): _set_speed(0), "Pause"))
@@ -213,6 +221,7 @@ func _build_hud() -> void:
 			c.custom_minimum_size = Vector2(60, 56) if _big() else Vector2(52, 52)
 	if _big():
 		hb.add_theme_constant_override("separation", 10)
+		res.add_theme_constant_override("separation", 10)
 
 	# 8 tabs: one column on desktop, two columns with large touch targets so they fit 720 px height
 	var left := GridContainer.new()
@@ -1334,6 +1343,9 @@ func _show_game_over() -> void:
 	modal_box.add_child(_lbl(_summary_text(), 16, Color(0.85, 0.85, 0.75)))
 	if game.history.size() >= 2:
 		modal_box.add_child(_history_chart(260))
+	if game.score_history.size() >= 2:
+		modal_box.add_child(_lbl("📈 Verlauf der Großmächte", 18))
+		modal_box.add_child(_score_chart(260))
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
 	modal_box.add_child(_btn("🏠 Hauptmenü", func(): game = null; _show_start_menu()))
@@ -1390,6 +1402,66 @@ func _history_chart(height: int) -> Control:
 		c.draw_string(font, Vector2(10, 42), "🏆 Rang (oben = 1.)", HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color(0.35, 0.6, 1.0))
 		c.draw_string(font, Vector2(10, sz.y - 12), str(h[0][0]), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.7, 0.7, 0.7))
 		c.draw_string(font, Vector2(sz.x - 50, sz.y - 12), str(h[-1][0]), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.7, 0.7, 0.7)))
+	return c
+
+
+## Score lines of today's five best realms and the player over the years (game.score_history), in their
+## map colours, each line ending in its flag. A realm outside the top 8 in a year leaves a gap.
+func _score_chart(height: int) -> Control:
+	var c := Control.new()
+	c.custom_minimum_size = Vector2(300, height)
+	var h: Array = game.score_history
+	var now: Dictionary = h[-1][1]
+	var tags: Array = now.keys()
+	tags.sort_custom(func(a, b): return now[a] > now[b])
+	tags = tags.slice(0, 5)
+	if not tags.has(game.player) and now.has(game.player):
+		tags.append(game.player)
+	c.tooltip_text = "\n".join(tags.map(func(t): return "%s: %d Punkte" % [game.nations[t].name, now[t]]))
+	c.draw.connect(func():
+		var sz: Vector2 = c.size
+		c.draw_rect(Rect2(Vector2.ZERO, sz), Color(0.1, 0.11, 0.14))
+		var hi := 1.0
+		for e in h:
+			for t in tags:
+				hi = maxf(hi, e[1].get(t, 0))
+		hi *= 1.08
+		var font := c.get_theme_default_font()
+		var left := 8.0
+		var right := sz.x - 40.0  # room for the flags at the line ends
+		var top := 10.0
+		var bottom := sz.y - 26.0
+		for frac in [0.5, 1.0]:  # two guide lines with their score
+			var y: float = bottom - (bottom - top) * frac / 1.08
+			c.draw_line(Vector2(left, y), Vector2(right, y), Color(1, 1, 1, 0.08), 1.0)
+			c.draw_string(font, Vector2(left + 2, y - 3), str(int(hi / 1.08 * frac)), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(0.6, 0.6, 0.6))
+		var ends := []  # [y, tag] of every line that reaches today, for the flags
+		for t in tags:
+			var col: Color = game.nations[t].color.lightened(0.25)
+			var w := 4.0 if t == game.player else 2.0
+			var seg := PackedVector2Array()
+			var last := Vector2.ZERO
+			for i in h.size():
+				if not h[i][1].has(t):
+					if seg.size() >= 2:
+						c.draw_polyline(seg, col, w)
+					seg = PackedVector2Array()
+					continue
+				var p := Vector2(left + (right - left) * i / (h.size() - 1), bottom - (bottom - top) * h[i][1][t] / hi)
+				seg.append(p)
+				last = p
+			if seg.size() >= 2:
+				c.draw_polyline(seg, col, w)
+			if h[-1][1].has(t):
+				ends.append([last.y, t])
+		ends.sort_custom(func(a, b): return a[0] < b[0])
+		var y_min := top + 8.0
+		for e in ends:  # stack the flags so close lines do not hide each other's flag
+			var y: float = maxf(e[0], y_min)
+			c.draw_string(font, Vector2(right + 4, y + 8), PixelEmoji.nation(e[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 18)
+			y_min = y + 22.0
+		c.draw_string(font, Vector2(left, sz.y - 6), str(h[0][0]), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.7, 0.7, 0.7))
+		c.draw_string(font, Vector2(right - 40, sz.y - 6), str(h[-1][0]), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.7, 0.7, 0.7)))
 	return c
 
 
@@ -2703,8 +2775,9 @@ func _panel_hre() -> void:
 		var b := _nation_btn(e, "", _open_panel.bind("other", e) if e != me else _open_panel.bind("nation"))
 		b.tooltip_text = "%s würde %s wählen.%s" % [game.nations[e].name, game.nations[v].name if v != "" else "niemanden",
 				("\nBeziehung zu dir: %d" % int(game.get_rel(me, e))) if e != me else ""]
-		b.text = "→ %s" % (v if v != "" else "–")  # the flag names the elector; full names in the tooltip
-		b.clip_text = true
+		# elector flag (icon) → candidate flag; tags like "HAB" read as code. Names in the tooltip
+		b.text = "→%s" % (PixelEmoji.nation(v) if v != "" else "–")
+		b.add_theme_constant_override("icon_max_width", 36)  # room for the candidate's flag in three columns
 		els.append(b)
 	side_box.add_child(_grid(els, 3))
 	var tip_votes := "Bessere Beziehungen, Bündnisse und Prestige bringen Stimmen."
@@ -2779,20 +2852,22 @@ func _panel_ranking() -> void:
 	for i in mini(20 if more else 10, tags.size()):
 		var t: String = tags[i]
 		var o = game.nations[t]
-		var b := _nation_btn(t, " %d" % game.score(t), _open_panel.bind("other", t) if t != game.player else _open_panel.bind("nation"), "%d. " % (i + 1))
+		var b := _nation_btn(t, " · %d" % game.score(t), _open_panel.bind("other", t) if t != game.player else _open_panel.bind("nation"), "%d. " % (i + 1))
 		b.tooltip_text = "%s: %d Punkte · 🏘️ %d Entwicklung · 🛡️ %.0f Regimenter%s" % [o.name, game.score(t), o.dev_total, game.army_regs(t), " · ⛓️ Vasall" if o.overlord != "" else ""]
 		b.clip_text = true
 		if t == game.player:
 			b.modulate = Color(1.0, 0.95, 0.6)
 		rows.append(b)
-	if rows.size() % 2 == 1:
-		rows.append(Control.new())
-	side_box.add_child(_grid(rows))
+	for b in rows:  # one per line: in two columns long names ("Osmanisches Reich") hid the score
+		side_box.add_child(b)
 	if tags.size() > 10:
 		_section("rank_more", "Plätze 11 bis 20" if not more else "Nur die ersten 10", false)
 	var mine: int = tags.find(game.player)
 	if mine >= (20 if more else 10):
 		side_box.add_child(_lbl("Du: Platz %d" % (mine + 1), 16))
+	if game.score_history.size() >= 2 and _section("rank_chart", "📈 Verlauf der Großmächte", true,
+			"Punkte der heute fünf besten Reiche und deine, Jahr für Jahr. Lücken: das Reich war in dem Jahr nicht unter den Top 8."):
+		side_box.add_child(_score_chart(240))
 
 
 ## The advisor: everything that wants the player's attention right now, most urgent first, each with a jump
@@ -2852,7 +2927,7 @@ func _advice() -> Array:
 	for k in ["adm", "dip", "mil"]:
 		if float(n.get(k)) >= float(game.bal.power_cap) * 0.8:
 			add.call("%s Macht staut sich (%d)" % [{"adm": "📜", "dip": "🕊️", "mil": "⚔️"}[k], int(n.get(k))],
-					"Bei %d ist Schluss. Entwickeln, Technologie, Berater oder die Aktionen im Nationsfenster nutzen." % int(game.bal.power_cap), "", "nation")
+					"Ab %d fließt der Überschuss automatisch in die billigste Entwicklung. Gezielter: selbst entwickeln, forschen, Berater oder die Aktionen im Nationsfenster." % int(game.bal.power_cap), "", "nation")
 	if Faith.missionaries(game, me) < int(game.bal.max_missionaries) and n.gold >= 80.0:
 		for pid in game.provinces_of(me):
 			if Faith.convert_block_reason(game, me, pid) == "":

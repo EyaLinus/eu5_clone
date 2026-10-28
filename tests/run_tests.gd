@@ -25,7 +25,7 @@ func _init() -> void:
 		"test_military_access",
 		"test_guarantee",
 		"test_religion",
-		"test_monuments_and_feast", "test_first_steps",
+		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_monument_events", "test_ctx_events", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_empire_reforms",
@@ -161,8 +161,17 @@ func test_develop_and_tech() -> void:
 	check(g.provinces[pid].dev == d2 + 1 and n.dip < 500 and n.adm == 0, "diplomacy paid, admin untouched")
 	n.mil = 0
 	check(g.develop("FRA", pid, "mil") != "", "develop fails without mil")
-	check(g.monthly_power(n, "adm") - g.monthly_power(n, "dip") == float(g.bal.base_power_adm_extra) + n.ruler.adm - n.ruler.dip \
-			+ g.mod(n, "adm") - g.mod(n, "dip") - (float(g.bal.emperor_dip) if g.emperor == "FRA" else 0.0), "admin base bonus")
+	# capped power is not lost: the player's overflow goes into the cheapest development
+	var g2 = new_game("FRA")
+	var n2 = g2.nations.FRA
+	var cheap: int = g2.cheapest_develop("FRA")
+	var dev_before: int = g2.provinces[cheap].dev
+	n2.mil = float(g2.bal.power_cap)
+	g2._overflow_develop(n2)
+	check(g2.provinces[cheap].dev == dev_before + 1 and n2.mil < float(g2.bal.power_cap), "overflow develops the cheapest province")
+	n2.adm = 10.0
+	g2._overflow_develop(n2)
+	check(n2.adm == 10.0, "no overflow spending below the cap")
 
 
 func test_recruit_limits() -> void:
@@ -990,6 +999,19 @@ func test_religion() -> void:
 	check(h.check_conditions("FRA", {"religion": "catholic"}) and not h.check_conditions("FRA", {"religion": "sunni"}), "religion condition")
 
 
+## Ranking chart data: one entry per year with the top realms and the player, kept by save/load.
+func test_score_history() -> void:
+	var g = new_game("NAP")
+	for i in 25:
+		g.tick()
+	check(g.score_history.size() == 2, "a score snapshot each new year (%d)" % g.score_history.size())
+	var top: Dictionary = g.score_history[-1][1]
+	check(top.size() <= g.SCORE_HISTORY_TOP + 1 and top.has("NAP"), "snapshot holds the best realms and the player")
+	var g2 = new_game("NAP")
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.score_history.size() == 2 and int(g2.score_history[-1][1]["NAP"]) == int(top["NAP"]), "score history survives save/load")
+
+
 func test_first_steps() -> void:
 	var FS = load("res://scripts/core/first_steps.gd")
 	var g = new_game("FRA", 5)
@@ -1603,6 +1625,13 @@ func test_emoji_coverage() -> void:
 		var f: String = PE.nation(tag)
 		check(f.length() == 1 and f.unicode_at(0) >= PE.PUA and PE.font.has_char(f.unicode_at(0)), "flag of %s is a pixel glyph" % tag)
 	check(PE.nation("XXX") == "🏳" and have.has("1f3f3"), "a nation without flag shows the white flag glyph")
+	# a changed global oversampling (window resize, UI size, Windows DPI) must not wipe the glyphs
+	var ts := TextServerManager.get_primary_interface()
+	var was := ts.font_get_global_oversampling()
+	ts.font_set_global_oversampling(was * 1.4 + 0.1)
+	var flag: String = PE.nation(data.nations.keys()[0])
+	check(PE.font.has_char(0x1F4B0) and PE.font.has_char(flag.unicode_at(0)), "pixel glyphs survive an oversampling change")
+	ts.font_set_global_oversampling(was)
 
 
 ## Pixel UI kit (tools/art/ui_kit.py): every slice texture exists and is big enough for its margins;
