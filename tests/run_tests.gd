@@ -161,8 +161,17 @@ func test_develop_and_tech() -> void:
 	check(g.provinces[pid].dev == d2 + 1 and n.dip < 500 and n.adm == 0, "diplomacy paid, admin untouched")
 	n.mil = 0
 	check(g.develop("FRA", pid, "mil") != "", "develop fails without mil")
-	check(g.monthly_power(n, "adm") - g.monthly_power(n, "dip") == float(g.bal.base_power_adm_extra) + n.ruler.adm - n.ruler.dip \
-			+ g.mod(n, "adm") - g.mod(n, "dip") - (float(g.bal.emperor_dip) if g.emperor == "FRA" else 0.0), "admin base bonus")
+	# capped power is not lost: the player's overflow goes into the cheapest development
+	var g2 = new_game("FRA")
+	var n2 = g2.nations.FRA
+	var cheap: int = g2.cheapest_develop("FRA")
+	var dev_before: int = g2.provinces[cheap].dev
+	n2.mil = float(g2.bal.power_cap)
+	g2._overflow_develop(n2)
+	check(g2.provinces[cheap].dev == dev_before + 1 and n2.mil < float(g2.bal.power_cap), "overflow develops the cheapest province")
+	n2.adm = 10.0
+	g2._overflow_develop(n2)
+	check(n2.adm == 10.0, "no overflow spending below the cap")
 
 
 func test_recruit_limits() -> void:

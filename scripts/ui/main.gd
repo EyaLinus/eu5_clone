@@ -2852,7 +2852,7 @@ func _advice() -> Array:
 	for k in ["adm", "dip", "mil"]:
 		if float(n.get(k)) >= float(game.bal.power_cap) * 0.8:
 			add.call("%s Macht staut sich (%d)" % [{"adm": "📜", "dip": "🕊️", "mil": "⚔️"}[k], int(n.get(k))],
-					"Bei %d ist Schluss. Entwickeln, Technologie, Berater oder die Aktionen im Nationsfenster nutzen." % int(game.bal.power_cap), "", "nation")
+					"Ab %d fließt der Überschuss automatisch in die billigste Entwicklung. Gezielter: selbst entwickeln, forschen, Berater oder die Aktionen im Nationsfenster." % int(game.bal.power_cap), "", "nation")
 	if Faith.missionaries(game, me) < int(game.bal.max_missionaries) and n.gold >= 80.0:
 		for pid in game.provinces_of(me):
 			if Faith.convert_block_reason(game, me, pid) == "":
