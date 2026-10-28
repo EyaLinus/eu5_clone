@@ -2532,7 +2532,7 @@ func _check_events(n: Nation) -> void:
 	var eligible := []
 	for e in event_defs:
 		var t: String = e.get("tag", "*")
-		if t != "*" and t != n.tag:
+		if (t != "*" and t != n.tag) or e.get("manual", false):
 			continue
 		if n.flags.has("ev_" + e.id):
 			if e.get("once", true) or month - int(n.flags["ev_" + e.id]) < 120:
@@ -2558,6 +2558,21 @@ func _check_events(n: Nation) -> void:
 		pending_events.append(e.id)
 	else:
 		apply_effects(n.tag, e.options[ai.pick_event_option(self, n, e)].get("effects", {}))
+
+
+## Context events fired by game code at a fixed moment (e.g. great works), once per realm.
+## They carry "manual": true and are never drawn at random.
+func fire_event(tag: String, event_id: String) -> void:
+	if not event_by_id.has(event_id) or not nations.has(tag) or nations[tag].flags.has("ev_" + event_id):
+		return
+	var n: Nation = nations[tag]
+	var e: Dictionary = event_by_id[event_id]
+	n.flags["ev_" + event_id] = month
+	stats.events += 1
+	if tag == player:
+		pending_events.append(event_id)
+	else:
+		apply_effects(tag, e.options[ai.pick_event_option(self, n, e)].get("effects", {}))
 
 
 func choose_event_option(tag: String, event_id: String, idx: int) -> void:

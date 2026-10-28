@@ -51,13 +51,7 @@ EVENTS = [
        [("Die Münzen in die Bauhütte.", {"monument_progress": 3, "gold": 30}),
         ("Die Altertümer ausstellen.", {"prestige": 5, "adm": 15}),
         ("Der Kirche überlassen.", {"estate": {"klerus": 8}})]),
-    # --- finished great works
-    ev("consecration", "Die Weihe des Doms",
-       "Der neue Dom ist vollendet. Bischöfe aus dem ganzen Land wollen ihn weihen.", "church",
-       {"monument": "cathedral"},
-       [("Ein großes Weihefest.", {"prestige": 6, "estate": {"klerus": 6}}),
-        ("Eine Wallfahrt stiften.", {"gold": 40, "estate": {"klerus": 3}}),
-        ("Schlicht und würdig.", {"adm": 25})]),
+    # --- finished great works (completion itself: mon_<work>_done in monument_events.py)
     ev("embassy_secrets", "Geheimnisse im Gesandtenhof",
        "Ein fremder Gesandter verrät beim Wein mehr, als er sollte. Deine Diplomaten haben gut zugehört.", "conspiracy",
        {"monument": "embassy"},

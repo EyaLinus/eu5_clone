@@ -2105,8 +2105,14 @@ func _nation_monuments(me: String) -> void:
 			continue
 		var br: String = Monuments.block_reason(game, me, id)
 		side_box.add_child(_btn("%s %s bauen (%d 💰, %d Mon.)" % [m.emoji, m.name, int(Monuments.cost(game, me, id)), int(m.months)],
-				func(): _act(Monuments.start(game, me, id), "🔨 Bau begonnen: " + m.name),
+				func(): _start_monument(id),
 				tip + ("\n❌ " + br if br != "" else ""), br != ""))
+
+
+func _start_monument(id: String) -> void:
+	_act(Monuments.start(game, game.player, id), "🔨 Bau begonnen: " + game.monument_defs[id].name)
+	if not game.pending_events.is_empty():
+		_show_event(game.pending_events[0])  # the work's start event, without waiting for the next month
 
 
 ## Every modifier of the player: total (green buff / red nerf) and the sources it is summed from (Game.mod).

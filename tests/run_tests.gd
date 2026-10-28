@@ -26,7 +26,7 @@ func _init() -> void:
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_monument_events", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_empire_reforms",
 		"test_religion_modifiers",
 		"test_age_goals",
@@ -2373,6 +2373,45 @@ func test_south_content() -> void:
 				g.check_conditions(tag, m.require)
 		check(found >= 2, "%s has south missions" % tag)
 	check(g.check_conditions("MAM", {"owns": ["aleppo", "damascus"]}), "Mamluks start with Syria")
+
+
+func test_monument_events() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	for id in g.monument_defs:
+		for stage in ["start", "half", "done"]:
+			var eid := "mon_%s_%s" % [id, stage]
+			check(g.event_by_id.has(eid) and g.event_by_id[eid].get("manual", false), "%s exists and is manual" % eid)
+	# manual events are never drawn at random
+	g.bal.event_chance = 1.0
+	for i in 30:
+		g._check_events(n)
+	for eid in g.pending_events:
+		check(not eid.begins_with("mon_"), "random draw picked manual event %s" % eid)
+	g.pending_events.clear()
+	var id := "cathedral"
+	n.tech[g.monument_defs[id].tech[0]] = 20
+	n.gold = 1e6
+	check(g.Monuments.start(g, "FRA", id) == "", "great work starts")
+	check(g.pending_events.has("mon_cathedral_start"), "start event fires on start")
+	var total := int(g.monument_defs[id].months)
+	for i in total / 2 - 1:
+		g.Monuments.tick(g, n)
+	check(not g.pending_events.has("mon_cathedral_half"), "no half event before half time")
+	g.Monuments.tick(g, n)
+	check(g.pending_events.has("mon_cathedral_half"), "half event at half time")
+	for i in total:
+		g.Monuments.tick(g, n)
+	check(n.monuments.has(id) and g.pending_events.has("mon_cathedral_done"), "done event on completion")
+	var cnt: int = g.pending_events.size()
+	g.fire_event("FRA", "mon_cathedral_done")
+	check(g.pending_events.size() == cnt, "context events fire once per realm")
+	# the AI decides at once
+	var ai = g.nations.ENG
+	ai.tech[g.monument_defs.embassy.tech[0]] = 20
+	ai.gold = 1e6
+	g.Monuments.start(g, "ENG", "embassy")
+	check(ai.flags.has("ev_mon_embassy_start") and not g.pending_events.has("mon_embassy_start"), "AI resolves its start event")
 
 
 func test_court_content() -> void:
