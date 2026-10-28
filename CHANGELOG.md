@@ -1,5 +1,52 @@
 # Changelog
 
+## v0.9.3 – 2026-10-28
+- **KI-Armeen marschieren zielstrebiger:** Sie bleiben bei ihrem Marschziel, solange kein deutlich besseres
+  auftaucht (ein Richtungswechsel setzt den Marsch zurück), fliehen vor Übermacht in die nächste sichere eigene
+  Provinz statt quer durchs Land zur Hauptstadt und lassen Armeen in laufenden Schlachten in Ruhe.
+- **Hohe Gebäudestufen teurer:** Die Kosten steigen pro Stufe jetzt steiler (Stufe 5 kostet etwa 13× statt 7,5× die
+  Grundkosten). Neue Gebäude lohnen sich dadurch eher als die x-te Ausbaustufe, das Spätspiel ist weniger zugebaut.
+- **Verwaltungskosten großer Reiche:** Wer über 100 Entwicklung hinauswächst, zahlt einen Anteil seiner Einnahmen
+  für die Verwaltung (+0,05 % je Entwicklungspunkt, höchstens 35 %). Kleine Länder zahlen nichts. Sichtbar in der
+  Wirtschaftsübersicht unter 🏛️. Damit stapeln Großmächte im Spätspiel nicht mehr zehntausende Gold.
+- **Mana ausgeglichener:** Entwickeln lässt sich jetzt wahlweise mit 📜 Verwaltung, 🕊️ Diplomatie oder ⚔️ Militär
+  bezahlen (gleicher Preis, drei Buttons im Provinzfenster). Verwaltung wächst um 3 statt 2 Punkte pro Monat.
+  Ansprüche haben ein eigenes Symbol 🎯 (sie kosten wie bisher Diplomatie, das alte 📜 sah nach Verwaltung aus).
+- **Seekrieg mit klaren Regeln:** Jedes Land mit Küste hat eine Flotte (⚓ im Nationsfenster: bauen für Gold und etwas Militär-Macht, Limit wächst mit Küstenentwicklung und Häfen). Die Schiffe kreuzen in den eigenen Küstenmeeren oder gebündelt in einem Meer deiner Wahl. Die Karte kennt 11 Meere von der Nordsee bis zum Kaspischen Meer.
+- **Seeherrschaft:** Wer im Krieg in einem Meer mindestens 1,5-mal so viele Schiffe hat, beherrscht es. Dann sind für den Gegner die Überfahrten dort gesperrt (Meerengen sind jetzt gestrichelt auf der Karte, rot = gesperrt) und seine Küstenprovinzen blockiert: weniger Einkommen, Belagerungen dort gehen schneller. Ohne Überzahl bleibt das Meer umkämpft und offen.
+- **Seeschlachten:** Treffen Flotten aufeinander, kommt es zur Seeschlacht. Der Verlierer verliert Schiffe, der Sieger bekommt Kriegspunkte. Das Kriegsfenster zeigt für jedes Meer die Schiffe beider Seiten und wer es beherrscht, im Krieg stehen sie auch auf der Karte.
+- **Großbauwerke mit eigener Geschichte:** Jedes der 7 Großbauwerke hat jetzt drei Ereignisse, die genau zum
+  passenden Zeitpunkt kommen: beim Baubeginn (Pläne, Geldgeber, Bauleute), bei halber Bauzeit (Gewölbe, erste
+  Studenten, Probeschüsse ...) und bei der Fertigstellung (Weihe, Eröffnung, erster Jahrgang). Manche Entscheidungen
+  bringen den Bau schneller voran.
+- **Gebäude brauchen Technologie:** Höhere Gebäudestufen kommen jetzt mit dem Fortschritt. Stufe 2 bis 5 von Marktplatz, Werkstatt, Gutshof, Kaserne und Manufaktur brauchen je eine passende Technologie (ab etwa 1484, 1528, 1572 und 1616), dazu Hafen, Straßen, Festung und Gerichtshof in ihren höheren Stufen. So wird im Spätspiel nicht mehr alles auf einmal ausgebaut. Das Tech-Fenster zeigt mit 🏗, was eine Technologie freischaltet.
+- **Drei neue Spätgebäude:** 🎓 Universität (billigere Technologien, Prestige), 🏦 Börse (Einkommen fürs ganze Reich) und 🛡 Zeughaus (weniger Armeeunterhalt, mehr Truppenlimit). Jedes davon wird durch eine Technologie freigeschaltet und ist teuer, und du kannst höchstens drei pro Reich bauen.
+- **Marschzeit statt Sprung:** Armeen ziehen nicht mehr stur eine Provinz pro Monat. Jeder Schritt kostet Zeit nach Entfernung und Gelände (Ebene, Wald, Hügel, Gebirge, Wüste, Sumpf), eine Überfahrt über eine Meerenge einen Monat extra. Eigene Straßen machen schneller. Bis ein Schritt fertig ist, steht die Armee noch in der alten Provinz, auf der Karte rückt sie sichtbar vor. Wer umdreht, fängt den Schritt von vorn an.
+- **Kein Katz-und-Maus mehr:** Zieht eine Armee in dem Monat ab, in dem ein Feind ihre Provinz betritt, wird sie abgefangen. Armeen, die aneinander vorbeiziehen wollen, treffen sich.
+- **Schlachten dauern:** Eine Schlacht läuft über mehrere Runden (zwei pro Monat): erst Plänkeln, dann Nahkampf. Wessen Kampfmoral zuerst bricht, verliert und wird verfolgt. Armeen, die herankommen, greifen ein; aus einer laufenden Schlacht kann man nicht abmarschieren. Auf der Karte zeigt ⚔️ die Schlacht mit der Kampfmoral beider Seiten.
+- **Gelände zählt:** Wer die Provinz hält, kämpft in Hügeln, Wald, Sumpf und vor allem im Gebirge stärker. Truppen, die gerade übers Meer kamen, kämpfen in den ersten Runden schlechter. Gelände steht im Provinzfenster und im Karten-Tooltip.
+- **Flaggen-Fix:** Alle Länderflaggen werden beim Start als Pixel-Zeichen angelegt statt erst beim ersten Anzeigen.
+  Vorher entstand eine Flagge manchmal mitten im Zeichnen (Tooltip über der Karte am PC) und konnte als kryptisches
+  Zeichen erscheinen. Länder ohne eigene Flagge zeigen eine weiße Flagge statt eines Kastens.
+- **Erbe enterben:** Im Erben-Fenster kannst du einen schwachen Erben für 25 Prestige enterben, dann wird ein neuer mit zufälligen Fähigkeiten benannt. Das geht höchstens alle 10 Jahre.
+- **Thronfolger:** Jede Nation hat jetzt einen Erben (in Republiken, Theokratien, Ordensstaaten und Wahlmonarchien einen Nachfolger) mit eigenen Fähigkeiten. Er steht oben im Hof-Tab und besteigt den Thron, wenn die Zeit des Herrschers abgelaufen ist; vorher kam einfach ein Zufallsherrscher. Einmal im Jahr kannst du ihn für Punkte in einem Fach unterrichten lassen (+1 auf Verwaltung, Diplomatie oder Militär, höchstens 4). Jede Stufe macht den nächsten Unterricht teurer. Die KI bildet ihren Erben nur aus, wenn sie Punkte übrig hat.
+- **Recht-Tab kompakter:** Gesetzes- und Reformkarten sind etwa ein Viertel niedriger, so dass weniger gescrollt werden muss. Jede Gesetzeskarte zeigt jetzt, wie viele andere Optionen du gerade einführen könntest („2 weitere möglich“). Lange Sperrzeiten stehen in Jahren statt Monaten.
+- **Forschungsplan:** Im Detailfenster einer Technologie kannst du sie jetzt vormerken (fehlende Vorgänger kommen automatisch mit). Vorgemerktes wird der Reihe nach erforscht, sobald die Punkte reichen, sodass am Punkte-Limit nichts mehr verfällt. Frühe Technologien warten auf ihr reguläres Jahr, außer deine Punkte sind voll. Der neue Knopf „📜 Plan“ zeigt die Reihenfolge, warum die nächste wartet, und lässt dich umsortieren oder streichen; vorgemerkte Kacheln tragen ihre Platznummer.
+- **Neues Gesetz „Außenpolitik“:** Zurückhaltung, Expansionsdrang (schnellere Eingliederung und Prestige, aber mehr
+  Aggressive Expansion), Heiratspolitik (mit der Technologie Heiratspolitik) oder Gleichgewichtspolitik (AE baut
+  schneller ab, ein Regiment weniger). Die Reform „Absolutismus“ heißt jetzt „Alleinherrschaft der Krone“, damit sie
+  nicht mit dem gleichnamigen Gesetz und Zeitalter verwechselt wird. Gesetze ohne Wirkung zeigen keine Leerzeile mehr.
+- **Fünfte Reformstufe „Herrschaftsform“ (ab 1610):** Absolutismus (+1 Verwaltung, +2 Truppenlimit, Adel und Bürger
+  verärgert), Parlamentarische Krone (+10 % Steuern, weniger Unruhe, Bürger zufrieden, −0,5 Verwaltung) oder
+  Aufgeklärte Herrschaft (billigere Forschung, mehr Produktion, der Klerus grollt).
+- **Neue Technologie-Stufe für das Spätspiel (9 Techs):** Jeder Zweig bekommt eine zehnte Technologie für 1638
+  (regulär ab 1618): Kabinettsregierung, Colbertismus, Akademie der Wissenschaften, Westfälisches System,
+  Ostindische Kompanien, Souveränität, Bajonett, Vauban-Festungsbau und Generalkriegskommissariat. Bisher war der
+  Baum um 1620 fertig erforscht.
+- **Forschen vor der Zeit:** Technologien lassen sich bis zu 15 Jahre vor ihrem regulären Zeitfenster erforschen,
+  jedes Jahr Vorsprung kostet 5 % mehr (höchstens +75 %). Solche Felder tragen im Technologiebaum den Zusatz
+  „früh“, das Detailfenster nennt Aufschlag und regulären Termin. Die KI geht nur mit Punkte-Überschuss voran.
+
 ## v0.9.2 – 2026-10-27
 - **🎓 Erste Schritte:** Sechs kleine Einstiegsziele oben im 💡 Ratgeber (entwickeln, bauen, forschen, Berater,
   Regiment, Bündnis oder Heirat). Antippen führt hin, erledigte Ziele bringen je +25 💰 und +5 ⭐. Der Zähler am
