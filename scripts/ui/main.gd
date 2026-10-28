@@ -34,6 +34,13 @@ var data: Dictionary
 var game
 var speed := 0
 var acc := 0.0
+# At high speed a month passes every frame. Rebuilding the open side panel and writing the autosave that
+# often cost a phone more than the tick itself, so both are spaced out in real time.
+const PANEL_REFRESH_MS := 300
+const AUTOSAVE_MS := 30000
+var _last_refresh_ms := 0
+var _refresh_pending := false
+var _last_autosave_ms := 0
 var panel_mode := ""
 var panel_arg = null
 var econ_tab := "overview"  # sub-tab of the economy panel
@@ -706,7 +713,7 @@ func _show_slots(saving: bool) -> void:
 			if not m.is_empty():
 				tip = "%d Punkte · %s" % [int(m.get("score", 0)), Game.DIFFICULTY_NAMES.get(m.get("difficulty", "normal"), "Normal")]
 		if slot == "auto":
-			tip += ("\n" if tip != "" else "") + "Wird jedes Jahr und beim Verlassen überschrieben."
+			tip += ("\n" if tip != "" else "") + "Wird beim Verlassen und während des Spiels regelmäßig (spätestens jedes Spieljahr, höchstens alle 30 Sekunden) überschrieben."
 		var text := "%s: %s" % ["💾 Autosave" if slot == "auto" else "💾 Platz " + slot, info]
 		if saving:
 			modal_box.add_child(_btn(text, func():
@@ -887,6 +894,12 @@ func _process(delta: float) -> void:
 		if toast_time <= 0.0:
 			toast.text = ""
 			toast.visible = false
+	# a month skipped by the refresh spacing still shows, also once the game is paused
+	if _refresh_pending and Time.get_ticks_msec() - _last_refresh_ms >= PANEL_REFRESH_MS:
+		_refresh_pending = false
+		_last_refresh_ms = Time.get_ticks_msec()
+		if game != null and side_panel.visible and panel_mode != "peace":
+			_refresh()
 	if game == null or modal.visible or speed == 0 or game.game_over:
 		return
 	acc += delta
@@ -899,8 +912,9 @@ func _process(delta: float) -> void:
 		acc -= spm
 		game.tick()
 		steps += 1
-		if game.month % 12 == 0:
+		if game.month % 12 == 0 and Time.get_ticks_msec() - _last_autosave_ms >= AUTOSAVE_MS:
 			_save_game()
+			_last_autosave_ms = Time.get_ticks_msec()
 		if not game.pending_events.is_empty() or not game.pending_peace.is_empty() or game.game_over:
 			break
 	if steps > 0:
@@ -931,7 +945,12 @@ func _after_tick() -> void:
 		_show_peace_offer(game.pending_peace[0])
 		return
 	if side_panel.visible and panel_mode != "peace":
-		_refresh()
+		if Time.get_ticks_msec() - _last_refresh_ms >= PANEL_REFRESH_MS:
+			_refresh_pending = false
+			_last_refresh_ms = Time.get_ticks_msec()
+			_refresh()
+		else:
+			_refresh_pending = true
 
 
 const MODE_LEGENDS := [
