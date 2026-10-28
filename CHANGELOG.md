@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.9.5 – 2026-10-28
+- Neuer Kartenmodus „Reich“: Kaiser (gold), Kurfürsten (orange) und Reichsmitglieder (violett) auf einen Blick. Er ist auch direkt aus dem Reichsfenster erreichbar („🗺️ Reich auf der Karte zeigen“).
+- Flüssiger bei hoher Geschwindigkeit: Das offene Seitenfenster wird höchstens etwa dreimal pro Sekunde neu aufgebaut statt jeden Spielmonat, und der Autosave läuft höchstens alle 30 Sekunden statt jedes Spieljahr. Beim Verlassen oder Wechseln der App wird weiterhin sofort gespeichert. Am Handy war beides teurer als die Spielberechnung selbst.
+- Berater ernennen: Filter nach Art (Alle / Verwaltung / Diplomatie / Militär) mit Anzahl; bezahlbare Berater stehen oben. Weniger Scrollen.
+- Regierung › Gesamt: Die Gesamtwirkung zeigt jetzt jede Quelle einzeln (Staatsform, Herrscher-Eigenschaft, Berater, Kompanien, Gesetze, Reformen, Zeitalter-Ziele) statt eines Sammelblocks.
+- Regentschaft: Erben haben jetzt ein Alter. Stirbt der Herrscher, solange der Erbe jünger als 15 ist, regiert ein Regentschaftsrat bis zur Volljährigkeit (+10 Zufriedenheit Adel, +0,5 Unruhe, −1 Prestige/Jahr, +10 % Aggressive Expansion). Die Erben-Karte warnt vorher („droht Regentschaft“). Drei neue Ereignisse rund um den Regentschaftsrat, eines davon beendet die Regentschaft vorzeitig.
+- Spielstände speichern jetzt die Marktführer pro Ware. Bisher wurden sie beim Laden neu berechnet, sodass ein geladenes Spiel leicht anders weiterlief.
+- Staatsform wechseln (Regierung › Recht): innerhalb der Familie (Monarchie, Republik, Kirche, Stämme) für 250 Verwaltungspunkte und 20 Prestige, nur im Frieden, danach 40 Jahre gesperrt. Neu: Absolute Monarchie ab 1580 für Reiche ab 10 Provinzen (+0,5 Verwaltung/Monat, +10 % Steuern, −10 Zufriedenheit Adel, +0,25 Unruhe). Die KI wechselt selten und nur zu einer klar besseren Form.
+- **Ereignisse für Gebäude und Flotte (16 neu):** Die erste Manufaktur, Festung, Wechselbank, das erste Zeughaus
+  usw. bringen jetzt ein eigenes Ereignis, ebenso das erste Gebäude auf höchster Stufe. Der erste Seesieg und die
+  erste Niederlage zur See haben eigene Ereignisse, dazu Kaperbriefe, Stürme, Blockaden, Kartenzeichner und
+  holländische Schiffbauer. Manche Entscheidungen bringen oder kosten Schiffe.
+- **17 Ereignisse um Herrscher und Erben:** Der Erbe wird volljährig, ein berühmter Lehrer bietet Unterricht an, ein grausamer, zaghafter oder verschwenderischer Erbe lässt sich vielleicht noch umerziehen. Ein gelehrter Herrscher gründet eine Bibliothek, ein frommer will pilgern, ein Baumeister plant einen Palast. Viele Entscheidungen ändern die Fähigkeiten oder die Eigenschaft von Herrscher und Erbe.
+- **Herrscher-Eigenschaften:** Herrscher und Erben haben jetzt oft eine Eigenschaft mit echter Wirkung, zum Beispiel Baumeister (−10 % Baukosten), Feldherr, Gelehrt (billigere Technologien), Kaufmannsgeist, aber auch Grausam, Zaghaft oder Verschwender. Der Erbe bringt seine Eigenschaft auf den Thron. Ob ein Enterben lohnt, hängt also nicht nur von seinen Werten ab. Die Eigenschaft steht im Regierungskopf und auf der Erben-Karte.
+
 ## v0.9.4 – 2026-10-28
 - **Volle Punkte gehen nicht mehr verloren:** Erreicht Verwaltung, Diplomatie oder Militär das Maximum, entwickelt
   das Spiel automatisch die billigste eigene Provinz mit dem Überschuss (nach dem Forschungsplan).

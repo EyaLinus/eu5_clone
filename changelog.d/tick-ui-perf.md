@@ -1,1 +1,0 @@
-- Flüssiger bei hoher Geschwindigkeit: Das offene Seitenfenster wird höchstens etwa dreimal pro Sekunde neu aufgebaut statt jeden Spielmonat, und der Autosave läuft höchstens alle 30 Sekunden statt jedes Spieljahr. Beim Verlassen oder Wechseln der App wird weiterhin sofort gespeichert. Am Handy war beides teurer als die Spielberechnung selbst.
