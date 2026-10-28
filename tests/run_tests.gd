@@ -25,7 +25,7 @@ func _init() -> void:
 		"test_military_access",
 		"test_guarantee",
 		"test_religion",
-		"test_monuments_and_feast", "test_first_steps",
+		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
 		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_monument_events", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_empire_reforms",
@@ -997,6 +997,19 @@ func test_religion() -> void:
 			prot2 += 1
 	check(prot2 > prot, "Protestantism spreads")
 	check(h.check_conditions("FRA", {"religion": "catholic"}) and not h.check_conditions("FRA", {"religion": "sunni"}), "religion condition")
+
+
+## Ranking chart data: one entry per year with the top realms and the player, kept by save/load.
+func test_score_history() -> void:
+	var g = new_game("NAP")
+	for i in 25:
+		g.tick()
+	check(g.score_history.size() == 2, "a score snapshot each new year (%d)" % g.score_history.size())
+	var top: Dictionary = g.score_history[-1][1]
+	check(top.size() <= g.SCORE_HISTORY_TOP + 1 and top.has("NAP"), "snapshot holds the best realms and the player")
+	var g2 = new_game("NAP")
+	g2.from_dict(JSON.parse_string(JSON.stringify(g.to_dict())))
+	check(g2.score_history.size() == 2 and int(g2.score_history[-1][1]["NAP"]) == int(top["NAP"]), "score history survives save/load")
 
 
 func test_first_steps() -> void:
