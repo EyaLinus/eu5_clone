@@ -1603,6 +1603,13 @@ func test_emoji_coverage() -> void:
 		var f: String = PE.nation(tag)
 		check(f.length() == 1 and f.unicode_at(0) >= PE.PUA and PE.font.has_char(f.unicode_at(0)), "flag of %s is a pixel glyph" % tag)
 	check(PE.nation("XXX") == "🏳" and have.has("1f3f3"), "a nation without flag shows the white flag glyph")
+	# a changed global oversampling (window resize, UI size, Windows DPI) must not wipe the glyphs
+	var ts := TextServerManager.get_primary_interface()
+	var was := ts.font_get_global_oversampling()
+	ts.font_set_global_oversampling(was * 1.4 + 0.1)
+	var flag: String = PE.nation(data.nations.keys()[0])
+	check(PE.font.has_char(0x1F4B0) and PE.font.has_char(flag.unicode_at(0)), "pixel glyphs survive an oversampling change")
+	ts.font_set_global_oversampling(was)
 
 
 ## Pixel UI kit (tools/art/ui_kit.py): every slice texture exists and is big enough for its margins;
