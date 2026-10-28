@@ -186,19 +186,27 @@ func _build_hud() -> void:
 	var hb := HBoxContainer.new()
 	hb.add_theme_constant_override("separation", 14)
 	top.add_child(hb)
+	# resources sit in a clipping strip (swipe to see the rest), so with a large UI size on a narrow
+	# screen the date, speed and menu buttons on the right stay on screen
+	var strip := ScrollContainer.new()
+	strip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	strip.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	strip.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	hb.add_child(strip)
+	var res := HBoxContainer.new()
+	res.add_theme_constant_override("separation", 14)
+	res.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	strip.add_child(res)
 	for k in ["nation", "gold", "adm", "dip", "mil", "manpower", "army", "ae"]:
 		var tex := Icons.texture(k)
 		if tex != null:
-			hb.add_child(_icon_rect(tex, 32))
+			res.add_child(_icon_rect(tex, 32))
 		var l := Label.new()
-		l.mouse_filter = Control.MOUSE_FILTER_STOP
+		l.mouse_filter = Control.MOUSE_FILTER_PASS  # tooltip, and a drag still reaches the strip
 		l.tooltip_text = HUD_TIPS.get(k, "")
-		hb.add_child(l)
+		res.add_child(l)
 		top_labels[k] = l
 	top_labels.nation.gui_input.connect(func(e): if _is_click(e): _open_panel("nation"))
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hb.add_child(spacer)
 	top_labels["date"] = Label.new()
 	hb.add_child(top_labels.date)
 	hb.add_child(_btn("⏸", func(): _set_speed(0), "Pause"))
@@ -213,6 +221,7 @@ func _build_hud() -> void:
 			c.custom_minimum_size = Vector2(60, 56) if _big() else Vector2(52, 52)
 	if _big():
 		hb.add_theme_constant_override("separation", 10)
+		res.add_theme_constant_override("separation", 10)
 
 	# 8 tabs: one column on desktop, two columns with large touch targets so they fit 720 px height
 	var left := GridContainer.new()
@@ -2779,15 +2788,14 @@ func _panel_ranking() -> void:
 	for i in mini(20 if more else 10, tags.size()):
 		var t: String = tags[i]
 		var o = game.nations[t]
-		var b := _nation_btn(t, " %d" % game.score(t), _open_panel.bind("other", t) if t != game.player else _open_panel.bind("nation"), "%d. " % (i + 1))
+		var b := _nation_btn(t, " · %d" % game.score(t), _open_panel.bind("other", t) if t != game.player else _open_panel.bind("nation"), "%d. " % (i + 1))
 		b.tooltip_text = "%s: %d Punkte · 🏘️ %d Entwicklung · 🛡️ %.0f Regimenter%s" % [o.name, game.score(t), o.dev_total, game.army_regs(t), " · ⛓️ Vasall" if o.overlord != "" else ""]
 		b.clip_text = true
 		if t == game.player:
 			b.modulate = Color(1.0, 0.95, 0.6)
 		rows.append(b)
-	if rows.size() % 2 == 1:
-		rows.append(Control.new())
-	side_box.add_child(_grid(rows))
+	for b in rows:  # one per line: in two columns long names ("Osmanisches Reich") hid the score
+		side_box.add_child(b)
 	if tags.size() > 10:
 		_section("rank_more", "Plätze 11 bis 20" if not more else "Nur die ersten 10", false)
 	var mine: int = tags.find(game.player)
