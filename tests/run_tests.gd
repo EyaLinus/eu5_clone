@@ -27,7 +27,7 @@ func _init() -> void:
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_monument_events", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_empire_reforms",
 		"test_religion_modifiers",
 		"test_age_goals",
@@ -36,6 +36,7 @@ func _init() -> void:
 		"test_tech_ahead",
 		"test_tech_queue",
 		"test_heir",
+		"test_building_tech",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -1148,6 +1149,9 @@ func test_buildings() -> void:
 	for i in free:
 		p.buildings[ids[i]] = 1
 	check(Eco.build_block_reason(g, "FRA", pid, ids[free]) != "", "no new building without a free slot")
+	var gate: String = Eco.level_tech(g, ids[0], 2)
+	if gate != "":
+		n.techs[gate] = 0
 	check(Eco.build_block_reason(g, "FRA", pid, ids[0]) == "", "upgrades do not need a slot")
 	# barracks raise the force limit, courthouse lowers unrest, fortress counts as fort
 	g._update_cached(n)
@@ -1995,6 +1999,45 @@ func test_religion_modifiers() -> void:
 
 
 ## Age goals: count only in their age, give permanent rewards, two of three win the triumph.
+func test_building_tech() -> void:
+	var g = new_game("FRA", 5)
+	var Eco = g.Economy
+	var n = g.nations.FRA
+	var pid: int = g.key_to_pid["paris"]
+	var p = g.provinces[pid]
+	n.gold = 100000.0
+	p.dev = 30
+	p.buildings = {"workshop": 2, "marketplace": 1, "barracks": 1}
+	Eco.refresh_local(g, p)
+	var tech: String = Eco.level_tech(g, "workshop", 3)
+	check(tech != "" and g.tree.by_id.has(tech), "workshop level 3 needs a tech")
+	n.techs.erase(tech)
+	check(Eco.build_block_reason(g, "FRA", pid, "workshop").begins_with("Braucht Technologie"), "level gated by tech")
+	n.techs[tech] = 0
+	check(Eco.build_block_reason(g, "FRA", pid, "workshop") == "", "tech unlocks the level")
+	check(g.tree.unlocks.has(tech) and g.tree.unlocks[tech].has(["workshop", 3]), "tech knows what it unlocks")
+	# late buildings: tech first, at most max_count per realm
+	var ut: String = Eco.level_tech(g, "university", 1)
+	n.techs.erase(ut)
+	check(Eco.build_block_reason(g, "FRA", pid, "university").begins_with("Braucht Technologie"), "university needs its tech")
+	n.techs[ut] = 0
+	var cap: int = int(g.buildings_def.university.max_count)
+	var done := 0
+	for q in g.provinces_of("FRA"):
+		if done >= cap:
+			break
+		var pr = g.provinces[q]
+		if q == pid:
+			continue
+		pr.buildings["university"] = 1
+		done += 1
+	check(done < cap or Eco.build_block_reason(g, "FRA", pid, "university").begins_with("Höchstens"), "max per realm")
+	# every gate names a real tech
+	for bid in g.buildings_def:
+		for lvl in g.buildings_def[bid].get("level_tech", {}):
+			check(g.tree.by_id.has(g.buildings_def[bid].level_tech[lvl]), "%s level %s tech exists" % [bid, lvl])
+
+
 func test_heir() -> void:
 	var g = new_game("FRA")
 	var gv = g.govt
@@ -2391,6 +2434,45 @@ func test_south_content() -> void:
 				g.check_conditions(tag, m.require)
 		check(found >= 2, "%s has south missions" % tag)
 	check(g.check_conditions("MAM", {"owns": ["aleppo", "damascus"]}), "Mamluks start with Syria")
+
+
+func test_monument_events() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	for id in g.monument_defs:
+		for stage in ["start", "half", "done"]:
+			var eid := "mon_%s_%s" % [id, stage]
+			check(g.event_by_id.has(eid) and g.event_by_id[eid].get("manual", false), "%s exists and is manual" % eid)
+	# manual events are never drawn at random
+	g.bal.event_chance = 1.0
+	for i in 30:
+		g._check_events(n)
+	for eid in g.pending_events:
+		check(not eid.begins_with("mon_"), "random draw picked manual event %s" % eid)
+	g.pending_events.clear()
+	var id := "cathedral"
+	n.tech[g.monument_defs[id].tech[0]] = 20
+	n.gold = 1e6
+	check(g.Monuments.start(g, "FRA", id) == "", "great work starts")
+	check(g.pending_events.has("mon_cathedral_start"), "start event fires on start")
+	var total := int(g.monument_defs[id].months)
+	for i in total / 2 - 1:
+		g.Monuments.tick(g, n)
+	check(not g.pending_events.has("mon_cathedral_half"), "no half event before half time")
+	g.Monuments.tick(g, n)
+	check(g.pending_events.has("mon_cathedral_half"), "half event at half time")
+	for i in total:
+		g.Monuments.tick(g, n)
+	check(n.monuments.has(id) and g.pending_events.has("mon_cathedral_done"), "done event on completion")
+	var cnt: int = g.pending_events.size()
+	g.fire_event("FRA", "mon_cathedral_done")
+	check(g.pending_events.size() == cnt, "context events fire once per realm")
+	# the AI decides at once
+	var ai = g.nations.ENG
+	ai.tech[g.monument_defs.embassy.tech[0]] = 20
+	ai.gold = 1e6
+	g.Monuments.start(g, "ENG", "embassy")
+	check(ai.flags.has("ev_mon_embassy_start") and not g.pending_events.has("mon_embassy_start"), "AI resolves its start event")
 
 
 func test_court_content() -> void:

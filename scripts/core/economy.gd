@@ -111,6 +111,22 @@ static func max_level(g, bid: String) -> int:
 	return int(g.buildings_def[bid].get("max_level", g.bal.building_max_level))
 
 
+## Tech needed to build level `lvl` of `bid` ("" when none): buildings.json "level_tech" {"<level>": tech id}.
+## Late levels and late buildings wait for their tech, so a rich realm can't build everything at once.
+static func level_tech(g, bid: String, lvl: int) -> String:
+	return str(g.buildings_def[bid].get("level_tech", {}).get(str(lvl), ""))
+
+
+## Provinces of `tag` that have `bid` or are building it ("max_count" buildings like universities).
+static func count_in_realm(g, tag: String, bid: String) -> int:
+	var c := 0
+	for pid in g.provinces_of(tag):
+		var p = g.provinces[pid]
+		if p.buildings.has(bid) or p.constructing.get("id", "") == bid:
+			c += 1
+	return c
+
+
 ## Development needed for the next level of `bid`.
 static func level_dev(g, p, bid: String) -> int:
 	var lvl: int = level(p, bid) + 1
@@ -146,6 +162,11 @@ static func _build_block_no_gold(g, tag: String, p, bid: String) -> String:
 		return "Nur in Küstenprovinzen."
 	if d.has("requires") and not p.buildings.has(d.requires):
 		return "Braucht zuerst: %s." % g.buildings_def[d.requires].name
+	var tech := level_tech(g, bid, level(p, bid) + 1)
+	if tech != "" and not g.nations[tag].techs.has(tech):
+		return "Braucht Technologie: %s." % g.tree.by_id[tech].name
+	if d.has("max_count") and not p.buildings.has(bid) and count_in_realm(g, tag, bid) >= int(d.max_count):
+		return "Höchstens %d im Reich." % int(d.max_count)
 	if p.dev < level_dev(g, p, bid):
 		return "Braucht Entwicklung %d." % level_dev(g, p, bid)
 	return ""
@@ -662,6 +683,10 @@ static func _building_value(g, n, p, bid: String, war: bool, ctx: Dictionary = {
 	elif _ctx_unrest(g, p, ctx) > 1.0:
 		v += absf(float(loc.get("unrest", 0.0))) * 0.03
 	v += float(d.get("nation", {}).get("force_limit", 0.0)) * (0.08 if war else 0.03)
+	var nat: Dictionary = d.get("nation", {})
+	v += float(nat.get("income", 0.0)) * n.income
+	v -= float(nat.get("maintenance", 0.0)) * n.expenses * 0.5
+	v -= float(nat.get("tech_cost", 0.0)) * 3.0
 	if p.core_months == 0:  # roads in fresh conquests would crowd out courthouses
 		v += float(loc.get("supply", 0.0)) * (0.012 if war else 0.004)
 	if loc.has("fort"):

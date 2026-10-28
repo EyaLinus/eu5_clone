@@ -213,10 +213,14 @@ func _cell(g, me: String, t: Dictionary, special: bool) -> Button:
 		foot += " · früh"
 	if not done and reason != "" and g.year() >= from:
 		foot = "🔒 " + foot
+	if g.tree.unlocks.has(t.id):
+		foot += " · 🏗"
 	var qi: int = g.tree.queue_of(n, t.cat).find(t.id)
 	if qi >= 0:
 		foot = "📜 %d · %s" % [qi + 1, foot]
 	var tip: String = "%s\n%s\n%s" % [t.name, Tech.effects_text(t.effects), "Erforscht" if done else (reason if reason != "" else "Kosten %d" % cost)]
+	if g.tree.unlocks.has(t.id):
+		tip += "\n🏗 " + unlock_text(g, t.id)
 	var b: Button = m._btn("", _detail.bind(t.id), tip)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# height from content: name (1-2 lines), one line per effect, cost line
@@ -287,6 +291,8 @@ func _detail(id: String) -> void:
 	for k in t.effects:
 		if Tech.DESCS.has(k):
 			box.add_child(m._lbl("• %s: %s" % [Tech.LABELS[k][0], Tech.DESCS[k]], 14, Color(0.68, 0.7, 0.78)))
+	if g.tree.unlocks.has(id):
+		box.add_child(m._lbl("🏗 Schaltet frei: " + unlock_text(g, id), 17, Color(0.85, 0.9, 1.0)))
 	for r in t.get("req", []):
 		var ok: bool = n.techs.has(r)
 		box.add_child(m._lbl(("✓ " if ok else "✗ ") + "Benötigt: " + g.tree.by_id[r].name, 16, Color(0.7, 0.9, 0.7) if ok else Color(0.95, 0.6, 0.55)))
@@ -296,6 +302,8 @@ func _detail(id: String) -> void:
 		box.add_child(m._lbl("✓ Erforscht", 18, Color(0.7, 0.95, 0.7)))
 	elif reason != "" and not reason.begins_with("Benötigt"):
 		box.add_child(m._lbl(reason, 17, Color(0.95, 0.6, 0.55)))
+	elif g.year() < int(t.year) - g.tree.early_years - g.tree.ahead_years:  # missing predecessor and still too early
+		box.add_child(m._lbl("Verfügbar ab %d." % (int(t.year) - g.tree.early_years - g.tree.ahead_years), 17, Color(0.95, 0.6, 0.55)))
 	else:
 		box.add_child(m._lbl("Kosten: %d %s (du hast %d)" % [cost, Icons.emoji(t.cat), n.get(t.cat)], 18))
 		var ya: int = g.tree.years_ahead(g, id)
@@ -372,6 +380,15 @@ func _plan() -> void:
 		n.tech_queue.clear()
 		_plan(), "", n.tech_queue.is_empty())
 	box.add_child(m._row([clear, m._btn("Schließen", m._close_modal)]))
+
+
+## "Universität, Werkstatt Stufe 4": the buildings and building levels tech `id` unlocks.
+static func unlock_text(g, id: String) -> String:
+	var parts := []
+	for u in g.tree.unlocks.get(id, []):
+		var d: Dictionary = g.buildings_def[u[0]]
+		parts.append("%s %s%s" % [d.get("emoji", "🏠"), d.name, "" if u[1] == 1 else " Stufe %d" % u[1]])
+	return ", ".join(parts)
 
 
 static func effects_rich(eff: Dictionary, fs: int = 16, compact: bool = false) -> RichTextLabel:
