@@ -197,6 +197,10 @@ static func construction_tick(g, n) -> void:
 			refresh_local(g, p)
 			if n.tag == g.player:
 				g.log_msg("%s %s (Stufe %d) in %s fertig." % [g.buildings_def[bid].emoji, g.buildings_def[bid].name, p.buildings[bid], p.name])
+			# context events (once per realm, only where defined): first building of a kind, first one at top level
+			g.fire_event(n.tag, "bld_%s_first" % bid)
+			if p.buildings[bid] >= max_level(g, bid):
+				g.fire_event(n.tag, "bld_max_level")
 
 
 ## Sum of all levels of `bid` in `tag`'s provinces (event and mission conditions).

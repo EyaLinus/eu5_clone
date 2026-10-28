@@ -281,6 +281,7 @@ static func _fleet_battle(g, w, s: Dictionary, pa: float, pd: float) -> void:
 		g.nations[t].ships = maxf(0.0, g.nations[t].ships - gone)
 		if lose_tags.has(t):
 			lost += gone
+		g.fire_event(t, "nav_first_loss" if lose_tags.has(t) else "nav_first_win")  # once per realm
 	var ws: float = lost * float(g.bal.naval_ws_per_ship)
 	var cap := float(g.bal.battle_ws_cap)
 	w.battle_score = clampf(w.battle_score + (ws if att_wins else -ws), -cap, cap)
