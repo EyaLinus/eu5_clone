@@ -565,8 +565,6 @@ func power_of(n: Nation, kind: String) -> float:
 
 func monthly_power(n: Nation, kind: String) -> float:
 	var v: float = float(bal.base_power) + n.ruler[kind] + mod(n, kind)
-	if kind == "adm":
-		v += float(bal.base_power_adm_extra)
 	if n.tag == emperor and kind == "dip":
 		v += float(bal.emperor_dip)
 	return v
@@ -642,6 +640,7 @@ func tick() -> void:
 		Economy.autobuild(self, nations[player])
 		for t in tree.queue_tick(self, nations[player]):
 			log_msg("🔬 Forschungsplan: %s erforscht." % t, [player])
+		_overflow_develop(nations[player])
 	month += 1
 	if month % 12 == 0:
 		_yearly()
@@ -1735,6 +1734,33 @@ func join_coalition(tag: String, target: String) -> String:
 
 
 # ---------------------------------------------------------------- actions
+
+## Province where one more point of development is cheapest (own, controlled, below the cap); -1 if none.
+func cheapest_develop(tag: String) -> int:
+	var best := -1
+	var best_cost := INF
+	for pid in provinces_of(tag):
+		var p: Province = provinces[pid]
+		if p.dev >= int(bal.max_dev) or p.controller != tag:
+			continue
+		var c := develop_cost(pid)
+		if c < best_cost:
+			best_cost = c
+			best = pid
+	return best
+
+
+## Power that reached the cap would be lost: spend it on the cheapest development instead
+## (after the research plan had its turn).
+func _overflow_develop(n: Nation) -> void:
+	var cap := float(bal.power_cap)
+	for kind in POWERS:
+		if n.get(kind) < cap:
+			continue
+		var pid := cheapest_develop(n.tag)
+		if pid >= 0 and develop(n.tag, pid, kind) == "":
+			log_msg("🏘️ Volle %s-Punkte: %s automatisch entwickelt." % [{"adm": "Verwaltungs", "dip": "Diplomatie", "mil": "Militär"}[kind], provinces[pid].name], [n.tag])
+
 
 ## Development can be paid with any of the three powers (same price), so diplomatic and
 ## military surplus has a use too.

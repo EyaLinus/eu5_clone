@@ -6,7 +6,6 @@
   "core_months": 60,
   "adm_tech_income": 0.04,
   "base_power": 2.0,
-  "base_power_adm_extra": 1.0,
   "ai_develop_reserve": 300.0,
   "ai_retarget_margin": 20.0,
   "realm_cost_free_dev": 100,
