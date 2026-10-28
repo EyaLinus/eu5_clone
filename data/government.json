@@ -1047,7 +1047,8 @@
     "stamm"
    ],
    "year": 1444,
-   "text": "Der Adel trägt die Krone, die Krone schützt den Adel."
+   "text": "Der Adel trägt die Krone, die Krone schützt den Adel.",
+   "min_provinces": 0
   },
   {
    "form": "Wahlmonarchie",
@@ -1055,7 +1056,8 @@
     "monarchie"
    ],
    "year": 1444,
-   "text": "Die Großen des Reiches wählen den König. Mehr Mitsprache, weniger Steuern."
+   "text": "Die Großen des Reiches wählen den König. Mehr Mitsprache, weniger Steuern.",
+   "min_provinces": 0
   },
   {
    "form": "Absolute Monarchie",
@@ -1063,7 +1065,8 @@
     "monarchie"
    ],
    "year": 1580,
-   "text": "Der Herrscher regiert ohne Stände: mehr Steuern und Verwaltung, der Adel grollt."
+   "text": "Der Herrscher regiert ohne Stände: mehr Steuern und Verwaltung, der Adel grollt.",
+   "min_provinces": 10
   },
   {
    "form": "Kaufmannsrepublik",
@@ -1071,7 +1074,8 @@
     "republik"
    ],
    "year": 1444,
-   "text": "Die reichen Handelshäuser lenken den Staat."
+   "text": "Die reichen Handelshäuser lenken den Staat.",
+   "min_provinces": 0
   },
   {
    "form": "Stadtrepublik",
@@ -1079,7 +1083,8 @@
     "republik"
    ],
    "year": 1444,
-   "text": "Räte und Zünfte regieren gemeinsam."
+   "text": "Räte und Zünfte regieren gemeinsam.",
+   "min_provinces": 0
   },
   {
    "form": "Theokratie",
@@ -1087,7 +1092,8 @@
     "kirche"
    ],
    "year": 1444,
-   "text": "Die Kirche regiert unmittelbar."
+   "text": "Die Kirche regiert unmittelbar.",
+   "min_provinces": 0
   },
   {
    "form": "Stammesföderation",
@@ -1095,7 +1101,8 @@
     "stamm"
    ],
    "year": 1444,
-   "text": "Die Stämme regieren sich selbst, vereint im Krieg."
+   "text": "Die Stämme regieren sich selbst, vereint im Krieg.",
+   "min_provinces": 0
   },
   {
    "form": "Khanat",
@@ -1103,9 +1110,21 @@
     "stamm"
    ],
    "year": 1444,
-   "text": "Ein Khan herrscht über die Reiterheere."
+   "text": "Ein Khan herrscht über die Reiterheere.",
+   "min_provinces": 0
   }
  ],
+ "ai_keep_forms": [
+  "Sultanat",
+  "Kaiserreich",
+  "Kurfürstentum",
+  "Erzherzogtum",
+  "Kurfürstliches Erzstift",
+  "Eidgenossenschaft",
+  "Freie Reichsstadt",
+  "Ordensstaat"
+ ],
+ "ai_form_chance": 0.1,
  "form_change_cost": 250,
  "form_change_prestige": 20,
  "form_change_years": 40,

@@ -303,6 +303,8 @@ func form_change_block(g, tag: String, form: String) -> String:
 		return "Von %s aus nicht möglich." % form_name(tag)
 	if g.year() < int(opt[0].year):
 		return "Verfügbar ab %d." % int(opt[0].year)
+	if g.provinces_of(tag).size() < int(opt[0].get("min_provinces", 0)):
+		return "Braucht mindestens %d Provinzen." % int(opt[0].min_provinces)
 	if g.is_at_war(tag):
 		return "Nicht während eines Krieges."
 	var cd := form_cooldown_left(g, n)
@@ -1389,7 +1391,9 @@ func _ai_budget(g, n) -> void:
 ## AI changes its form of government rarely: only with spare administration and prestige, at peace, and only for a
 ## clearly better form (effect value) than the current one.
 func _ai_form(g, n) -> void:
-	if g.rng.randf() > 0.2 or n.adm < form_change_cost(g, n) + g.tech_cost(n.tag, "adm") * 0.5 or n.prestige < 40.0:
+	if cfg.get("ai_keep_forms", []).has(form_name(n.tag)):
+		return
+	if g.rng.randf() > float(cfg.get("ai_form_chance", 0.1)) or n.adm < form_change_cost(g, n) + g.tech_cost(n.tag, "adm") * 0.5 or n.prestige < 40.0:
 		return
 	var best := ""
 	var best_v: float = Tech.effect_value(form_effects(n.tag), n.aggression) + 1.0
