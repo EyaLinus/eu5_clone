@@ -64,6 +64,7 @@ var ahead_penalty: float = 0.0
 var ai_ahead_reserve: float = 0.5
 var spread_max: float = 0.3
 var spread_factor: float = 0.5
+var _for_cache := {}  # tag+cat -> techs_for result (defs never change after load); read-only for callers
 var unlocks := {}  # tech id -> [[building id, level], ...] it unlocks (data/buildings.json "level_tech")
 
 
@@ -107,10 +108,14 @@ static func age_name(y: int) -> String:
 
 ## Generic techs of `cat` (tree order) followed by the nation's own special techs.
 func techs_for(tag: String, cat: String) -> Array:
+	var key := tag + "/" + cat
+	if _for_cache.has(key):
+		return _for_cache[key]
 	var r := []
 	for t in defs:
 		if t.cat == cat and (not is_special(t) or t.tag == tag):
 			r.append(t)
+	_for_cache[key] = r
 	return r
 
 
@@ -194,10 +199,23 @@ func research(g, tag: String, id: String) -> String:
 
 func available(g, tag: String, cat: String) -> Array:
 	var r := []
+	var n = g.nations[tag]
+	var y: int = g.year()
 	for t in techs_for(tag, cat):
-		if block_reason(g, tag, t.id) == "":
+		if _open(n, t, y):
 			r.append(t)
 	return r
+
+
+## Same rule as block_reason() == "" for a tech of techs_for(), without building the message strings
+## (the AI asks this for every tech every time it researches).
+func _open(n, t: Dictionary, y: int) -> bool:
+	if n.techs.has(t.id):
+		return false
+	for r in t.get("req", []):
+		if not n.techs.has(r):
+			return false
+	return y >= int(t.year) - early_years - ahead_years
 
 
 ## The tech the AI (or the old one-button path) researches next in `cat`: special techs first,
