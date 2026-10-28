@@ -37,6 +37,9 @@ func _init() -> void:
 		"test_tech_queue",
 		"test_heir",
 		"test_building_tech",
+		"test_gov_sources",
+		"test_regency",
+		"test_form_change",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -2037,6 +2040,82 @@ func test_religion_modifiers() -> void:
 
 
 ## Age goals: count only in their age, give permanent rewards, two of three win the triumph.
+func test_gov_sources() -> void:
+	var g = new_game("FRA", 5)
+	var n = g.nations.FRA
+	n.gov.ruler_trait = "kaufmann"
+	g.govt.refresh(n)
+	var srcs: Array = g.govt.gov_sources(n)
+	check(srcs[0][0].begins_with("🏛"), "first source is the state form")
+	check(srcs.any(func(s): return s[0].contains("Herrscher") and not s[1].is_empty()), "ruler trait listed as a source")
+	var sum := {}
+	for s in srcs:
+		for k in s[1]:
+			sum[k] = sum.get(k, 0.0) + float(s[1][k])
+	for k in n.bonus.gov:
+		check(absf(sum.get(k, 0.0) - float(n.bonus.gov[k])) < 0.0001, "sources add up to bonus.gov: " + k)
+
+
+func test_regency() -> void:
+	var g = new_game("FRA", 5)
+	var gv = g.govt
+	var n = g.nations.FRA
+	var age: int = gv.heir_age(g, n)
+	check(age >= 0 and age <= 12, "new heirs are children or adults up to 12")
+	n.gov.heir.born = g.year() - 5
+	n.gov.heir.trait = ""
+	gv.succession(g, n)
+	check(gv.regency_until(n) == g.year() + 10, "child ruler gets a regency until age 15")
+	check(n.ruler.years > 10, "reign outlasts the regency")
+	check(gv.gov_sources(n).any(func(s): return s[0].contains("Regentschaft")), "regency is a gov source")
+	check(gv.court_condition(g, n, "regency", true) and not gv.court_condition(g, n, "regency", false), "regency condition")
+	var save: Dictionary = gv.to_save(n).duplicate(true)
+	var n2 = g.nations.ENG
+	gv.load_save(n2, save)
+	check(gv.regency_until(n2) == gv.regency_until(n), "regency survives save/load")
+	gv.apply_court_effect(g, n, "end_regency", true)
+	check(gv.regency_until(n) == 0 and not gv.gov_sources(n).any(func(s): return s[0].contains("Regentschaft")), "end_regency clears it")
+	n.gov.heir.born = g.year() - 5
+	n.gov.regency_until = g.year() + 3
+	g.month += 36
+	gv.regency_tick(g, n)
+	check(gv.regency_until(n) == 0, "regency ends when the ruler comes of age")
+	n.gov.heir.born = g.year() - 30
+	gv.succession(g, n)
+	check(gv.regency_until(n) == 0, "adult heir: no regency")
+	n.gov.heir.born = g.year() - 8
+	check(gv.court_condition(g, n, "heir_age_max", 10) and not gv.court_condition(g, n, "heir_age_min", 15), "heir age conditions")
+	n.gov.heir.erase("born")
+	check(gv.heir_age(g, n) == 99, "old-save heirs count as adults")
+
+
+func test_form_change() -> void:
+	var g = new_game("FRA", 5)
+	var gv = g.govt
+	var n = g.nations.FRA
+	check(gv.form_name("FRA") == "Feudalmonarchie", "France starts feudal")
+	var opts: Array = gv.form_change_options("FRA").map(func(c): return c.form)
+	check(opts.has("Wahlmonarchie") and opts.has("Absolute Monarchie") and not opts.has("Kaufmannsrepublik"), "monarchy options only")
+	check(gv.form_change_block(g, "FRA", "Absolute Monarchie").begins_with("Verfügbar ab"), "absolutism needs 1580")
+	check(gv.form_change_block(g, "FRA", "Kaufmannsrepublik") != "", "no switch across families")
+	n.adm = 0.0
+	check(gv.form_change_block(g, "FRA", "Wahlmonarchie").contains("Verwaltungspunkte"), "needs admin power")
+	n.adm = 900.0
+	n.prestige = 50.0
+	for w in g.wars.duplicate():
+		g.wars.erase(w)
+	check(gv.change_form(g, "FRA", "Wahlmonarchie") == "", "switch to elective monarchy")
+	check(gv.form_name("FRA") == "Wahlmonarchie" and gv.heir_title("FRA") == "Nachfolger", "new form applies")
+	check(float(n.bonus.gov.get("dip", 0.0)) >= 0.5 - 0.001, "new form effects in gov bonus")
+	check(n.adm == 650.0 and n.prestige == 30.0, "cost paid")
+	check(gv.form_change_block(g, "FRA", "Feudalmonarchie").contains("Jahren"), "cooldown after a change")
+	var save: Dictionary = gv.to_save(n).duplicate(true)
+	gv.load_save(n, save)
+	check(gv.form_name("FRA") == "Wahlmonarchie" and gv.form_cooldown_left(g, n) > 0, "form survives save/load")
+	gv.init_nation(n)
+	check(gv.form_name("FRA") == "Feudalmonarchie", "fresh nation state drops the override")
+
+
 func test_building_tech() -> void:
 	var g = new_game("FRA", 5)
 	var Eco = g.Economy

@@ -2,7 +2,7 @@
 Generic events, id prefix "heir_". Run: python3 tools/content/heir_events.py (idempotent, see events_io.py).
 
 Conditions: ruler_trait / heir_trait (trait id, "any" or "" for none), heir_skill_min / heir_skill_max (sum of the
-heir's three skills), reign_years_max. Effects: heir {adm/dip/mil: +n}, heir_trait / ruler_trait (id, "" or "random").
+heir's three skills), heir_age_min / heir_age_max, regency (bool), reign_years_max. Effects: heir {adm/dip/mil: +n}, heir_trait / ruler_trait (id, "" or "random").
 Trait events repeat (10-year cooldown) since every new ruler can bring the trait back. Rules as in court_events.py:
 three options, the first one gold-free, permanent mods at most 0.03, gold options get AI weight 2.
 """
@@ -28,19 +28,19 @@ EVENTS = [
     # --- the heir
     ev("coming_of_age", "Der Erbe wird volljährig",
        "Mit Glockengeläut feiert die Hauptstadt die Volljährigkeit des Erben. Nun soll er zeigen, was in ihm steckt.",
-       "heir", {"year_min": 1446},
+       "heir", {"year_min": 1446, "heir_age_min": 15, "heir_age_max": 30},
        [("Ein Dankgottesdienst genügt.", {"prestige": 3}),
         ("Ein großes Turnier!", {"gold": -60, "prestige": 8, "estate": {"adel": 5}}),
         ("Ein Sitz im Kronrat.", {"adm": -20, "heir": {"adm": 1}})], once=True),
     ev("famous_tutor", "Ein berühmter Lehrer",
        "Ein weitgereister Gelehrter bietet an, den Erben zu unterrichten, wenn der Preis stimmt.", "scholar",
-       {"heir_skill_max": 5, "year_min": 1450},
+       {"heir_skill_max": 5, "year_min": 1450, "heir_age_max": 20},
        [("Ein Hofgelehrter aus dem eigenen Land.", {"adm": -30, "heir": {"adm": 1}}),
         ("Den Gelehrten aus Italien holen.", {"gold": -70, "heir": {"adm": 1, "dip": 1}}),
         ("Der Erbe lernt im Feldlager.", {"mil": -25, "heir": {"mil": 1}})]),
     ev("disappointing_heir", "Ein enttäuschender Erbe",
        "Die Lehrer klagen: Der Erbe schläft im Unterricht und versäumt die Ratssitzungen. Am Hof wird getuschelt.",
-       "court", {"heir_skill_max": 2, "year_min": 1450},
+       "court", {"heir_skill_max": 2, "year_min": 1450, "heir_age_min": 10},
        [("Auf die Zeit vertrauen.", {"prestige": -3}),
         ("Strenge Erziehung.", {"adm": -50, "heir": {"adm": 1, "dip": 1}}),
         ("Eine kluge Braut soll ihn lenken.", {"dip": -40, "heir": {"dip": 1}, "prestige": 2})]),
@@ -129,6 +129,25 @@ EVENTS = [
        [("Weiter so.", {"estate": {"buerger": 5, "adel": -3}}),
         ("Auch dem Adel Ehre erweisen.", {"dip": -25, "estate": {"adel": 6}}),
         ("Ein Volksfest auf Staatskosten.", {"gold": -40, "prestige": 4, "estate": {"buerger": 6}})]),
+    # --- regency (child ruler, government.gd regency_until; effect end_regency ends it early)
+    ev("regency_council", "Streit im Regentschaftsrat",
+       "Die Regenten des jungen Herrschers sind sich in nichts einig. Jede Sitzung endet im Geschrei.", "court",
+       {"regency": True},
+       [("Der Rat soll sich zusammenraufen.", {"prestige": -2}),
+        ("Die Mutter des Herrschers führt die Geschäfte.", {"dip": -30, "estate": {"adel": -4, "buerger": 4}}),
+        ("Den Adel mit Ämtern beruhigen.", {"gold": -50, "estate": {"adel": 8}})]),
+    ev("regency_majority", "Vorzeitig volljährig?",
+       "Der junge Herrscher will nicht länger warten. Er verlangt, schon jetzt für mündig erklärt zu werden.",
+       "coronation", {"regency": True},
+       [("Er muss sich gedulden.", {"prestige": 1}),
+        ("Für mündig erklären.", {"adm": -60, "end_regency": True, "estate": {"adel": -6}}),
+        ("Die Zustimmung der Räte erkaufen.", {"gold": -80, "end_regency": True})]),
+    ev("regency_regent", "Ein ehrgeiziger Regent",
+       "Der erste Regent siegelt Urkunden schon mit eigenem Wappen. Manche flüstern, er wolle selbst die Krone.",
+       "conspiracy", {"regency": True},
+       [("Ihn gewähren lassen.", {"estate": {"adel": 5}, "prestige": -3}),
+        ("Ihn als Statthalter an die Grenze schicken.", {"mil": -40, "estate": {"adel": -3}}),
+        ("Ihn mit einem reichen Lehen abfinden.", {"gold": -60, "estate": {"adel": 3}})]),
 ]
 
 

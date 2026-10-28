@@ -137,6 +137,14 @@
  "ai_heir_share": 0.6,
  "heir_disinherit_prestige": 25,
  "heir_disinherit_years": 10,
+ "heir_start_age_max": 12,
+ "regency_age": 15,
+ "regency_effects": {
+  "estate_adel": 10,
+  "unrest": 0.5,
+  "prestige": -1,
+  "ae_gen": 0.1
+ },
  "elective_forms": [
   "Kaufmannsrepublik",
   "Stadtrepublik",
@@ -993,8 +1001,133 @@
    "prestige": 0.25,
    "tax": 0.05,
    "estate_adel": 5
+  },
+  "Absolute Monarchie": {
+   "adm": 0.5,
+   "tax": 0.1,
+   "estate_adel": -10,
+   "unrest": 0.25
   }
  },
+ "form_family": {
+  "monarchie": [
+   "Feudalmonarchie",
+   "Wahlmonarchie",
+   "Kaiserreich",
+   "Erzherzogtum",
+   "Herzogtum",
+   "Großfürstentum",
+   "Kurfürstentum",
+   "Sultanat",
+   "Absolute Monarchie"
+  ],
+  "republik": [
+   "Kaufmannsrepublik",
+   "Stadtrepublik",
+   "Städtebund",
+   "Eidgenossenschaft",
+   "Freie Reichsstadt"
+  ],
+  "kirche": [
+   "Theokratie",
+   "Ordensstaat",
+   "Kurfürstliches Erzstift"
+  ],
+  "stamm": [
+   "Beylik",
+   "Stammesföderation",
+   "Khanat"
+  ]
+ },
+ "form_changes": [
+  {
+   "form": "Feudalmonarchie",
+   "from": [
+    "monarchie",
+    "stamm"
+   ],
+   "year": 1444,
+   "text": "Der Adel trägt die Krone, die Krone schützt den Adel.",
+   "min_provinces": 0
+  },
+  {
+   "form": "Wahlmonarchie",
+   "from": [
+    "monarchie"
+   ],
+   "year": 1444,
+   "text": "Die Großen des Reiches wählen den König. Mehr Mitsprache, weniger Steuern.",
+   "min_provinces": 0
+  },
+  {
+   "form": "Absolute Monarchie",
+   "from": [
+    "monarchie"
+   ],
+   "year": 1580,
+   "text": "Der Herrscher regiert ohne Stände: mehr Steuern und Verwaltung, der Adel grollt.",
+   "min_provinces": 10
+  },
+  {
+   "form": "Kaufmannsrepublik",
+   "from": [
+    "republik"
+   ],
+   "year": 1444,
+   "text": "Die reichen Handelshäuser lenken den Staat.",
+   "min_provinces": 0
+  },
+  {
+   "form": "Stadtrepublik",
+   "from": [
+    "republik"
+   ],
+   "year": 1444,
+   "text": "Räte und Zünfte regieren gemeinsam.",
+   "min_provinces": 0
+  },
+  {
+   "form": "Theokratie",
+   "from": [
+    "kirche"
+   ],
+   "year": 1444,
+   "text": "Die Kirche regiert unmittelbar.",
+   "min_provinces": 0
+  },
+  {
+   "form": "Stammesföderation",
+   "from": [
+    "stamm"
+   ],
+   "year": 1444,
+   "text": "Die Stämme regieren sich selbst, vereint im Krieg.",
+   "min_provinces": 0
+  },
+  {
+   "form": "Khanat",
+   "from": [
+    "stamm"
+   ],
+   "year": 1444,
+   "text": "Ein Khan herrscht über die Reiterheere.",
+   "min_provinces": 0
+  }
+ ],
+ "ai_keep_forms": [
+  "Sultanat",
+  "Kaiserreich",
+  "Kurfürstentum",
+  "Erzherzogtum",
+  "Kurfürstliches Erzstift",
+  "Eidgenossenschaft",
+  "Freie Reichsstadt",
+  "Ordensstaat"
+ ],
+ "ai_form_chance": 0.1,
+ "form_change_cost": 250,
+ "form_change_prestige": 20,
+ "form_change_years": 40,
  "advisors": [
   {
    "id": "kaemmerer",

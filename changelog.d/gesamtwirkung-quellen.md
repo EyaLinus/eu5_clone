@@ -1,0 +1,1 @@
+- Regierung › Gesamt: Die Gesamtwirkung zeigt jetzt jede Quelle einzeln (Staatsform, Herrscher-Eigenschaft, Berater, Kompanien, Gesetze, Reformen, Zeitalter-Ziele) statt eines Sammelblocks.
