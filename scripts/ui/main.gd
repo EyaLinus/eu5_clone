@@ -2703,8 +2703,9 @@ func _panel_hre() -> void:
 		var b := _nation_btn(e, "", _open_panel.bind("other", e) if e != me else _open_panel.bind("nation"))
 		b.tooltip_text = "%s würde %s wählen.%s" % [game.nations[e].name, game.nations[v].name if v != "" else "niemanden",
 				("\nBeziehung zu dir: %d" % int(game.get_rel(me, e))) if e != me else ""]
-		b.text = "→ %s" % (v if v != "" else "–")  # the flag names the elector; full names in the tooltip
-		b.clip_text = true
+		# elector flag (icon) → candidate flag; tags like "HAB" read as code. Names in the tooltip
+		b.text = "→%s" % (PixelEmoji.nation(v) if v != "" else "–")
+		b.add_theme_constant_override("icon_max_width", 36)  # room for the candidate's flag in three columns
 		els.append(b)
 	side_box.add_child(_grid(els, 3))
 	var tip_votes := "Bessere Beziehungen, Bündnisse und Prestige bringen Stimmen."
