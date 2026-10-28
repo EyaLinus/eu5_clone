@@ -91,6 +91,7 @@ func _ready() -> void:
 		add_child(p)
 		sfx_players.append(p)
 	data = Data.load_all()
+	PixelEmoji.add_nations(data.nations.keys())
 	map = MapView.new()
 	map.set_anchors_preset(Control.PRESET_FULL_RECT)
 	map.mouse_filter = Control.MOUSE_FILTER_STOP
