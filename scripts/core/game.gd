@@ -860,7 +860,8 @@ func _yearly() -> void:
 		if n.ruler.years <= 0:
 			govt.succession(self, n)
 			var who: String = n.ruler_name if n.ruler_name != "" else "Ein neuer Herrscher"
-			log_msg("👑 %s besteigt den Thron (📜%d 🕊️%d ⚔️%d)." % [who, n.ruler.adm, n.ruler.dip, n.ruler.mil], [tag])
+			var tr: String = govt.trait_name(n.gov.get("ruler_trait", ""))
+			log_msg("👑 %s besteigt den Thron (📜%d 🕊️%d ⚔️%d%s)." % [who, n.ruler.adm, n.ruler.dip, n.ruler.mil, ", " + tr if tr != "" else ""], [tag])
 			_marriage_succession(n)
 			if tag == emperor:
 				hre_election()

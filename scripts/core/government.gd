@@ -26,6 +26,7 @@ var reforms: Array = []
 var reform_by_id := {}
 var budget_by_id := {}
 var empire_by_id := {}
+var trait_by_id := {}
 
 
 func _init(d: Dictionary = {}) -> void:
@@ -49,6 +50,8 @@ func _init(d: Dictionary = {}) -> void:
 		budget_by_id[b.id] = b
 	for r in empire_reforms():
 		empire_by_id[r.id] = r
+	for t in d.get("traits", []):
+		trait_by_id[t.id] = t
 
 
 func init_nation(n) -> void:
@@ -71,11 +74,38 @@ func init_nation(n) -> void:
 # Educating (once a year, power of that kind) raises one of the heir's skills by one up to ruler_max.
 
 func ensure_heir(g, n) -> void:
+	if not n.gov.has("ruler_trait"):
+		n.gov.ruler_trait = roll_trait(g)
+		refresh(n)
 	if n.gov.get("heir", {}).is_empty():
 		var h: Dictionary = g.roll_person(n)
 		h.erase("years")
 		h["edu"] = 0
+		h["trait"] = roll_trait(g)
 		n.gov.heir = h
+
+
+## A random trait id by weight, "" (none) with trait_none_chance.
+func roll_trait(g) -> String:
+	if trait_by_id.is_empty() or g.rng.randf() < float(cfg.get("trait_none_chance", 0.2)):
+		return ""
+	var total := 0.0
+	for t in trait_by_id.values():
+		total += float(t.weight)
+	var r: float = g.rng.randf() * total
+	for t in trait_by_id.values():
+		r -= float(t.weight)
+		if r <= 0.0:
+			return t.id
+	return ""
+
+
+func trait_effects(id: String) -> Dictionary:
+	return trait_by_id.get(id, {}).get("effects", {})
+
+
+func trait_name(id: String) -> String:
+	return trait_by_id.get(id, {}).get("name", "")
 
 
 ## "Erbe" for hereditary rule, "Nachfolger" for republics, theocracies, orders and elective monarchies.
@@ -91,8 +121,10 @@ func succession(g, n) -> void:
 	else:
 		n.ruler = {"adm": int(h.adm), "dip": int(h.dip), "mil": int(h.mil), "years": g.rng.randi_range(8, 35)}
 		n.ruler_name = str(h.name)
+	n.gov.ruler_trait = str(h.get("trait", "")) if not h.is_empty() else roll_trait(g)
 	n.gov.heir = {}
 	ensure_heir(g, n)
+	refresh(n)
 
 
 func educate_cost(g, n, kind: String) -> float:
@@ -465,7 +497,7 @@ func _changed(g, n) -> void:
 
 func refresh(n) -> void:
 	var b := {}
-	var effs := [form_effects(n.tag)]
+	var effs := [form_effects(n.tag), trait_effects(n.gov.get("ruler_trait", ""))]
 	for id in n.gov.advisors:
 		effs.append(advisor_effects(id, advisor_skill(n, id)))
 	for id in n.gov.companies:
@@ -1003,7 +1035,9 @@ func load_save(n, d) -> void:
 	var h: Dictionary = d.get("heir", {})
 	if not h.is_empty():
 		n.gov.heir = {"adm": int(h.get("adm", 0)), "dip": int(h.get("dip", 0)), "mil": int(h.get("mil", 0)),
-				"name": str(h.get("name", "")), "edu": int(h.get("edu", 0))}
+				"name": str(h.get("name", "")), "edu": int(h.get("edu", 0)), "trait": str(h.get("trait", ""))}
+	if d.has("ruler_trait"):
+		n.gov.ruler_trait = str(d.ruler_trait)
 	refresh(n)
 	refresh_estates(n)
 
