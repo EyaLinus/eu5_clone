@@ -379,7 +379,8 @@ func _advisor(id: String) -> void:
 	box.add_child(m._row(row))
 
 
-func _pick_advisor() -> void:
+## Advisor picker, filtered by power type ("" = all) so the list of ~50 stays short.
+func _pick_advisor(kind: String = "") -> void:
 	var g = m.game
 	var gv = g.govt
 	var me: String = g.player
@@ -387,11 +388,23 @@ func _pick_advisor() -> void:
 	m._open_modal()
 	m.modal_box.add_child(m._lbl("🎓 Berater ernennen", 26))
 	m.modal_box.add_child(m._lbl("Kosten: %d Punkte der jeweiligen Art. Historische Persönlichkeiten dienen nur zu ihren Lebzeiten." % gv.advisor_cost(g, n, ""), 16))
-	var pool: Array = gv.advisor_pool(g, me).duplicate()
-	pool.sort_custom(func(x, y): return x.has("tag") and not y.has("tag"))
+	var pool: Array = gv.advisor_pool(g, me).filter(func(a): return not n.gov.advisors.has(a.id))
+	var tabs := []
+	for k in ["", "adm", "dip", "mil"]:
+		var cnt: int = pool.filter(func(a): return k == "" or a.type == k).size()
+		var b: Button = m._btn("Alle %d" % cnt if k == "" else "%s %d" % [Icons.emoji(k), cnt], _pick_advisor.bind(k),
+				"Alle Berater" if k == "" else POWER_NAMES[k])
+		if k == kind:
+			b.add_theme_color_override("font_color", UiTheme.GOLD)
+		tabs.append(b)
+	m.modal_box.add_child(m._row(tabs))
+	pool = pool.filter(func(a): return kind == "" or a.type == kind)
+	# Historical figures first, then what you can afford right now.
+	pool.sort_custom(func(x, y):
+		if x.has("tag") != y.has("tag"):
+			return x.has("tag")
+		return gv.advisor_block(g, me, x.id) == "" and gv.advisor_block(g, me, y.id) != "")
 	for a in pool:
-		if n.gov.advisors.has(a.id):
-			continue
 		var sub: String = "%s %d %s" % [Icons.emoji(a.type), gv.advisor_cost(g, n, a.id), POWER_NAMES[a.type]] + (" · lebt bis %d" % int(a.to) if a.has("to") else "")
 		m.modal_box.add_child(_choice(a.name, sub, a.effects, a.has("tag"), "Ernennen", gv.advisor_block(g, me, a.id), func():
 			var err: String = gv.hire(g, me, a.id)

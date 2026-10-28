@@ -120,7 +120,7 @@ func _all_panels(m, g, tag: String, month: int) -> int:
 		g.tree.queue_add(g, tag, g.tree.techs_for(tag, g.POWERS[month % 3])[(month / 12) % 30].id)
 		m.tech_screen._plan()
 		m._close_modal()
-	m.gov_screen._pick_advisor()
+	m.gov_screen._pick_advisor(["", "adm", "dip", "mil"][month % 4])
 	m._close_modal()
 	if not g.nations[tag].gov.get("heir", {}).is_empty():
 		m.gov_screen._heir()
