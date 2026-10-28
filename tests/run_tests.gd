@@ -27,7 +27,7 @@ func _init() -> void:
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_monument_events", "test_ctx_events", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_monument_events", "test_ctx_events", "test_late_content", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_empire_reforms",
 		"test_religion_modifiers",
 		"test_age_goals",
@@ -2564,6 +2564,18 @@ func test_ctx_events() -> void:
 	g.apply_effects("FRA", {"ships": -1000})
 	check(n.ships == 0.0, "ships effect never below zero")
 	check(g.check_conditions("FRA", {"blockaded": false}) and not g.check_conditions("FRA", {"blockaded": true}), "no blockade at start")
+
+
+func test_late_content() -> void:
+	var g = new_game("FRA")
+	var cnt := {}
+	for e in data.events:
+		if "_late_" in e.id:
+			check(g.nations.has(e.tag), "%s belongs to a known nation" % e.id)
+			cnt[e.tag] = cnt.get(e.tag, 0) + 1
+			g.check_conditions(e.tag, e.trigger)  # must not crash (province keys resolve)
+	for tag in ["BUR", "POL", "TUR"]:
+		check(cnt.get(tag, 0) >= 6, "%s has late events" % tag)
 
 
 func test_court_content() -> void:
