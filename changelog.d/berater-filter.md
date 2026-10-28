@@ -1,1 +1,0 @@
-- Berater ernennen: Filter nach Art (Alle / Verwaltung / Diplomatie / Militär) mit Anzahl; bezahlbare Berater stehen oben. Weniger Scrollen.

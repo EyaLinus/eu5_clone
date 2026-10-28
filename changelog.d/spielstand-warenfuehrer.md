@@ -1,1 +1,0 @@
-- Spielstände speichern jetzt die Marktführer pro Ware. Bisher wurden sie beim Laden neu berechnet, sodass ein geladenes Spiel leicht anders weiterlief.
