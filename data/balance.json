@@ -145,7 +145,7 @@
   "dev_per_building_level": 6,
   "max_merchants": 5,
   "building_dev": 1,
-  "building_level_exp": 1.25,
+  "building_level_exp": 1.6,
   "building_cost_mult": 0.5,
   "difficulty": {
     "easy": {"player": {"income": 0.25, "combat": 0.1, "manpower": 0.25, "unrest": -1.5, "tech_cost": -0.1}, "ai": {}, "ai_aggression": 0.75, "ai_vs_player": 0.6},
