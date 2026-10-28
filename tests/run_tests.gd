@@ -34,6 +34,7 @@ func _init() -> void:
 		"test_tech_ahead",
 		"test_tech_queue",
 		"test_heir",
+		"test_building_tech",
 		"test_old_save_tech_levels", "test_ai_uses_government", "test_long_run_no_softlock", "test_emoji_coverage", "test_event_pictures", "test_ui_kit",
 	]:
 		var before := failures
@@ -949,6 +950,9 @@ func test_buildings() -> void:
 	for i in free:
 		p.buildings[ids[i]] = 1
 	check(Eco.build_block_reason(g, "FRA", pid, ids[free]) != "", "no new building without a free slot")
+	var gate: String = Eco.level_tech(g, ids[0], 2)
+	if gate != "":
+		n.techs[gate] = 0
 	check(Eco.build_block_reason(g, "FRA", pid, ids[0]) == "", "upgrades do not need a slot")
 	# barracks raise the force limit, courthouse lowers unrest, fortress counts as fort
 	g._update_cached(n)
@@ -1796,6 +1800,45 @@ func test_religion_modifiers() -> void:
 
 
 ## Age goals: count only in their age, give permanent rewards, two of three win the triumph.
+func test_building_tech() -> void:
+	var g = new_game("FRA", 5)
+	var Eco = g.Economy
+	var n = g.nations.FRA
+	var pid: int = g.key_to_pid["paris"]
+	var p = g.provinces[pid]
+	n.gold = 100000.0
+	p.dev = 30
+	p.buildings = {"workshop": 2, "marketplace": 1, "barracks": 1}
+	Eco.refresh_local(g, p)
+	var tech: String = Eco.level_tech(g, "workshop", 3)
+	check(tech != "" and g.tree.by_id.has(tech), "workshop level 3 needs a tech")
+	n.techs.erase(tech)
+	check(Eco.build_block_reason(g, "FRA", pid, "workshop").begins_with("Braucht Technologie"), "level gated by tech")
+	n.techs[tech] = 0
+	check(Eco.build_block_reason(g, "FRA", pid, "workshop") == "", "tech unlocks the level")
+	check(g.tree.unlocks.has(tech) and g.tree.unlocks[tech].has(["workshop", 3]), "tech knows what it unlocks")
+	# late buildings: tech first, at most max_count per realm
+	var ut: String = Eco.level_tech(g, "university", 1)
+	n.techs.erase(ut)
+	check(Eco.build_block_reason(g, "FRA", pid, "university").begins_with("Braucht Technologie"), "university needs its tech")
+	n.techs[ut] = 0
+	var cap: int = int(g.buildings_def.university.max_count)
+	var done := 0
+	for q in g.provinces_of("FRA"):
+		if done >= cap:
+			break
+		var pr = g.provinces[q]
+		if q == pid:
+			continue
+		pr.buildings["university"] = 1
+		done += 1
+	check(done < cap or Eco.build_block_reason(g, "FRA", pid, "university").begins_with("Höchstens"), "max per realm")
+	# every gate names a real tech
+	for bid in g.buildings_def:
+		for lvl in g.buildings_def[bid].get("level_tech", {}):
+			check(g.tree.by_id.has(g.buildings_def[bid].level_tech[lvl]), "%s level %s tech exists" % [bid, lvl])
+
+
 func test_heir() -> void:
 	var g = new_game("FRA")
 	var gv = g.govt

@@ -47,6 +47,9 @@ func _run(m) -> void:
 	m.tech_screen._detail("fra_ordonnance")
 	await _shot("04b_tech_detail")
 	m._close_modal()
+	m.tech_screen._detail("adm_verlag")
+	await _shot("04s_tech_unlock")
+	m._close_modal()
 	m.tech_screen._select("mil")
 	await _shot("04c_tech_mil")
 	for id in ["mil_bajonett", "fra_ordonnance"]:

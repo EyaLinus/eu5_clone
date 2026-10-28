@@ -251,6 +251,7 @@ func setup(data: Dictionary, seed_value: int, player_tag: String) -> void:
 	Religion.setup(self, data)
 	monument_defs = data.get("monuments", {})
 	Economy.setup(self, data)
+	tree.set_unlocks(buildings_def)
 	Economy.refresh_goods_leaders(self)
 	Economy.update_markets(self)
 	Economy.check_pacts(self)
