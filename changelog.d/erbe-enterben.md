@@ -1,1 +1,0 @@
-- **Erbe enterben:** Im Erben-Fenster kannst du einen schwachen Erben für 25 Prestige enterben, dann wird ein neuer mit zufälligen Fähigkeiten benannt. Das geht höchstens alle 10 Jahre.
