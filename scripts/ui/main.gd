@@ -3099,6 +3099,8 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["🏗️ Großprojekt %d Monate schneller" % int(v), 1])
 		elif k == "feast_ready":
 			parts.append(["🍷 Nächstes Hoffest sofort möglich", 1])
+		elif k == "ships":
+			parts.append(["⚓ Schiffe %+d" % int(v), sgn.call(float(v))])
 		elif k == "spouse_rel":
 			parts.append(["❤️ Verschwägerte %+d" % int(v), sgn.call(float(v))])
 		elif k == "convert_random":
@@ -3213,6 +3215,10 @@ func conditions_text(c: Dictionary) -> String:
 				lines.append(mark + "Mindestens %d Großprojekte vollendet" % int(v))
 			"monument_building":
 				lines.append(mark + ("Ein Großprojekt wird gebaut" if v else "Kein Großprojekt im Bau"))
+			"ships_min":
+				lines.append(mark + "Flotte mindestens %d Schiffe" % int(v))
+			"blockaded":
+				lines.append(mark + ("Eine Provinz ist blockiert" if v else "Keine Provinz blockiert"))
 			"married":
 				lines.append(mark + ("Königliche Heirat besteht" if v else "Keine königliche Heirat"))
 			"province_faith":

@@ -27,7 +27,7 @@ func _init() -> void:
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_monument_events", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_monument_events", "test_ctx_events", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_empire_reforms",
 		"test_religion_modifiers",
 		"test_age_goals",
@@ -2533,6 +2533,37 @@ func test_monument_events() -> void:
 	ai.gold = 1e6
 	g.Monuments.start(g, "ENG", "embassy")
 	check(ai.flags.has("ev_mon_embassy_start") and not g.pending_events.has("mon_embassy_start"), "AI resolves its start event")
+
+
+func test_ctx_events() -> void:
+	var g = new_game("FRA")
+	var n = g.nations.FRA
+	for id in ["bld_manufactory_first", "bld_harbor_first", "bld_max_level", "nav_first_win", "nav_first_loss"]:
+		check(g.event_by_id.has(id) and g.event_by_id[id].get("manual", false), "%s exists and is manual" % id)
+	for e in data.events:
+		if e.id.begins_with("nav_") or e.id.begins_with("bld_"):
+			g.check_conditions("FRA", e.trigger)  # must not crash
+	# first building of a kind fires its event once; reaching the top level fires bld_max_level
+	var pid: int = n.capital
+	var p = g.provinces[pid]
+	p.buildings["courthouse"] = 0
+	p.constructing = {"id": "courthouse", "months": 1}
+	g.Economy.construction_tick(g, n)
+	check(g.pending_events.has("bld_courthouse_first"), "first courthouse fires its event")
+	g.pending_events.clear()
+	p.buildings["courthouse"] = g.Economy.max_level(g, "courthouse") - 1
+	p.constructing = {"id": "courthouse", "months": 1}
+	g.Economy.construction_tick(g, n)
+	check(not g.pending_events.has("bld_courthouse_first") and g.pending_events.has("bld_max_level"), "top level fires once, first-event not again")
+	# ships effect and naval conditions
+	var lim: float = g.Naval.limit(g, "FRA")
+	n.ships = 2.0
+	check(g.check_conditions("FRA", {"ships_min": 2}) and not g.check_conditions("FRA", {"ships_min": 3}), "ships_min")
+	g.apply_effects("FRA", {"ships": 1000})
+	check(is_equal_approx(n.ships, maxf(lim, 2.0)), "ships effect capped at the fleet limit")
+	g.apply_effects("FRA", {"ships": -1000})
+	check(n.ships == 0.0, "ships effect never below zero")
+	check(g.check_conditions("FRA", {"blockaded": false}) and not g.check_conditions("FRA", {"blockaded": true}), "no blockade at start")
 
 
 func test_court_content() -> void:

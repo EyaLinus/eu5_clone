@@ -2348,6 +2348,9 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 					n.monument_build.months = maxi(1, int(n.monument_build.months) - int(v))
 			"feast_ready":
 				n.flags.erase("feast_month")
+			"ships":
+				# never above the fleet limit (or the current fleet, if that is already larger)
+				n.ships = clampf(n.ships + float(v), 0.0, maxf(Naval.limit(self, tag), n.ships))
 			"spouse_rel":
 				for t in n.marriages:
 					if nations.has(t):
@@ -2565,6 +2568,17 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 					return false
 			"monument_building":
 				if n.monument_build.is_empty() == bool(v):
+					return false
+			"ships_min":
+				if n.ships < float(v):
+					return false
+			"blockaded":
+				var any := false
+				for pid in provinces_of(tag):
+					if Naval.is_blockaded(self, pid):
+						any = true
+						break
+				if any != bool(v):
 					return false
 			"feast_recent":
 				if month - int(n.flags.get("feast_month", -9999)) > int(v):
