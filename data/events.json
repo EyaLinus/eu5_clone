@@ -344,7 +344,7 @@
   {"id": "eng_navy", "tag": "ENG", "title": "Die Königliche Flotte", "text": "Neue Werften in Portsmouth könnten England zur Seemacht machen, aber Schiffe sind teuer.",
    "trigger": {"year_min": 1510},
    "options": [
-     {"text": "Kriegsschiffe bauen.", "effects": {"gold": -60, "mods": {"combat": 0.03}}, "ai": 50},
+     {"text": "Kriegsschiffe bauen.", "effects": {"gold": -60, "ships": 4, "mods": {"naval": 0.03}}, "ai": 50},
      {"text": "Kaperbriefe ausstellen.", "effects": {"gold": 70, "ae": 3}},
      {"text": "Seeleute für das Heer.", "effects": {"mil": 40}}]},
   {"id": "eng_poynings", "tag": "ENG", "title": "Poynings' Gesetz", "text": "Das irische Parlament soll nur noch tagen, wenn der König zustimmt. Die irischen Fürsten sind gespalten.",
@@ -548,7 +548,7 @@
   {"id": "eng_armada", "tag": "ENG", "title": "Die Armada", "text": "Philipp II. schickt die größte Flotte, die Europa je gesehen hat. Ziel: England.",
    "trigger": {"year_min": 1580, "year_max": 1610, "flag": "eng_sea_dogs", "alive": "SPA"},
    "options": [
-     {"text": "Brander in die Nacht!", "effects": {"prestige": 20, "gold": -60, "mods": {"combat": 0.03}}, "ai": 60},
+     {"text": "Brander in die Nacht!", "effects": {"prestige": 20, "gold": -60, "mods": {"naval": 0.03}}, "ai": 60},
      {"text": "Die Küsten mit der Miliz halten.", "effects": {"manpower": -3, "mil": 40, "regs": 3}},
      {"text": "Frieden um jeden Preis.", "effects": {"relations": {"SPA": 50}, "prestige": -15, "gold": -40}}]},
   {"id": "eng_east_india", "tag": "ENG", "title": "Die Ostindien-Kompanie", "text": "Londoner Kaufleute bitten um ein königliches Monopol für den Handel östlich des Kaps der Guten Hoffnung.",
@@ -584,7 +584,7 @@
   {"id": "spa_lepanto", "tag": "SPA", "title": "Die Heilige Liga", "text": "Papst und Venedig rufen zur Seeschlacht gegen die Osmanen. Don Juan de Austria soll die Flotte führen.",
    "trigger": {"year_min": 1565, "year_max": 1580, "alive": "TUR"},
    "options": [
-     {"text": "Die Galeeren in See stechen lassen.", "effects": {"mil": -40, "prestige": 20, "relations": {"PAP": 40, "VEN": 40, "TUR": -50}}, "ai": 60},
+     {"text": "Die Galeeren in See stechen lassen.", "effects": {"mil": -40, "ships": -2, "prestige": 20, "relations": {"PAP": 40, "VEN": 40, "TUR": -50}}, "ai": 60},
      {"text": "Nur Gold schicken.", "effects": {"gold": -60, "relations": {"PAP": 30}}},
      {"text": "Die Flandern-Front geht vor.", "effects": {"mil": 30, "prestige": -5}}]},
   {"id": "spa_moriscos", "tag": "SPA", "title": "Die Morisken", "text": "Die Nachfahren der Mauren gelten als unzuverlässig. Der Hof diskutiert ihre Vertreibung.",
@@ -950,7 +950,7 @@
   {"id": "ven_stato_da_mar", "tag": "VEN", "title": "Der Stato da Mar", "text": "Die osmanische Flotte bedroht Venedigs Inseln und Häfen in der Ägäis.",
    "trigger": {"year_min": 1460, "year_max": 1580, "alive": "TUR"},
    "options": [
-     {"text": "Galeeren aus dem Arsenal.", "effects": {"gold": -60, "mods": {"combat": 0.03}}, "ai": 40},
+     {"text": "Galeeren aus dem Arsenal.", "effects": {"gold": -60, "ships": 3, "mods": {"naval": 0.03}}, "ai": 40},
      {"text": "Einen teuren Frieden kaufen.", "effects": {"gold": -40, "relations": {"TUR": 50}}, "ai": 40},
      {"text": "Die Kreuzzugsliga anrufen.", "effects": {"relations": {"PAP": 30, "TUR": -30}, "dip": 20}}]},
   {"id": "hun_matthias", "tag": "HUN", "title": "Matthias Corvinus", "text": "Der junge König baut ein Söldnerheer auf, die Schwarze Armee, und eine Bibliothek, die ganz Europa bestaunt.",
@@ -1076,7 +1076,7 @@
   {"id": "tur_lepanto", "tag": "TUR", "title": "Lepanto", "text": "Die Flotte der Heiligen Liga hat die osmanische Flotte vernichtet. Europa feiert.",
    "trigger": {"year_min": 1565, "year_max": 1585, "alive": "SPA"},
    "options": [
-     {"text": "Eine neue Flotte in einem Winter.", "effects": {"gold": -80, "prestige": 10}, "ai": 50},
+     {"text": "Eine neue Flotte in einem Winter.", "effects": {"gold": -80, "ships": 6, "prestige": 10}, "ai": 50},
      {"text": "Venedig einen Separatfrieden anbieten.", "effects": {"relations": {"VEN": 50}, "prestige": -10}},
      {"text": "Der Bart wächst nach.", "effects": {"prestige": -5, "mil": 30}}]},
   {"id": "pol_henrician", "tag": "POL", "title": "Die Henricianischen Artikel", "text": "Der Adel wählt einen französischen Prinzen zum König, aber nur gegen weitreichende Zugeständnisse.",
@@ -1245,7 +1245,7 @@
    "trigger": {"year_min": 1590, "year_max": 1640},
    "options": [
      {"text": "Neue Städte gründen.", "effects": {"dev_random": 2, "gold": -60}, "ai": 50},
-     {"text": "Eine Flotte für die Ostsee.", "effects": {"mods": {"combat": 0.03}, "gold": -50}},
+     {"text": "Eine Flotte für die Ostsee.", "effects": {"ships": 3, "mods": {"naval": 0.03}, "gold": -50}},
      {"text": "In den deutschen Krieg eingreifen.", "effects": {"mil": 40, "relations": {"HAB": -40}, "prestige": 5}}]},
   {"id": "dan_tycho", "tag": "DAN", "title": "Tycho Brahe", "text": "Der Astronom bittet um eine Insel im Öresund für seine Sternwarte Uraniborg.",
    "trigger": {"year_min": 1570, "year_max": 1600},
@@ -1562,7 +1562,7 @@
   {"id": "tur_barbarossa", "tag": "TUR", "title": "Hayreddin Barbarossa", "text": "Der Korsar aus Algier bietet dem Sultan seine Flotte an, wenn er Großadmiral wird.",
    "trigger": {"year_min": 1525, "year_max": 1560},
    "options": [
-     {"text": "Ihn zum Kapudan Pascha ernennen.", "effects": {"mods": {"combat": 0.03}, "relations": {"SPA": -30, "FRA": 30}}, "ai": 60},
+     {"text": "Ihn zum Kapudan Pascha ernennen.", "effects": {"ships": 4, "mods": {"naval": 0.03}, "relations": {"SPA": -30, "FRA": 30}}, "ai": 60},
      {"text": "Seine Beute teilen.", "effects": {"gold": 100, "prestige": -5}},
      {"text": "Ein Korsar bleibt ein Korsar.", "effects": {"prestige": 5}}]},
   {"id": "tur_hurrem", "tag": "TUR", "title": "Hürrem Sultan", "text": "Die Frau des Sultans hat großen Einfluss. Am Hof wird geflüstert, sie wolle den Thronfolger beseitigen.",
@@ -1916,7 +1916,7 @@
   {"id": "eco_shipwrights", "tag": "*", "title": "Schiffbauer aus Holland", "text": "Fremde Schiffbauer wollen sich in deinem Hafen niederlassen. Sie bauen schneller und billiger.", "image": "naval",
    "trigger": {"building": {"harbor": 1}, "year_min": 1480},
    "options": [
-     {"text": "Willkommen.", "effects": {"mods": {"trade": 0.01}, "estate": {"buerger": -3}}},
+     {"text": "Willkommen.", "effects": {"mods": {"trade": 0.01}, "ships": 1, "estate": {"buerger": -3}}},
      {"text": "Nur, wenn sie unsere Lehrlinge ausbilden.", "effects": {"dip": -20, "dev_random": 1}},
      {"text": "Die heimischen Werften schützen.", "effects": {"estate": {"buerger": 5}, "prestige": -2}}]},
   {"id": "eco_pirates", "once": false, "tag": "*", "title": "Piraten vor der Küste", "text": "Freibeuter kapern Handelsschiffe direkt vor deinem Hafen. Die Reeder verlangen Schutz.", "image": "naval",
