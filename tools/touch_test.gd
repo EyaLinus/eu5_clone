@@ -161,5 +161,18 @@ func _run() -> void:
 	if not m.PixelEmoji.font.has_char(flag.unicode_at(0)) or not m.PixelEmoji.font.has_char(0x1F4B0):
 		fails.append("pixel glyphs lost after UI size change")
 	get_root().content_scale_factor = 1.0
+	# panning moves the cached world layer (fills, borders) with the map instead of redrawing it
+	var mv = m.map
+	var mc: Vector2 = mv.get_global_rect().get_center()
+	_mouse(m, mc, true)
+	for i in 8:
+		await process_frame
+		_move(m, mc + Vector2(12 * (i + 1), 5 * (i + 1)))
+	await process_frame
+	_mouse(m, mc + Vector2(96, 40), false)
+	mv.zoom_by(1.3)
+	await process_frame
+	if mv._world == null or not mv._world.position.is_equal_approx(mv.offset) or not is_equal_approx(mv._world.scale.x, mv.zoom):
+		fails.append("map world layer out of sync after pan/zoom")
 	print("TOUCH ok" if fails.is_empty() else "TOUCH FAIL " + "; ".join(fails))
 	quit(0 if fails.is_empty() else 1)
