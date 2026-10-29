@@ -2511,7 +2511,13 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 				if any_coast != bool(v):
 					return false
 			"produces":
-				if not Economy.goods_output(self, tag).has(v):
+				# same as Economy.goods_output(...).has(v), without pricing every province
+				var makes := false
+				for pid in provinces_of(tag):
+					if provinces[pid].good == v:
+						makes = true
+						break
+				if not makes:
 					return false
 			"goods_leader":
 				var leads := false
@@ -2523,7 +2529,9 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 			"shock":
 				# a market shock ("up" = scarce, "down" = glut) on a good this nation produces
 				var hit := false
-				var out := Economy.goods_output(self, tag)
+				var out := {}  # goods this realm produces (the keys of Economy.goods_output)
+				for pid in provinces_of(tag):
+					out[provinces[pid].good] = true
 				for k2 in shocks:
 					if out.has(k2) and (float(shocks[k2].mult) > 1.0) == (v == "up"):
 						hit = true
@@ -2609,11 +2617,16 @@ func check_conditions(tag: String, c: Dictionary) -> bool:
 				if not govt.court_condition(self, n, k, v):
 					return false
 			"unrest_min":
-				var top := 0.0
-				for pid in provinces_of(tag):
-					top = maxf(top, unrest(pid))
-				if top < float(v):
-					return false
+				# some province at or above v (unrest_bound skips the calm ones cheaply)
+				if float(v) > 0.0:
+					var hot := false
+					var base := unrest_base(n)
+					for pid in provinces_of(tag):
+						if unrest_bound(provinces[pid], base) >= float(v) and unrest(pid) >= float(v):
+							hot = true
+							break
+					if not hot:
+						return false
 	return true
 
 
