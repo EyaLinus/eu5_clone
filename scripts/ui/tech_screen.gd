@@ -213,8 +213,6 @@ func _cell(g, me: String, t: Dictionary, special: bool) -> Button:
 		foot = "▶ " + foot
 	if not done and reason != "" and g.year() >= from:
 		foot = "🔒 " + foot
-	if g.tree.unlocks.has(t.id):
-		foot += " " + unlock_icons(g, t.id)
 	var qi: int = g.tree.queue_of(n, t.cat).find(t.id)
 	if qi >= 0:
 		foot = "📜%d %s" % [qi + 1, foot]
@@ -225,7 +223,10 @@ func _cell(g, me: String, t: Dictionary, special: bool) -> Button:
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# height from content: name (1-2 lines), one line per effect, cost line
 	var name_lines: int = 1 + int(t.name.length() > 15) + int(t.name.length() > 30)
-	b.custom_minimum_size = Vector2(0, 22 + 20 * name_lines + 18 * t.effects.size() + 22 + (8 if m._big() else 0))
+	var big: bool = m._big()
+	var icons: String = unlock_icons(g, t.id)
+	b.custom_minimum_size = Vector2(0, 22 + 20 * name_lines + 18 * t.effects.size() + 22
+			+ (24 if icons != "" else 0) + (10 if big else 0))
 	var v := VBoxContainer.new()
 	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 6)
 	v.add_theme_constant_override("separation", 1)
@@ -243,7 +244,13 @@ func _cell(g, me: String, t: Dictionary, special: bool) -> Button:
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(spacer)
-	var f: Label = m._lbl(foot, 13, Color(1.0, 0.85, 0.4) if ready else Color(0.7, 0.72, 0.78))
+	if icons != "":
+		# buildings this tech unlocks, big enough to recognise on a phone
+		var ic: Label = m._lbl(icons, 20, Color.WHITE)
+		ic.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ic.custom_minimum_size.x = 0
+		v.add_child(ic)
+	var f: Label = m._lbl(foot, 15 if big else 13, Color(1.0, 0.85, 0.4) if ready else Color(0.7, 0.72, 0.78))
 	f.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	f.custom_minimum_size.x = 0
 	v.add_child(f)

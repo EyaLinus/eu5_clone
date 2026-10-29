@@ -149,7 +149,7 @@ func _build_court(g, gv, me: String, n) -> void:
 	var h: Dictionary = n.gov.get("heir", {})
 	if not h.is_empty():
 		var title: String = gv.heir_title(me)
-		_section("👑 %s" % title, "Übernimmt die Herrschaft, wenn die Zeit des Herrschers endet. Seine Fähigkeiten bestimmen dann die Punkte pro Monat.")
+		_section("👑 %s" % title, "Übernimmt die Herrschaft, wenn die Zeit des Herrschers endet. Seine Fähigkeiten bestimmen dann die Punkte pro Monat. " + _regency_tip(gv))
 		var sub := "📜%d 🕊️%d ⚔️%d · übernimmt in ca. %d Jahren" % [int(h.adm), int(h.dip), int(h.mil), n.ruler.years]
 		sub += _age_note(g, gv, n)
 		var ht: String = str(h.get("trait", ""))
@@ -210,8 +210,18 @@ func _build_law(g, gv, n) -> void:
 	_section("🏛 Staatsform", "Ein Wechsel der Staatsform kostet %d Verwaltungspunkte und %d Prestige, ist nur im Frieden möglich und danach %d Jahre gesperrt. Gewechselt wird nur innerhalb der Familie (Monarchie, Republik, Kirche, Stämme)." % [
 			int(gv.cfg.get("form_change_cost", 250)), int(gv.cfg.get("form_change_prestige", 20)), int(gv.cfg.get("form_change_years", 40))])
 	var fcd: int = gv.form_cooldown_left(g, n)
-	var fsub: String = "Staatsform" + (" · änderbar in " + _wait(fcd) if fcd > 0 else _alternatives(gv.form_change_options(n.tag).filter(
-			func(c): return gv.form_change_block(g, n.tag, c.form) == "").size()))
+	var fopts: Array = gv.form_change_options(n.tag)
+	var fopen: int = fopts.filter(func(c): return gv.form_change_block(g, n.tag, c.form) == "").size()
+	var fsub: String = "Staatsform"
+	if fcd > 0:
+		fsub += " · änderbar in " + _wait(fcd)
+	elif fopen > 0:
+		fsub += _alternatives(fopen)
+	elif not fopts.is_empty():
+		# say why nothing is possible right now (first reason, e.g. war, points, prestige or year)
+		fsub += " · " + gv.form_change_block(g, n.tag, fopts[0].form).trim_suffix(".")
+	else:
+		fsub += " · kein Wechsel möglich"
 	m.side_box.add_child(_card(gv.form_name(n.tag), fsub, gv.form_effects(n.tag), false, "Ändern", _pick_form, true))
 
 
@@ -259,6 +269,11 @@ func _overview() -> void:
 		m.modal_box.add_child(m._lbl(src[0], 18))
 		m.modal_box.add_child(TechScreen.effects_rich(src[1], 16))
 	m.modal_box.add_child(m._btn("Schließen", m._close_modal))
+
+
+func _regency_tip(gv) -> String:
+	return "Ist er beim Thronwechsel jünger als %d, regiert bis zur Volljährigkeit ein Regentschaftsrat: %s. Wahlmonarchien und Republiken kennen keine Regentschaft." % [
+			gv.regency_age(), Tech.effects_text(gv.cfg.get("regency_effects", {}))]
 
 
 ## " · 12 Jahre alt", plus a regency warning when the heir would still be a child at the expected succession.
@@ -335,6 +350,8 @@ func _heir() -> void:
 	var note := _age_note(g, gv, n)
 	if note != "":
 		box.add_child(m._lbl(note.trim_prefix(" · "), 15, UiTheme.GOLD if note.contains("Regentschaft") else Color(0.72, 0.75, 0.82)))
+		if note.contains("Regentschaft"):
+			box.add_child(m._lbl(_regency_tip(gv), 14, Color(0.72, 0.75, 0.82)))
 	var ht: String = str(h.get("trait", ""))
 	if ht != "":
 		box.add_child(m._lbl("Eigenschaft: " + gv.trait_name(ht), 18))
