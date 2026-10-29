@@ -3103,6 +3103,8 @@ func effect_parts(e: Dictionary) -> Array:
 			parts.append(["⛓️ Vasall: " + game.nations[v].name, 1])
 		elif k == "province":
 			parts.append(["🏘️ Erhalte " + game.provinces[game.key_to_pid[v]].name, 1])
+		elif k == "isolate":
+			parts.append(["💔 %s verliert alle Verbündeten" % game.nations[v].name, 1])
 		elif k == "war":
 			parts.append(["🔥 Krieg gegen " + game.nations[v].name, 0])
 		elif k == "build":

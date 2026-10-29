@@ -2335,6 +2335,15 @@ func apply_effects(tag: String, eff: Dictionary) -> void:
 					provinces[pid].core_months = int(bal.core_months)
 					_rebuild_owned()
 					_check_alive(old)
+			"isolate":
+				# the target stands alone: its allies and guarantors abandon it (comes before "war")
+				if nations.has(v) and nations[v].alive:
+					for ally in nations[v].allies.duplicate():
+						if ally != tag:
+							break_alliance(v, ally)
+					for t in order:
+						nations[t].guarantees.erase(v)
+					log_msg("💔 %s steht allein: Verbündete und Schutzmächte lassen es im Stich." % nations[v].name, [tag, v])
 			"war":
 				if nations.has(v) and nations[v].alive:
 					n.claims[nations[v].capital] = true
