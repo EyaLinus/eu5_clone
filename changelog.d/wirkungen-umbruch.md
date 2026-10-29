@@ -1,1 +1,0 @@
-- Lesbarkeit: Wirkungen in Gesetzen, Reformen, Beratern und Co. brechen nicht mehr mitten im Eintrag um („−10 %“ und „Mannschaften“ stehen immer zusammen).

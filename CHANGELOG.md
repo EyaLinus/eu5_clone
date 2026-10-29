@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.9.6 – 2026-10-29
+- **Mehr zu tun zwischen 1600 und 1644 (14 Ereignisse, 10 Missionen):** Handelskompanien, Fernrohr, Hofmaler,
+  die erste Oper, Post, Festungsstädte, Absolutismus, Hexenprozesse, kalte Jahre, Tulpenfieber, ein Friedenskongress,
+  eine Akademie der Wissenschaften und zum Schluss die Chronik deines Reiches. Jedes spielbare Land hat eine große
+  späte Mission (z. B. „Herrin der Meere“, „Das Große Jahrhundert“, „Die Donaumonarchie“) mit viel Prestige als
+  Belohnung, das in die Endwertung zählt.
+- **KI nutzt ihre Kriegskasse:** Reiche Staaten der KI, die mehr als zwei Jahreseinkommen horten, halten auch im Frieden ihr volles Heer und ziehen etwas eher in den Krieg. Bisher saßen friedliche Mittelmächte wie Nowgorod oder Genua im Spätspiel auf bis zu 20.000 Gold, das sie für nichts mehr ausgeben konnten.
+- **Flotten-Missionen und -Ereignisse passen zum Seekrieg:** Missionen wie „Die Royal Navy“, „Die Unbesiegbare
+  Armada“ oder „Die Flotte des Sultans“ verlangen jetzt Schiffe statt Landregimenter und belohnen mit Flottenstärke.
+  Ereignisse wie Lepanto, Barbarossa oder neue Werften bringen Schiffe statt Kampfkraft an Land.
+  Flottenstärke erscheint jetzt auch in der Modifikator-Übersicht.
+- **Landwege statt falscher Meerengen:** Konstantinopel–Edirne, Morea–Thessalien und Krim–Saporischschja sind wieder normale Landgrenzen. Bisher galten sie als Meerengen, die eine feindliche Flotte sperren konnte. Dadurch kamen die Osmanen nie über Land nach Konstantinopel, und Byzanz überlebte in jeder Partie.
+- **Spätere Geschichte für Burgund, Polen und die Osmanen (18 Ereignisse):** Burgund, falls es überlebt:
+  Generalstände, Erasmus, flämische Maler, Sturmfluten, eine Admiralität und die Frage der Königskrone. Polen:
+  Kosakenregister, Danziger Korn, Chmelnyzkyj, Liberum veto, die Sintflut und Jan Sobieski. Osmanen:
+  Celali-Aufstände, Köprülü-Wesire, Candia, Kara Mustafa vor Wien, die Kadızadeliler und die Tulpenzeit.
+- Technologie: Kacheln zeigen das Symbol des Gebäudes, das sie freischalten (🏪, 🎓 …), statt eines allgemeinen 🏗. Das Detailfenster listet jedes freigeschaltete Gebäude oder jede Stufe mit Wirkung und zeigt, in wie vielen deiner Provinzen der Ausbau sofort möglich ist. Der Erforschen-Knopf schneidet die Kosten nicht mehr ab.
+- Lesbarkeit: Wirkungen in Gesetzen, Reformen, Beratern und Co. brechen nicht mehr mitten im Eintrag um („−10 %“ und „Mannschaften“ stehen immer zusammen).
+
 ## v0.9.5 – 2026-10-28
 - Neuer Kartenmodus „Reich“: Kaiser (gold), Kurfürsten (orange) und Reichsmitglieder (violett) auf einen Blick. Er ist auch direkt aus dem Reichsfenster erreichbar („🗺️ Reich auf der Karte zeigen“).
 - Flüssiger bei hoher Geschwindigkeit: Das offene Seitenfenster wird höchstens etwa dreimal pro Sekunde neu aufgebaut statt jeden Spielmonat, und der Autosave läuft höchstens alle 30 Sekunden statt jedes Spieljahr. Beim Verlassen oder Wechseln der App wird weiterhin sofort gespeichert. Am Handy war beides teurer als die Spielberechnung selbst.
