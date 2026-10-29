@@ -90,6 +90,8 @@
   "alliance_cost": 20.0,
   "max_allies": 3,
   "ai_war_ratio": 1.8,
+  "ai_rich_months": 24.0,
+  "ai_rich_war_need": 0.8,
   "ai_war_chance": 0.0542,
   "ai_event_war_ratio": 1.3,
   "ai_ae_limit": 0.7,

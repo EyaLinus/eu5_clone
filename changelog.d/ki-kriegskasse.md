@@ -1,0 +1,1 @@
+- **KI nutzt ihre Kriegskasse:** Reiche Staaten der KI, die mehr als zwei Jahreseinkommen horten, halten auch im Frieden ihr volles Heer und ziehen etwas eher in den Krieg. Bisher saßen friedliche Mittelmächte wie Nowgorod oder Genua im Spätspiel auf bis zu 20.000 Gold, das sie für nichts mehr ausgeben konnten.
