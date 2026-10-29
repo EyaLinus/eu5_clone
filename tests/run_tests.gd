@@ -1936,16 +1936,19 @@ func test_tech_spread() -> void:
 			break
 	for o in g.nations.values():
 		o.techs.erase(id)
+	g.tree.forget_shares()
 	var full: float = g.tree.cost(g, "FRA", id)
 	check(absf(full - g.tech_cost("FRA", "adm")) < 0.01, "nobody knows it: full price")
 	var others: Array = g.nations.values().filter(func(o): return o.alive and o.tag != "FRA")
 	for i in others.size() / 2:
 		others[i].techs[id] = 0
+	g.tree.forget_shares()
 	var share: float = g.tree.known_share(g, "FRA", id)
 	check(share > 0.45 and share <= 0.5, "half the world knows it (%.2f)" % share)
 	check(absf(g.tree.cost(g, "FRA", id) - full * (1.0 - 0.5 * share)) < 0.01, "spread discount")
 	for o in others:
 		o.techs[id] = 0
+	g.tree.forget_shares()
 	check(absf(g.tree.cost(g, "FRA", id) - full * 0.7) < 0.01, "discount capped at 30 %")
 	var sp: Dictionary = g.tree.specials_of("FRA")[0]
 	check(g.tree.spread_discount(g, "FRA", sp.id) == 0.0, "special techs never get cheaper")
