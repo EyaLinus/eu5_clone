@@ -463,6 +463,9 @@ func wants_vassal(g, w, for_att: bool, budget: float) -> bool:
 	var target: String = g.side_tags(w, not for_att)[0]
 	if g.provinces_of(target).size() > int(g.bal.ai_vassal_max_provinces):
 		return false
+	# a claim on the capital (Constantinople, Granada, Novgorod ...) means conquest, not a vassal
+	if g.nations[g.side_tags(w, for_att)[0]].claims.has(g.nations[target].capital):
+		return false
 	return g.vassal_cost(w, for_att) <= budget
 
 
@@ -499,10 +502,14 @@ func pick_demands(g, w, for_att: bool, budget: float) -> Array:
 			adm_left[to] = g.nations[to].adm + 60.0
 		var c: float = g.peace_cost([e[1]])
 		var ac: float = p.dev * core_cost
-		if spent + c <= budget and (ac <= adm_left[to] or to == g.player):
+		# a claimed province is taken even on admin credit (Constantinople must not stay Greek for lack of points)
+		if spent + c <= budget and (ac <= adm_left[to] or to == g.player or g.nations[to].claims.has(e[1])):
 			r.append(e[1])
 			spent += c
 			adm_left[to] -= ac
+	# total victory: the best province at least, even if a large capital costs more than 100 % war score
+	if r.is_empty() and budget >= 99.0 and not scored.is_empty():
+		r.append(scored[0][1])
 	return r
 
 
@@ -687,9 +694,18 @@ func pick_event_option(g, n, e: Dictionary) -> int:
 		var w := float(e.options[i].get("ai", 50.0 if i == 0 else 25.0))
 		# historic war events: only march when the war looks winnable
 		var foe = e.options[i].get("effects", {}).get("war", "")
-		if foe != "" and g.nations.has(foe) and g.nations[foe].alive and foe != n.tag \
-				and war_odds(g, n.tag, foe) < float(g.bal.ai_event_war_ratio):
-			w *= 0.05
+		if foe != "" and g.nations.has(foe) and g.nations[foe].alive and foe != n.tag:
+			# "isolate" strips the foe's allies first, so only its own strength counts
+			var odds: float = g.strength(n.tag) / maxf(g.strength(foe), 0.5) \
+					if e.options[i].get("effects", {}).get("isolate", "") == foe else war_odds(g, n.tag, foe)
+			if odds < float(g.bal.ai_event_war_ratio):
+				w *= 0.05
+		# an option the realm cannot pay for (gold or power would go negative) is a last resort
+		var eff: Dictionary = e.options[i].get("effects", {})
+		for k in ["gold", "adm", "dip", "mil"]:
+			if eff.has(k) and float(eff[k]) < 0.0 and float(n.get(k)) + float(eff[k]) < 0.0:
+				w *= 0.05
+				break
 		weights.append(w)
 		total += w
 	var r: float = g.rng.randf() * total

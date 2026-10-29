@@ -74,10 +74,10 @@ def E(id, tag, title, text, trigger, options, once=True):
 EVENTS = [
 # ------------------------------------------------------------------ key minors (AI-driven world history)
 E("tur_constantinople", "TUR", "Der Rote Apfel", "Mehmed II. lässt Riesenkanonen gießen. Konstantinopel, die Stadt der Kaiser, liegt in Reichweite.",
-  {"year_min": 1450, "year_max": 1465, "alive": "BYZ", "at_peace": True},
-  [O("Die Stadt belagern!", {"war": "BYZ", "mil": 30}, 70),
-   O("Tribut fordern.", {"gold": 60, "relations": {"BYZ": -30}}),
-   O("Erst die Balkanfürsten unterwerfen.", {"claim": ["serbia", "bosnia"], "mil": 20})]),
+  {"year_min": 1450, "year_max": 1475, "alive": "BYZ", "at_peace": True},
+  [O("Die Stadt belagern!", {"isolate": "BYZ", "war": "BYZ", "mil": 30}, 70),
+   O("Tribut fordern.", {"gold": 60, "relations": {"BYZ": -30}}, 10),
+   O("Erst die Balkanfürsten unterwerfen.", {"claim": ["serbia", "bosnia"], "mil": 20}, 10)]),
 E("tur_janissaries", "TUR", "Die Janitscharen murren", "Die Elitetruppe des Sultans verlangt nach jedem Thronwechsel ein Geschenk. Sonst kippen sie die Kessel um.",
   {"year_min": 1450},
   [O("Das Thronbesteigungsgeschenk zahlen.", {"gold": -50, "mods": {"combat": 0.02}}, 50),

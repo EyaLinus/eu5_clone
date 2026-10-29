@@ -912,11 +912,11 @@
      {"text": "Nur die Nützlichen.", "effects": {"adm": 30}},
      {"text": "Wir haben andere Sorgen.", "effects": {"mil": 20}}]},
   {"id": "tur_constantinople", "tag": "TUR", "title": "Der Rote Apfel", "text": "Mehmed II. lässt Riesenkanonen gießen. Konstantinopel, die Stadt der Kaiser, liegt in Reichweite.",
-   "trigger": {"year_min": 1450, "year_max": 1465, "alive": "BYZ", "at_peace": true},
+   "trigger": {"year_min": 1450, "year_max": 1475, "alive": "BYZ", "at_peace": true},
    "options": [
-     {"text": "Die Stadt belagern!", "effects": {"war": "BYZ", "mil": 30}, "ai": 70},
-     {"text": "Tribut fordern.", "effects": {"gold": 60, "relations": {"BYZ": -30}}},
-     {"text": "Erst die Balkanfürsten unterwerfen.", "effects": {"claim": ["serbia", "bosnia"], "mil": 20}}]},
+     {"text": "Die Stadt belagern!", "effects": {"isolate": "BYZ", "war": "BYZ", "mil": 30}, "ai": 70},
+     {"text": "Tribut fordern.", "effects": {"gold": 60, "relations": {"BYZ": -30}}, "ai": 10},
+     {"text": "Erst die Balkanfürsten unterwerfen.", "effects": {"claim": ["serbia", "bosnia"], "mil": 20}, "ai": 10}]},
   {"id": "tur_janissaries", "once": false, "tag": "TUR", "title": "Die Janitscharen murren", "text": "Die Elitetruppe des Sultans verlangt nach jedem Thronwechsel ein Geschenk. Sonst kippen sie die Kessel um.",
    "trigger": {"year_min": 1450},
    "options": [
