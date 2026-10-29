@@ -127,7 +127,7 @@ E("pap_indulgences", "PAP", "Der Petersablass", "Für den Bau des Petersdoms sol
   [O("Die Ablassprediger losschicken.", {"gold": 120, "prestige": -10, "flag": "pap_indulgence_sold"}, 60),
    O("Spenden der Fürsten erbitten.", {"gold": 50, "dip": -20}),
    O("Nur mit eigenem Geld bauen.", {"gold": -40, "prestige": 10})]),
-E("pap_trent", "PAP", "Das Konzil von Trient", "Ein deutscher Mönch stellt die Kirche in Frage. Ein Konzil soll antworten.",
+E("pap_trent", "PAP", "Der Papst beruft ein Konzil", "Ein deutscher Mönch stellt die Kirche in Frage. Ein Konzil soll antworten.",
   {"year_min": 1540, "year_max": 1565},
   [O("Reformen und eine klare Lehre.", {"adm": 50, "prestige": 15}, 50),
    O("Die Inquisition stärken.", {"mil": 20, "prestige": 5, "dev_random": -1}),

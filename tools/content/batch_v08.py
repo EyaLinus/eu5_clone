@@ -68,7 +68,7 @@ MISSIONS = {
 
 EVENTS = [
 # ------------------------------------------------------------------ Scotland, Ireland
-E("sco_flodden", "SCO", "Flodden Field", "Frankreich bittet um Hilfe gegen England. Der König will über die Grenze marschieren.",
+E("sco_flodden", "SCO", "Die Schlacht bei Flodden", "Frankreich bittet um Hilfe gegen England. Der König will über die Grenze marschieren.",
   {"year_min": 1500, "year_max": 1530, "alive": "ENG", "at_peace": True},
   [O("Für die Auld Alliance!", {"war": "ENG", "relations": {"FRA": 40}}, 30),
    O("Nur Truppen an die Grenze.", {"mil": 30, "relations": {"FRA": 20}}, 40),

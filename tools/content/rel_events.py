@@ -103,7 +103,7 @@ EVENTS = [
     # --- religious peace and tolerance
     ev("augsburg_peace", "Der Augsburger Religionsfriede",
        "Kaiser und Fürsten einigen sich: Wessen das Land, dessen der Glaube. Auch du musst dich entscheiden.", "treaty",
-       era(year_min=1555, year_max=1565, hre=True),
+       era(year_min=1555, year_max=1565, hre=True, not_flag="ev_hab_augsburg"),
        [("Wessen das Land, dessen der Glaube.", {"convert_random": 2, "estate": {"buerger": -3}}),
         ("Duldung für beide Konfessionen.", {"estate": {"buerger": 5, "klerus": -3}, "dip": 25}),
         ("Den Frieden feiern.", {"prestige": 4, "gold": -20})]),

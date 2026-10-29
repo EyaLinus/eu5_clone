@@ -27,7 +27,7 @@ func _init() -> void:
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_monument_events", "test_ctx_events", "test_late_content", "test_era_content", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_monument_events", "test_ctx_events", "test_late_content", "test_era_content", "test_event_keys", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_empire_reforms",
 		"test_religion_modifiers",
 		"test_age_goals",
@@ -2682,6 +2682,45 @@ func test_era_content() -> void:
 				check(not g.check_conditions(tag, m.require), "%s not done at the start" % m.id)
 		check(found, "%s has a late-game mission" % tag)
 
+
+
+## Keys the match blocks in Game.check_conditions / Game.apply_effects handle (read from the source, since an
+## unknown key is silently ignored there), plus year windows that close before the game ends.
+func _handled_keys(src: String, fn: String) -> Dictionary:
+	var body := src.split("func %s(" % fn, true, 1)[1].split("\nfunc ", true, 1)[0]
+	var keys := {}
+	var re := RegEx.create_from_string("\"([a-z_]+)\"")
+	for line in body.split("\n"):
+		if line.begins_with("\t\t\t\"") and line.ends_with(":"):
+			for m in re.search_all(line):
+				keys[m.get_string(1)] = true
+	return keys
+
+
+func test_event_keys() -> void:
+	var src := FileAccess.get_file_as_string("res://scripts/core/game.gd")
+	var conds := _handled_keys(src, "check_conditions")
+	var effs := _handled_keys(src, "apply_effects")
+	check(conds.has("year_min") and effs.has("gold"), "handled keys parsed from game.gd")
+	var end_year := int(data.balance.start_year) + int(data.balance.total_months) / 12
+	var bad := []
+	var items := []
+	for e in data.events:
+		items.append([e.id, e.get("trigger", {}), e.options.map(func(o): return o.get("effects", {}))])
+	for tag in data.missions:
+		for m in data.missions[tag]:
+			items.append([m.id, m.get("require", {}), [m.get("reward", {})]])
+	for it in items:
+		for k in it[1]:
+			if not conds.has(k):
+				bad.append("%s: condition %s" % [it[0], k])
+		if int(it[1].get("year_min", 0)) > mini(int(it[1].get("year_max", end_year)), end_year):
+			bad.append("%s: year window after %d" % [it[0], end_year])
+		for eff in it[2]:
+			for k in eff:
+				if not effs.has(k):
+					bad.append("%s: effect %s" % [it[0], k])
+	check(bad.is_empty(), "all event/mission keys handled and windows open: %s" % str(bad.slice(0, 5)))
 
 func test_court_content() -> void:
 	var g = new_game("FRA")
