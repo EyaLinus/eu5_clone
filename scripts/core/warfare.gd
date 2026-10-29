@@ -352,6 +352,13 @@ static func finish(g, b: Battle, war, att_wins: bool) -> void:
 	g.log_msg("⚔️ Schlacht bei %s: %s siegt über %s nach %d Runden (%.1f gegen %.1f Regimenter verloren)." % [
 			g.provinces[b.pid].name, g.nations[win[0].owner].name, g.nations[lose[0].owner].name, b.round, won_lost, lost], involved)
 	g.battles.erase(b)
+	for a in win:
+		g.fire_event(a.owner, "war_first_win")
+	for a in lose:
+		g.fire_event(a.owner, "war_first_loss")
+	if b.round >= 6:  # three months or more at 2 rounds per month
+		for t in involved:
+			g.fire_event(t, "war_long_battle")
 	for a in lose:
 		g._retreat(a)
 

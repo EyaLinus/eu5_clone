@@ -28,7 +28,7 @@ const HUD_TIPS := {
 	"army": "Regimenter / Truppenlimit", "ae": "Aggressive Expansion: ab der Koalitionsgrenze drohen Koalitionen",
 }
 const MAJORS := ["FRA", "ENG", "SPA", "BOH", "HAB", "RUS", "NAP"]
-const EXTRA_PLAYABLE := ["TUR", "POL", "BUR"]  # playable, but less mission/event content than the majors
+const EXTRA_PLAYABLE := ["TUR", "POL", "BUR"]  # playable too, listed after the majors (same amount of content since v0.9.5)
 
 var data: Dictionary
 var game
@@ -601,8 +601,6 @@ func _show_start_menu() -> void:
 		var v := VBoxContainer.new()
 		v.add_child(_lbl("%s %s" % [PixelEmoji.nation(start_pick, nd.emoji), nd.name], 24))
 		v.add_child(_bb(_idea_bb(nd.get("idea", ""), nd.get("bonus", {})), 16))
-		if EXTRA_PLAYABLE.has(start_pick):
-			v.add_child(_lbl("Weniger eigene Missionen und Ereignisse als die großen Nationen.", 14, Color(0.85, 0.75, 0.5)))
 		v.add_child(_btn("▶ Los geht's als %s (%s)" % [nd.name, Game.DIFFICULTY_NAMES.get(settings.difficulty, "Normal")], _start_game.bind(start_pick)))
 		card.add_child(v)
 		modal_box.add_child(card)
@@ -616,7 +614,7 @@ func _show_start_menu() -> void:
 			_show_start_menu()
 			var sc := modal_box.get_parent() as ScrollContainer
 			if sc != null:
-				sc.set_deferred("scroll_vertical", 0), nd.get("idea", "") + ("\n(weniger Missionen und Ereignisse)" if EXTRA_PLAYABLE.has(tag) else ""))
+				sc.set_deferred("scroll_vertical", 0), nd.get("idea", ""))
 		if tag == start_pick:
 			nb.add_theme_stylebox_override("normal", UiTheme.card("gold", 6))
 		picks.append(nb)
