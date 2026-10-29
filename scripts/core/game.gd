@@ -1130,6 +1130,11 @@ func _siege(p: Province) -> void:
 		else:
 			p.controller = sieger
 		log_msg("🏳️ %s wurde von %s eingenommen." % [p.name, nations[p.controller].name], [sieger, old, p.owner])
+		if p.controller == sieger:
+			if Economy.fort_level(self, p) > 0:
+				fire_event(sieger, "war_first_fort")
+			if nations[p.owner].capital == p.id:
+				fire_event(p.owner, "war_capital_lost")
 
 
 ## Highest fighting power of `tag`'s armies (1.0 base; techs, laws and advisors may add "army_power").
@@ -1313,6 +1318,7 @@ func declare_war(att: String, def: String, coalition_members: Array = []) -> Str
 	if w.coalition:
 		w.attackers = coalition_members.duplicate()
 		w.name = "Koalition gegen %s" % nations[def].name
+		fire_event(def, "dip_coalition")
 	else:
 		w.attackers = [att]
 		w.name = "%s-%s-Krieg" % [nations[att].name, nations[def].name]
@@ -1443,6 +1449,14 @@ func make_peace(w: War, winner_att: bool, pids: Array, vassalize: bool = false) 
 	wars.erase(w)
 	if new_vassal != "":
 		_vassalize(lead, new_vassal, w.coalition)
+		fire_event(lead, "dip_first_vassal")
+		fire_event(new_vassal, "dip_became_vassal")
+	elif pids.is_empty():
+		fire_event(lead, "war_white_peace")
+		fire_event(losers[0], "war_white_peace")
+	else:
+		fire_event(lead, "war_peace_gain")
+		fire_event(losers[0], "war_peace_loss")
 	for a in w.attackers:
 		for d in w.defenders:
 			nations[a].truces[d] = month + int(bal.truce_months)

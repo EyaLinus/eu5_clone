@@ -1,0 +1,4 @@
+### Events: Qualitätsrunde
+- Vier späte Ereignisse für Polen und die Osmanen lagen nach dem Spielende (1650–1718) und konnten nie kommen. Sie sind ersetzt durch Ereignisse aus der Spielzeit: Gustav Adolf in Preußen, das Lager von Chotyn, der junge Sultan und die Janitscharen, Murad IV. zieht nach Osten.
+- Doppelte Titel entschärft: Habsburg und der Papst haben eigene Titel für Augsburg, Gegenreformation und Trient. Der Augsburger Religionsfriede kommt für Habsburg nicht mehr doppelt. Die beiden Hexenprozess-Ereignisse schließen sich jetzt gegenseitig aus. Die holländischen Schiffbauer im Flottenereignis heißen jetzt „Die Fleute“ (ab 1590).
+- Neues Prüfwerkzeug für Ereignisse und Missionen (tools/event_audit.py, tools/event_audit.gd). Ein neuer Test findet Bedingungen und Effekte, die das Spiel stillschweigend ignorieren würde.

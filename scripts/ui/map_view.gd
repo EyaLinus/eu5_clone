@@ -35,6 +35,10 @@ var background: Array = []
 var terrain: Texture2D
 var terrain_half: Texture2D
 var _terrain_rect: TextureRect
+var _world: Node2D  # map_world_layer.gd
+var _world_zoom := -1.0
+## nation labels: [tag, world anchor, province count], rebuilt with the world layer
+var _realm_labels: Array = []
 var _sea_rect: ColorRect
 ## Border segments in world space: points 2e and 2e+1 between provinces edge_l[e] and edge_r[e] (-1 = sea)
 var edge_pts := PackedVector2Array()
@@ -112,6 +116,21 @@ func setup(g, map_data: Dictionary) -> void:
 		background.append(arr)
 	_build_edges()
 	_setup_terrain()
+	if _world == null:
+		_world = Node2D.new()
+		_world.set_script(preload("res://scripts/ui/map_world_layer.gd"))
+		_world.map = self
+		_world.show_behind_parent = true
+		add_child(_world)
+	_sync_terrain()
+	refresh()
+
+
+## Redraws everything, including the world layer. Call this (not queue_redraw) after the game state,
+## the map mode or the selection changed; queue_redraw() alone only redraws the screen-space overlay.
+func refresh() -> void:
+	if _world != null:
+		_world.queue_redraw()
 	queue_redraw()
 
 
@@ -120,15 +139,16 @@ func setup(g, map_data: Dictionary) -> void:
 func _setup_terrain() -> void:
 	terrain = load(TERRAIN_PATH) if ResourceLoader.exists(TERRAIN_PATH) else null
 	terrain_half = load(TERRAIN_HALF_PATH) if ResourceLoader.exists(TERRAIN_HALF_PATH) else null
-	if terrain == null:
-		return
-	if _terrain_rect == null:
+	if _sea_rect == null:
 		_sea_rect = ColorRect.new()
-		_sea_rect.color = Color("132a45")
+		_sea_rect.color = Color("132a45") if terrain != null else SEA
 		_sea_rect.show_behind_parent = true
 		_sea_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_sea_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 		add_child(_sea_rect)
+	if terrain == null:
+		return
+	if _terrain_rect == null:
 		_terrain_rect = TextureRect.new()
 		_terrain_rect.show_behind_parent = true
 		_terrain_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -140,6 +160,12 @@ func _setup_terrain() -> void:
 
 
 func _sync_terrain() -> void:
+	if _world != null:
+		_world.position = offset
+		_world.scale = Vector2(zoom, zoom)
+		if zoom != _world_zoom:  # line widths and zoom thresholds depend on it
+			_world_zoom = zoom
+			_world.queue_redraw()
 	if _terrain_rect == null:
 		return
 	var tex := terrain_half if zoom < 0.7 and terrain_half != null else terrain
@@ -251,50 +277,16 @@ func _clamp() -> void:
 # ---------------------------------------------------------------- drawing
 
 func _draw() -> void:
-	var textured := _terrain_rect != null
-	if not textured:
-		draw_rect(Rect2(Vector2.ZERO, size), SEA)
 	if game == null:
 		return
+	_build_mode_data()
 	draw_set_transform(offset, 0.0, Vector2(zoom, zoom))
-	if not textured:
-		for bg in background:
-			draw_colored_polygon(bg, WASTE)
-	var view := Rect2(to_world(Vector2.ZERO), size / zoom)
-	if map_mode == MODE_WAR:
-		_build_war_sides()
-	elif map_mode == MODE_HRE:
-		_hre_role = {}
-		for t in game.hre:
-			_hre_role[t] = "member"
-		for t in game.current_electors():
-			_hre_role[t] = "elector"
-		if game.emperor != "":
-			_hre_role[game.emperor] = "emperor"
-	for p in game.provinces:
-		if not view.intersects(bboxes[p.id]):
-			continue
-		var c := province_color(p)
-		if textured:
-			c.a = FILL_ALPHA if map_mode < 2 else 0.86
-		if p.id == hover_pid or p.id == selected_pid:
-			c = c.lightened(0.28 if p.id == selected_pid else 0.16)
-		for poly in polys[p.id]:
-			draw_colored_polygon(poly, c)
-		if map_mode == MODE_FAITH:
-			var own: String = game.nations[p.owner].religion
-			if p.religion != own:
-				var fc := Color(Faith.FAITHS[own].color)
-				for poly in polys[p.id]:
-					_draw_hatch(poly, bboxes[p.id], fc)
-		elif p.controller != p.owner:
-			var cc: Color = _occupier_color(p.controller)
-			cc.a = 0.6 if map_mode != MODE_WAR else 0.9
-			for poly in polys[p.id]:
-				_draw_hatch(poly, bboxes[p.id], cc)
-	_draw_borders(view)
-	_draw_roads(view)
-	_draw_sea_routes(view)
+	# hover / selection tint on top of the world layer's fill
+	for pid in [hover_pid, selected_pid]:
+		if pid >= 0 and pid < polys.size():
+			var tint := Color(1, 1, 1, 0.24 if pid == selected_pid else 0.14)
+			for poly in polys[pid]:
+				draw_colored_polygon(poly, tint)
 	if hover_pid >= 0 and hover_pid != selected_pid:
 		# with an army selected the pointer shows the march target
 		_outline(hover_pid, SELECT if selected_army >= 0 else Color(1, 1, 1, 0.7), 2.0)
@@ -314,14 +306,63 @@ func _draw() -> void:
 	_draw_hover_tip()
 
 
+## War sides and HRE roles for the current map mode (used by fills, borders and counters).
+func _build_mode_data() -> void:
+	if map_mode == MODE_WAR:
+		_build_war_sides()
+	elif map_mode == MODE_HRE:
+		_hre_role = {}
+		for t in game.hre:
+			_hre_role[t] = "member"
+		for t in game.current_electors():
+			_hre_role[t] = "elector"
+		if game.emperor != "":
+			_hre_role[game.emperor] = "emperor"
+
+
+## Draws the whole world (no view culling, so panning never needs a redraw) onto the world layer.
+func _draw_world(ci: CanvasItem) -> void:
+	if game == null:
+		return
+	_build_mode_data()
+	if _terrain_rect == null:
+		for bg in background:
+			ci.draw_colored_polygon(bg, WASTE)
+	var textured := _terrain_rect != null
+	for p in game.provinces:
+		var c := province_color(p)
+		if textured:
+			c.a = FILL_ALPHA if map_mode < 2 else 0.86
+		for poly in polys[p.id]:
+			ci.draw_colored_polygon(poly, c)
+		if map_mode == MODE_FAITH:
+			var own: String = game.nations[p.owner].religion
+			if p.religion != own:
+				var fc := Color(Faith.FAITHS[own].color)
+				for poly in polys[p.id]:
+					_draw_hatch(ci, poly, bboxes[p.id], fc)
+		elif p.controller != p.owner:
+			var cc: Color = _occupier_color(p.controller)
+			cc.a = 0.6 if map_mode != MODE_WAR else 0.9
+			for poly in polys[p.id]:
+				_draw_hatch(ci, poly, bboxes[p.id], cc)
+	_draw_borders(ci)
+	_draw_roads(ci)
+	_realm_labels.clear()
+	for tag in game.order:
+		var owned: Array = game.provinces_of(tag)
+		if game.nations[tag].alive and owned.size() >= 2:
+			_realm_labels.append([tag, _realm_center(tag, owned), owned.size()])
+	_draw_sea_routes(ci)
+
+
 ## Road network: a dashed track between neighbouring provinces that both have roads (thicker with level).
-func _draw_roads(view: Rect2) -> void:
+func _draw_roads(ci: CanvasItem) -> void:
 	if zoom < 0.55 or map_mode == MODE_WAR:
 		return
-	var v := view.grow(200.0)
 	for p in game.provinces:
 		var lv: int = int(p.buildings.get("road", 0))
-		if lv <= 0 or not v.has_point(p.center):
+		if lv <= 0:
 			continue
 		for q in p.adj:
 			if q < p.id:
@@ -331,26 +372,23 @@ func _draw_roads(view: Rect2) -> void:
 			if lo <= 0 or p.center.distance_to(o.center) > 260.0:
 				continue
 			var w := (1.2 + 0.8 * mini(lv, lo)) / zoom
-			draw_line(p.center, o.center, Color(0.1, 0.07, 0.04, 0.7), w + 2.0 / zoom)
-			draw_dashed_line(p.center, o.center, ROAD, w, 7.0 / zoom)
+			ci.draw_line(p.center, o.center, Color(0.1, 0.07, 0.04, 0.7), w + 2.0 / zoom)
+			ci.draw_dashed_line(p.center, o.center, ROAD, w, 7.0 / zoom)
 
 
 ## Sea crossings: a dotted ferry line; red while an enemy fleet rules that sea for the player.
-func _draw_sea_routes(view: Rect2) -> void:
+func _draw_sea_routes(ci: CanvasItem) -> void:
 	if zoom < 0.45:
 		return
-	var v := view.grow(200.0)
 	for k in game.straits:
 		var a: int = int(k / 10000)
 		var b: int = int(k % 10000)
 		var pa: Vector2 = game.provinces[a].center
 		var pb: Vector2 = game.provinces[b].center
-		if not v.has_point(pa) and not v.has_point(pb):
-			continue
 		var blocked: bool = game.player != "" and not Naval.can_cross(game, game.player, a, b)
 		var col := Color(0.95, 0.3, 0.25, 0.95) if blocked else Color(0.85, 0.93, 1.0, 0.75)
-		draw_dashed_line(pa, pb, Color(0, 0, 0, 0.5), 4.0 / zoom, 6.0 / zoom)
-		draw_dashed_line(pa, pb, col, 2.0 / zoom, 6.0 / zoom)
+		ci.draw_dashed_line(pa, pb, Color(0, 0, 0, 0.5), 4.0 / zoom, 6.0 / zoom)
+		ci.draw_dashed_line(pa, pb, col, 2.0 / zoom, 6.0 / zoom)
 
 
 ## Sea names; while the player is at war also who rules each sea (our ships : enemy ships).
@@ -461,7 +499,7 @@ func _draw_hover_tip() -> void:
 
 
 ## Province borders thin, coasts medium, borders between different owners thick.
-func _draw_borders(view: Rect2) -> void:
+func _draw_borders(ci: CanvasItem) -> void:
 	if edge_l.is_empty():
 		return
 	var thin := PackedVector2Array()
@@ -470,12 +508,9 @@ func _draw_borders(view: Rect2) -> void:
 	var realm := PackedVector2Array()  # outer border of the player's realm (political mode)
 	var front := PackedVector2Array()  # borders between enemies (war mode)
 	var me: String = game.player
-	var v := view.grow(20.0)
 	for e in edge_l.size():
 		var a := edge_pts[e * 2]
 		var b := edge_pts[e * 2 + 1]
-		if not v.has_point(a) and not v.has_point(b):
-			continue
 		var r := edge_r[e]
 		if r < 0:
 			coast.append(a)
@@ -495,16 +530,16 @@ func _draw_borders(view: Rect2) -> void:
 			thin.append(a)
 			thin.append(b)
 	if zoom >= 0.6 and not thin.is_empty():
-		draw_multiline(thin, PROV_BORDER, 1.0 / zoom)
+		ci.draw_multiline(thin, PROV_BORDER, 1.0 / zoom)
 	if not coast.is_empty():
-		draw_multiline(coast, COAST, 1.5 / zoom)
+		ci.draw_multiline(coast, COAST, 1.5 / zoom)
 	var nw := clampf(2.6 * zoom, 1.6, 3.4)
 	if not nation.is_empty():
-		draw_multiline(nation, NATION_BORDER, nw / zoom)
+		ci.draw_multiline(nation, NATION_BORDER, nw / zoom)
 	if not realm.is_empty():
-		draw_multiline(realm, Color(SELECT, 0.85), (nw * 0.6) / zoom)
+		ci.draw_multiline(realm, Color(SELECT, 0.85), (nw * 0.6) / zoom)
 	if not front.is_empty():
-		draw_multiline(front, Color("ff6a4a"), (nw * 0.75) / zoom)
+		ci.draw_multiline(front, Color("ff6a4a"), (nw * 0.75) / zoom)
 
 
 func province_color(p) -> Color:
@@ -585,7 +620,7 @@ func province_color(p) -> Color:
 	return c
 
 
-func _draw_hatch(poly: PackedVector2Array, bb: Rect2, c: Color) -> void:
+func _draw_hatch(ci: CanvasItem, poly: PackedVector2Array, bb: Rect2, c: Color) -> void:
 	# diagonal stripes clipped to the province polygon
 	var step := 10.0
 	var x := bb.position.x - bb.size.y
@@ -593,7 +628,7 @@ func _draw_hatch(poly: PackedVector2Array, bb: Rect2, c: Color) -> void:
 		var line := PackedVector2Array([Vector2(x, bb.position.y), Vector2(x + bb.size.y, bb.end.y)])
 		for seg in Geometry2D.intersect_polyline_with_polygon(line, poly):
 			if seg.size() >= 2:
-				draw_line(seg[0], seg[seg.size() - 1], c, 3.0 / zoom)
+				ci.draw_line(seg[0], seg[seg.size() - 1], c, 3.0 / zoom)
 		x += step
 
 
@@ -621,14 +656,13 @@ func _draw_labels() -> void:
 			draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color.WHITE)
 	else:
 		var fs := int(clampf(16.0 * zoom + 4.0, 10.0, 22.0))
-		for tag in game.order:
-			var n = game.nations[tag]
-			var owned: Array = game.provinces_of(tag)
-			if not n.alive or owned.size() < 2:
+		for rl in _realm_labels:
+			var tag: String = rl[0]
+			var s := to_screen(rl[1])
+			if not Rect2(Vector2(-300, -60), size + Vector2(600, 120)).has_point(s):
 				continue
-			var s := to_screen(_realm_center(tag, owned))
-			var txt: String = n.name
-			var big := clampf(sqrt(float(owned.size())) / 3.0, 1.0, 1.6)
+			var txt: String = game.nations[tag].name
+			var big := clampf(sqrt(float(rl[2])) / 3.0, 1.0, 1.6)
 			fs = int(clampf((16.0 * zoom + 4.0) * big, 12.0, 30.0) * label_scale)
 			var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 			var pos := s + Vector2(-w / 2, -ARMY_R - 4)

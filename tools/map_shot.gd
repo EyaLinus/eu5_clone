@@ -54,12 +54,12 @@ func _run(m) -> void:
 	m.map.selected_pid = g.key_to_pid["paris"]
 	m.map.hover_pid = g.key_to_pid["rennes"] if g.key_to_pid.has("rennes") else -1
 	m.map._hover_pos = m.map.to_screen(g.provinces[max(m.map.hover_pid, 0)].center)
-	m.map.queue_redraw()
+	m.map.refresh()
 	await _shot("map_selected_hover")
 	m.map.hover_pid = -1
 	m.map.selected_pid = -1
 	m.map.map_mode = m.map.MODE_WAR
-	m.map.queue_redraw()
+	m.map.refresh()
 	await _shot("map_war")
 	m.map.focus(Vector2(1000, 700), 0.45)
 	await _shot("map_war_europe")

@@ -1,0 +1,3 @@
+### Krieg und Diplomatie: Kontext-Ereignisse
+- 15 neue Ereignisse passend zu den mehrmonatigen Schlachten und Belagerungen: erster Sieg und erste Niederlage im Feld, eine Schlacht über Monate, die erste eroberte Festung, Feinde in der Hauptstadt, siegreicher, bitterer und weißer Friede, eine Koalition gegen dich, erster Vasall und Unterwerfung. Dazu kommen Ereignisse zu Bündnissen, Vasallen und hoher aggressiver Expansion.
+- Osmanen, Polen und Burgund werden bei der Nationenwahl nicht mehr als „weniger Missionen und Ereignisse“ markiert. Sie haben inzwischen so viel Inhalt wie die großen Nationen.
