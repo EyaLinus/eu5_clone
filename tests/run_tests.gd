@@ -27,7 +27,7 @@ func _init() -> void:
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_monument_events", "test_ctx_events", "test_late_content", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_monument_events", "test_ctx_events", "test_late_content", "test_era_content", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_empire_reforms",
 		"test_religion_modifiers",
 		"test_age_goals",
@@ -2663,6 +2663,24 @@ func test_late_content() -> void:
 			g.check_conditions(e.tag, e.trigger)  # must not crash (province keys resolve)
 	for tag in ["BUR", "POL", "TUR"]:
 		check(cnt.get(tag, 0) >= 6, "%s has late events" % tag)
+
+
+func test_era_content() -> void:
+	var g = new_game("FRA")
+	var cnt := 0
+	for e in data.events:
+		if e.id.begins_with("era_"):
+			cnt += 1
+			check(int(e.trigger.get("year_min", 0)) >= 1600, "%s is late-game" % e.id)
+			g.check_conditions("FRA", e.trigger)  # must not crash
+	check(cnt >= 12, "late-game events present (%d)" % cnt)
+	for tag in ["ENG", "FRA", "SPA", "BOH", "HAB", "RUS", "NAP", "BUR", "POL", "TUR"]:
+		var found := false
+		for m in data.missions.get(tag, []):
+			if "_era_" in m.id:
+				found = true
+				check(not g.check_conditions(tag, m.require), "%s not done at the start" % m.id)
+		check(found, "%s has a late-game mission" % tag)
 
 
 func test_court_content() -> void:

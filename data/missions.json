@@ -23,7 +23,9 @@
     {"id": "fra_eco_roads", "title": "Die Straßen des Königs", "desc": "Ein Netz gepflasterter Straßen verbindet Paris mit den Provinzen.",
      "require": {"building": {"road": 4}}, "reward": {"adm": 40, "mods": {"army_power_regen": 0.1}}},
     {"id": "fra_eco_wine", "after": "fra_eco_roads", "title": "Der Wein Frankreichs", "desc": "Ganz Europa trinkt französischen Wein und zahlt dafür.",
-     "require": {"goods_leader": "wine"}, "reward": {"prestige": 10, "mods": {"trade": 0.03}}}
+     "require": {"goods_leader": "wine"}, "reward": {"prestige": 10, "mods": {"trade": 0.03}}},
+    {"id": "fra_era_grand_siecle", "title": "Das Große Jahrhundert", "desc": "Drei Großprojekte zeigen Europa, wer den Ton angibt.",
+     "require": {"year_min": 1600, "monuments_min": 3, "min_dev": 350}, "reward": {"prestige": 25, "dip": 50}}
   ],
   "ENG": [
     {"id": "eng_hold", "title": "Das Erbe Heinrichs V.", "desc": "Halte Normandie, Guyenne und Calais bis 1460.",
@@ -47,7 +49,9 @@
     {"id": "eng_eco_cloth", "title": "Tuch statt Wolle", "desc": "Verarbeite die englische Wolle selbst, statt sie nach Flandern zu verkaufen.",
      "require": {"building": {"workshop": 3, "manufactory": 1}}, "reward": {"adm": 40, "mods": {"production": 0.03}}},
     {"id": "eng_eco_ports", "after": "eng_eco_cloth", "title": "Häfen für den Handel", "desc": "Starke Häfen machen England zur Handelsmacht.",
-     "require": {"building": {"harbor": 4}}, "reward": {"dip": 40, "mods": {"trade": 0.03}}}
+     "require": {"building": {"harbor": 4}}, "reward": {"dip": 40, "mods": {"trade": 0.03}}},
+    {"id": "eng_era_empire", "title": "Herrin der Meere", "desc": "Eine Flotte, die jede Küste erreicht, und Häfen im ganzen Reich.",
+     "require": {"year_min": 1600, "ships_min": 20, "building": {"harbor": 6}}, "reward": {"prestige": 25, "mods": {"naval": 0.03}}}
   ],
   "SPA": [
     {"id": "spa_granada", "title": "Die Reconquista vollenden", "desc": "Granada ist das letzte maurische Königreich Iberiens.",
@@ -71,7 +75,9 @@
     {"id": "spa_eco_mesta", "title": "Die Mesta", "desc": "Die großen Schafherden der Mesta brauchen Weiden und Gutshöfe.",
      "require": {"building": {"estate": 3}}, "reward": {"gold": 80, "mods": {"production": 0.02}}},
     {"id": "spa_eco_sevilla", "after": "spa_eco_mesta", "title": "Die Flotte von Sevilla", "desc": "Sevilla soll zum großen Hafen des Reiches werden.",
-     "require": {"building": {"harbor": 3, "marketplace": 2}}, "reward": {"dip": 50, "mods": {"trade": 0.03}}}
+     "require": {"building": {"harbor": 3, "marketplace": 2}}, "reward": {"dip": 50, "mods": {"trade": 0.03}}},
+    {"id": "spa_era_siglo_de_oro", "title": "Das Goldene Zeitalter", "desc": "Ein Palast und eine Universität für die Dichter und Maler Spaniens.",
+     "require": {"year_min": 1600, "monument": "palace", "building": {"university": 1}}, "reward": {"prestige": 25, "dev_capital": 2}}
   ],
   "BOH": [
     {"id": "boh_peace", "title": "Hussitischer Frieden", "desc": "Nach den Hussitenkriegen braucht das Land Ruhe und Ordnung.",
@@ -97,7 +103,9 @@
     {"id": "boh_eco_silver", "title": "Das Silber von Kuttenberg", "desc": "Böhmisches Silber soll die Münzen Europas füllen.",
      "require": {"goods_leader": "silver"}, "reward": {"gold": 150, "prestige": 5}},
     {"id": "boh_eco_markets", "after": "boh_eco_silver", "title": "Die Märkte von Prag", "desc": "Prag als Handelsplatz zwischen Ost und West.",
-     "require": {"building": {"marketplace": 3}}, "reward": {"dip": 40, "mods": {"trade": 0.03}}}
+     "require": {"building": {"marketplace": 3}}, "reward": {"dip": 40, "mods": {"trade": 0.03}}},
+    {"id": "boh_era_rudolfine", "title": "Das Prag Rudolfs", "desc": "Gelehrte, Künstler und Alchemisten am Hof der goldenen Stadt.",
+     "require": {"year_min": 1600, "building": {"university": 1}, "monuments_min": 1}, "reward": {"prestige": 20, "adm": 60}}
   ],
   "HAB": [
     {"id": "hab_lands", "title": "Die Erblande sichern", "desc": "Österreich, Steiermark, Krain und Tirol unter einer Hand.",
@@ -123,7 +131,9 @@
     {"id": "hab_eco_iron", "title": "Der steirische Erzberg", "desc": "Eisen aus der Steiermark für Werkstätten und Waffen.",
      "require": {"produces": "iron", "building": {"workshop": 2}}, "reward": {"mil": 40, "mods": {"production": 0.02}}},
     {"id": "hab_eco_alps", "after": "hab_eco_iron", "title": "Straßen über die Alpen", "desc": "Gute Straßen halten die verstreuten Erblande zusammen.",
-     "require": {"building": {"road": 3}}, "reward": {"adm": 40, "mods": {"army_power_regen": 0.1}}}
+     "require": {"building": {"road": 3}}, "reward": {"adm": 40, "mods": {"army_power_regen": 0.1}}},
+    {"id": "hab_era_danube", "title": "Die Donaumonarchie", "desc": "Österreich, Böhmen und Ungarn unter einer Krone.",
+     "require": {"year_min": 1600, "owns": ["wien"], "owns_any": ["prague", "buda"], "min_dev": 300}, "reward": {"prestige": 25, "mil": 50}}
   ],
   "RUS": [
     {"id": "rus_novgorod", "title": "Nowgorod unterwerfen", "desc": "Die stolze Handelsrepublik muss sich Moskau beugen.",
@@ -149,7 +159,9 @@
     {"id": "rus_eco_furs", "title": "Der Pelzhandel", "desc": "Zobel und Hermelin aus den Wäldern des Nordens für ganz Europa.",
      "require": {"goods_leader": "furs"}, "reward": {"gold": 100, "mods": {"trade": 0.03}}},
     {"id": "rus_eco_roads", "after": "rus_eco_furs", "title": "Wege durch die Weite", "desc": "Ohne Straßen bleibt das Reich ein Flickenteppich.",
-     "require": {"building": {"road": 4}}, "reward": {"adm": 50, "mods": {"army_power_regen": 0.15}}}
+     "require": {"building": {"road": 4}}, "reward": {"adm": 50, "mods": {"army_power_regen": 0.15}}},
+    {"id": "rus_era_romanov", "title": "Das Haus Romanow", "desc": "Nach der Zeit der Wirren ein starker Staat mit eigenem Zeughaus.",
+     "require": {"year_min": 1613, "min_dev": 250, "building": {"arsenal": 1}}, "reward": {"prestige": 25, "manpower": 3000}}
   ],
   "NAP": [
     {"id": "nap_sicily", "title": "Königreich beider Sizilien", "desc": "Vereinige Neapel und Sizilien.",
@@ -175,7 +187,9 @@
     {"id": "nap_eco_port", "title": "Der Hafen von Neapel", "desc": "Neapel soll das Tor zum östlichen Mittelmeer sein.",
      "require": {"building": {"harbor": 3}}, "reward": {"dip": 40, "mods": {"trade": 0.03}}},
     {"id": "nap_eco_silk", "after": "nap_eco_port", "title": "Seidenmanufaktur", "desc": "Neapolitanische Seide für die Höfe Europas.",
-     "require": {"building": {"manufactory": 1, "workshop": 2}}, "reward": {"adm": 40, "mods": {"production": 0.03}}}
+     "require": {"building": {"manufactory": 1, "workshop": 2}}, "reward": {"adm": 40, "mods": {"production": 0.03}}},
+    {"id": "nap_era_baroque", "title": "Neapel, die größte Stadt Italiens", "desc": "Märkte, Paläste und Kirchen für eine Stadt mit einer Viertelmillion Menschen.",
+     "require": {"year_min": 1600, "building": {"marketplace": 4}, "monuments_min": 2}, "reward": {"prestige": 20, "dev_capital": 2}}
   ],
   "TUR": [
     {"id": "tur_constantinople", "title": "Die Stadt der Kaiser", "desc": "Konstantinopel wird die Hauptstadt eines neuen Weltreichs.",
@@ -205,7 +219,9 @@
     {"id": "tur_south_anatolia", "title": "Herr Anatoliens", "desc": "Die Beyliks von Karaman und Candar müssen sich dem Sultan beugen.",
      "require": {"owns_any": ["konya", "kastamonu", "sinop"]}, "reward": {"prestige": 10, "adm": 40}},
     {"id": "tur_south_east", "after": "tur_south_anatolia", "title": "Die Ostgrenze", "desc": "Trapezunt und die Pässe nach Armenien sichern das Reich gegen die Turkmenen.",
-     "require": {"owns_any": ["trebizond", "erzurum", "diyarbakir"]}, "reward": {"mods": {"manpower": 0.05}, "mil": 40}}
+     "require": {"owns_any": ["trebizond", "erzurum", "diyarbakir"]}, "reward": {"mods": {"manpower": 0.05}, "mil": 40}},
+    {"id": "tur_era_order", "title": "Die alte Ordnung", "desc": "Ein Reich, so groß, dass nur noch Ordnung und Pracht es zusammenhalten.",
+     "require": {"year_min": 1600, "min_dev": 600, "monuments_min": 2}, "reward": {"prestige": 25, "adm": 60}}
   ],
   "POL": [
     {"id": "pol_prussia", "title": "Königlich Preußen", "desc": "Die Städte an der Weichsel gehören zur Krone.",
@@ -231,7 +247,9 @@
     {"id": "pol_eco_grain", "title": "Kornkammer Europas", "desc": "Polnisches Getreide ernährt die Städte des Westens.",
      "require": {"goods_leader": "grain"}, "reward": {"gold": 100, "mods": {"income": 0.03}}},
     {"id": "pol_eco_vistula", "after": "pol_eco_grain", "title": "Die Weichselstraße", "desc": "Ein Handelsweg vom Landesinneren bis zur Ostsee.",
-     "require": {"building": {"road": 3}, "trade_pacts_min": 1}, "reward": {"dip": 40, "mods": {"trade": 0.03}}}
+     "require": {"building": {"road": 3}, "trade_pacts_min": 1}, "reward": {"dip": 40, "mods": {"trade": 0.03}}},
+    {"id": "pol_era_bulwark", "title": "Vormauer der Christenheit", "desc": "Festungen an allen Grenzen gegen Türken, Tataren und Moskowiter.",
+     "require": {"year_min": 1600, "building": {"fortress": 4}, "min_dev": 250}, "reward": {"prestige": 25, "mil": 50}}
   ],
   "BUR": [
     {"id": "bur_lowlands", "title": "Die Niederlande halten", "desc": "Flandern, Brabant, Holland und Luxemburg bleiben burgundisch.",
@@ -257,7 +275,9 @@
     {"id": "bur_eco_cloth", "title": "Flandrische Tuche", "desc": "Die Tuchmacher Flanderns sollen die besten Europas bleiben.",
      "require": {"building": {"manufactory": 2}}, "reward": {"adm": 40, "mods": {"production": 0.03}}},
     {"id": "bur_eco_bruges", "after": "bur_eco_cloth", "title": "Die Messen von Brügge", "desc": "Brügge als Treffpunkt der Kaufleute aus Nord und Süd.",
-     "require": {"building": {"marketplace": 4}, "trade_pacts_min": 2}, "reward": {"dip": 50, "prestige": 10, "mods": {"trade": 0.03}}}
+     "require": {"building": {"marketplace": 4}, "trade_pacts_min": 2}, "reward": {"dip": 50, "prestige": 10, "mods": {"trade": 0.03}}},
+    {"id": "bur_era_low_countries", "title": "Die Kammer Europas", "desc": "Die reichsten Städte der Welt und eine Börse, auf die alle schauen.",
+     "require": {"year_min": 1600, "owns": ["flanders", "brabant", "holland"], "building": {"exchange": 1}}, "reward": {"prestige": 25, "mods": {"trade": 0.03}}}
   ],
   "VEN": [
     {"id": "ven_terraferma", "title": "Die Terraferma", "desc": "Verona und Friaul schützen die Lagune vom Festland her.",
