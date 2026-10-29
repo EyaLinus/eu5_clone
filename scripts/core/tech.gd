@@ -65,6 +65,9 @@ var ai_ahead_reserve: float = 0.5
 var spread_max: float = 0.3
 var spread_factor: float = 0.5
 var _for_cache := {}  # tag+cat -> techs_for result (defs never change after load); read-only for callers
+var _share := {}  # tech id -> [living nations that know it, living nations] (known_share)
+var _share_stamp: Array = []
+var _research_count := 0
 var unlocks := {}  # tech id -> [[building id, level], ...] it unlocks (data/buildings.json "level_tech")
 
 
@@ -169,14 +172,30 @@ func spread_discount(g, tag: String, id: String) -> float:
 
 
 func known_share(g, tag: String, id: String) -> float:
-	var know := 0
-	var others := 0
-	for o in g.nations.values():
-		if o.alive and o.tag != tag:
-			others += 1
-			if o.techs.has(id):
-				know += 1
+	# counts over all living nations, valid until the month, a death or a research changes them
+	var stamp := [g.month, g.stats.eliminated, _research_count]
+	if stamp != _share_stamp:
+		_share.clear()
+		_share_stamp = stamp
+	if not _share.has(id):
+		var know := 0
+		var alive := 0
+		for o in g.nations.values():
+			if o.alive:
+				alive += 1
+				if o.techs.has(id):
+					know += 1
+		_share[id] = [know, alive]
+	var c: Array = _share[id]
+	var n = g.nations[tag]
+	var others: int = c[1] - (1 if n.alive else 0)
+	var know: int = c[0] - (1 if n.alive and n.techs.has(id) else 0)
 	return float(know) / others if others > 0 else 0.0
+
+
+## Drops the cached known_share counts: call after changing n.techs anywhere but research().
+func forget_shares() -> void:
+	_share_stamp = []
 
 
 func research(g, tag: String, id: String) -> String:
@@ -190,6 +209,7 @@ func research(g, tag: String, id: String) -> String:
 		return "Zu wenig Punkte (%d benötigt)." % c
 	n.set(t.cat, n.get(t.cat) - c)
 	n.techs[id] = g.month
+	_research_count += 1
 	if not is_special(t):
 		n.tech[t.cat] += 1
 	refresh(n)
@@ -225,15 +245,16 @@ func best_choice(g, tag: String, cat: String) -> String:
 	var best := ""
 	var best_v := -1e9
 	for t in available(g, tag, cat):
-		# research ahead of time only with power to spare
-		if years_ahead(g, t.id) > 0 and n.get(cat) < cost(g, tag, t.id) * (1.0 + ai_ahead_reserve):
-			continue
 		var v: float = effect_value(t.effects, n.aggression) - 0.15 * (int(t.year) - g.year()) + 2.0 * unlocks.get(t.id, []).size()
 		if is_special(t):
 			v += 1000.0
-		if v > best_v:
-			best_v = v
-			best = t.id
+		if v <= best_v:
+			continue
+		# research ahead of time only with power to spare (cost() is the expensive test, so it comes last)
+		if years_ahead(g, t.id) > 0 and n.get(cat) < cost(g, tag, t.id) * (1.0 + ai_ahead_reserve):
+			continue
+		best_v = v
+		best = t.id
 	return best
 
 
@@ -343,6 +364,7 @@ func to_save(n) -> Dictionary:
 
 
 func load_save(n, d) -> void:
+	forget_shares()
 	n.techs = {}
 	for id in d:
 		if by_id.has(id):
