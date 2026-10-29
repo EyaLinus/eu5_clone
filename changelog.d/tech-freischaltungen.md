@@ -1,1 +1,0 @@
-- Technologie: Kacheln zeigen das Symbol des Gebäudes, das sie freischalten (🏪, 🎓 …), statt eines allgemeinen 🏗. Das Detailfenster listet jedes freigeschaltete Gebäude oder jede Stufe mit Wirkung und zeigt, in wie vielen deiner Provinzen der Ausbau sofort möglich ist. Der Erforschen-Knopf schneidet die Kosten nicht mehr ab.
