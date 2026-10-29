@@ -443,9 +443,12 @@ static func update_markets(g) -> void:
 	var c := {}
 	for m in g.markets:
 		c[m] = {"value": 0.0, "power": {}, "total": 0.0}
+	var nms := {}  # owner -> nation_mods, shared by all its provinces (they cannot change during this loop)
 	for p in g.provinces:
 		var e: Dictionary = c[p.market]
-		e.value += production_value(g, p) * float(g.bal.trade_value_mult)
+		if not nms.has(p.owner):
+			nms[p.owner] = nation_mods(g, g.nations[p.owner])
+		e.value += production_value(g, p, nms[p.owner]) * float(g.bal.trade_value_mult)
 		if p.controller == p.owner:
 			e.power[p.owner] = e.power.get(p.owner, 0.0) + province_trade_power(g, p)
 	for tag in g.order:
