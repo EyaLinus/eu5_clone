@@ -926,7 +926,7 @@ func _after_tick() -> void:
 	if battles > last_battles:
 		_sfx("battle", -10.0)
 	last_battles = battles
-	map.queue_redraw()
+	map.refresh()
 	if game.log_lines.size() != last_log_count:
 		if not game.log_lines.is_empty():
 			_toast(game.log_lines[-1])
@@ -980,7 +980,7 @@ func _cycle_map_mode() -> void:
 
 func _set_map_mode(i: int) -> void:
 	map.map_mode = i
-	map.queue_redraw()
+	map.refresh()
 	_toast("🗺️ Kartenmodus: " + map.MODE_NAMES[i])
 	if panel_mode == "mapmodes" or panel_mode == "hre":
 		_refresh()
@@ -1311,7 +1311,7 @@ func _choose_event(event_id: String, idx: int) -> void:
 	game.choose_event_option(game.player, event_id, idx)
 	_close_modal()
 	_update_top()
-	map.queue_redraw()
+	map.refresh()
 	if not game.pending_events.is_empty():
 		_show_event(game.pending_events[0])
 
@@ -1336,7 +1336,7 @@ func _show_peace_offer(offer: Dictionary) -> void:
 	else:
 		txt = "%s bietet uns an: %s" % [who, ", ".join(names)]
 	modal_box.add_child(_lbl(txt + "\nKriegspunktestand (unsere Sicht): %+d" % int(ws), 18))
-	modal_box.add_child(_btn("✅ Annehmen", func(): game.answer_player_peace(offer, true); _close_modal(); map.queue_redraw(); _update_top()))
+	modal_box.add_child(_btn("✅ Annehmen", func(): game.answer_player_peace(offer, true); _close_modal(); map.refresh(); _update_top()))
 	modal_box.add_child(_btn("❌ Ablehnen", func(): game.answer_player_peace(offer, false); _close_modal()))
 
 
@@ -1509,7 +1509,7 @@ func _open_panel(mode: String, arg = null, remember: bool = true) -> void:
 		peace_selection = {}
 	_refresh()
 	side_scroll.scroll_vertical = 0
-	map.queue_redraw()
+	map.refresh()
 
 
 func _panel_back() -> void:
@@ -1532,7 +1532,7 @@ func _close_panel() -> void:
 	selected_army = -1
 	map.selected_army = -1
 	map.selected_pid = -1
-	map.queue_redraw()
+	map.refresh()
 
 
 func _refresh() -> void:
@@ -1590,7 +1590,7 @@ func _on_province_tapped(pid: int) -> void:
 				selected_army = -1
 				map.selected_army = -1
 			_act(err, "🚶 Marschbefehl nach %s" % game.provinces[pid].name if err == "" else "")
-			map.queue_redraw()
+			map.refresh()
 			return
 	map.selected_pid = pid
 	_open_panel("province", pid)
@@ -1627,7 +1627,7 @@ func _on_army_tapped(id: int) -> void:
 	panel_arg = id
 	side_panel.visible = true
 	_refresh()
-	map.queue_redraw()
+	map.refresh()
 
 
 func _panel_province(pid: int) -> void:
@@ -2093,7 +2093,7 @@ func _panel_army(id: int) -> void:
 		side_box.add_child(_grid(orders, 3))
 	var acts := []
 	if selected_army != a.id:
-		acts.append(_btn("🎯 Neues Ziel", func(): selected_army = a.id; map.selected_army = a.id; _refresh(); map.queue_redraw(), "Danach auf eine Provinz tippen."))
+		acts.append(_btn("🎯 Neues Ziel", func(): selected_army = a.id; map.selected_army = a.id; _refresh(); map.refresh(), "Danach auf eine Provinz tippen."))
 	if a.pid != game.nations[a.owner].capital:
 		acts.append(_btn("🏰 Hauptstadt", func(): _quick_order(a, game.nations[a.owner].capital), "Zur Hauptstadt marschieren."))
 	if a.general == 0:
@@ -2103,9 +2103,9 @@ func _panel_army(id: int) -> void:
 		acts.append(_btn("🔥 Drill %d⚔️" % int(game.drill_cost(a)), func(): _act(game.drill_army(a.owner, a.id), "🔥 Die Truppen sind gedrillt"),
 				"Militär-Macht einsetzen: die Moral der Armee sofort auf %d %% bringen. Nur auf eigenem oder verbündetem Gebiet." % int(round(pm * 100))))
 	acts.append(_btn("✂️ Teilen", func(): var b = game.split_army(a); _act("" if b != null else "Zu klein zum Teilen."), "Die Armee in zwei Hälften teilen."))
-	acts.append(_btn("🔗 Vereinen", func(): game.merge_armies(a.owner, a.pid); _act(""); map.queue_redraw(), "Alle eigenen Armeen in dieser Provinz vereinen."))
+	acts.append(_btn("🔗 Vereinen", func(): game.merge_armies(a.owner, a.pid); _act(""); map.refresh(), "Alle eigenen Armeen in dieser Provinz vereinen."))
 	acts.append(_btn("🛑 Halt", func(): a.target = -1; a.path = []; _act(""), "Den Marsch abbrechen."))
-	acts.append(_btn("➖ 1 Reg.", func(): game.disband(a, 1.0); _act(""); map.queue_redraw(), "Ein Regiment entlassen (spart Unterhalt)."))
+	acts.append(_btn("➖ 1 Reg.", func(): game.disband(a, 1.0); _act(""); map.refresh(), "Ein Regiment entlassen (spart Unterhalt)."))
 	if acts.size() % 2 == 1:
 		acts.append(Control.new())
 	side_box.add_child(_grid(acts))
@@ -2446,7 +2446,7 @@ func _confirm_war(tag: String) -> void:
 		var err: String = game.declare_war(me, tag)
 		_close_modal()
 		_act(err, "🔥 Der Krieg hat begonnen!")
-		map.queue_redraw()))
+		map.refresh()))
 	modal_box.add_child(_btn("Abbrechen", _close_modal))
 
 
@@ -2678,7 +2678,7 @@ func _quick_order(a, pid: int) -> void:
 	a.auto = false
 	var err: String = game.move_army(a, pid)
 	_act(err, "🚶 Marschbefehl nach %s" % game.provinces[pid].name if err == "" else "")
-	map.queue_redraw()
+	map.refresh()
 
 
 ## Province panel: send every own army here (they switch to manual).
@@ -2690,7 +2690,7 @@ func _all_armies_to(pid: int) -> void:
 			if game.move_army(a, pid) == "":
 				sent += 1
 	_toast("🏁 %d Armeen marschieren nach %s." % [sent, game.provinces[pid].name] if sent > 0 else "Keine Armee kann dorthin.")
-	map.queue_redraw()
+	map.refresh()
 
 
 ## Select an army from a list and center the map on it.
@@ -2715,7 +2715,7 @@ func _after_peace(ok: bool) -> void:
 		_sfx("peace")
 		_toast("🕊️ Frieden geschlossen!")
 		_open_panel("wars")
-		map.queue_redraw()
+		map.refresh()
 	else:
 		_toast("❌ Der Gegner lehnt ab.")
 		_refresh()

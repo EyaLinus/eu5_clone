@@ -124,7 +124,7 @@ func _run(m) -> void:
 	m.map.zoom_by(0.45)
 	await _shot("07_zoomed_out")
 	m.map.map_mode = 1
-	m.map.queue_redraw()
+	m.map.refresh()
 	await _shot("08_diplomatic")
 	# vassal UI: make Brittany a vassal of the player
 	var g = m.game
