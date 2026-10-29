@@ -27,7 +27,7 @@ func _init() -> void:
 		"test_religion",
 		"test_monuments_and_feast", "test_first_steps", "test_score_history",
 		"test_missions_complete", "test_tech_data", "test_tech_tree", "test_special_techs", "test_tech_modifiers",
-		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_monument_events", "test_ctx_events", "test_late_content", "test_era_content", "test_event_keys", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
+		"test_government_data", "test_advisors", "test_companies", "test_laws", "test_gov_save_roundtrip", "test_company_invest", "test_estates", "test_gov_events", "test_budget", "test_eco_content", "test_rel_content", "test_court_content", "test_monument_events", "test_ctx_events", "test_late_content", "test_era_content", "test_event_keys", "test_war_events", "test_south_content", "test_morale_modifiers", "test_reforms", "test_tech_spread",
 		"test_empire_reforms",
 		"test_religion_modifiers",
 		"test_age_goals",
@@ -2686,6 +2686,35 @@ func test_era_content() -> void:
 
 ## Keys the match blocks in Game.check_conditions / Game.apply_effects handle (read from the source, since an
 ## unknown key is silently ignored there), plus year windows that close before the game ends.
+
+func test_war_events() -> void:
+	var g = new_game("FRA")
+	for id in ["war_first_win", "war_first_loss", "war_long_battle", "war_first_fort", "war_capital_lost", "war_peace_gain",
+			"war_peace_loss", "war_white_peace", "dip_coalition", "dip_first_vassal", "dip_became_vassal"]:
+		check(g.event_by_id.has(id) and g.event_by_id[id].get("manual", false), "%s exists and is manual" % id)
+	for t in g.order:
+		g.nations[t].allies.clear()
+	g.nations.FRA.claims.clear()
+	g.declare_war("FRA", "BRI")
+	var w = g.war_between("FRA", "BRI")
+	w.defenders = ["BRI"]
+	var rennes: int = g.key_to_pid["rennes"]
+	g.make_peace(w, true, [rennes])
+	check(g.pending_events.has("war_peace_gain") and g.nations.BRI.flags.has("ev_war_peace_loss"), "peace with land fires gain/loss events")
+	g.pending_events.clear()
+	g.nations.FRA.truces.clear()
+	g.nations.BRI.truces.clear()
+	g.nations.FRA.dip = 999.0
+	var why: String = g.declare_war("FRA", "BRI")
+	check(why == "", "second war declared: " + why)
+	w = g.war_between("FRA", "BRI")
+	if w == null:
+		return
+	w.defenders = ["BRI"]
+	g.make_peace(w, true, [], true)
+	check(g.pending_events.has("dip_first_vassal") and g.nations.BRI.flags.has("ev_dip_became_vassal"), "vassalizing fires both vassal events")
+	check(not g.pending_events.has("war_peace_gain"), "peace events fire once per realm")
+
 func _handled_keys(src: String, fn: String) -> Dictionary:
 	var body := src.split("func %s(" % fn, true, 1)[1].split("\nfunc ", true, 1)[0]
 	var keys := {}
