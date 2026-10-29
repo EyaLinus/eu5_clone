@@ -1,0 +1,2 @@
+- Technologie: Die Gebäude-Symbole stehen auf den Kacheln jetzt in einer eigenen, größeren Zeile, im Handy-Modus auch mit größerer Kosten-Zeile.
+- Regierung: Der Erben-Abschnitt und das Erben-Fenster erklären die Regentschaft (ab welchem Alter, Wirkung, keine Regentschaft in Wahlmonarchien und Republiken). Ist gerade kein Staatsformwechsel möglich, nennt die Karte den Grund (Krieg, Punkte, Prestige oder Jahr).
