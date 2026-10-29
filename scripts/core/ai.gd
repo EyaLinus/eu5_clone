@@ -122,7 +122,9 @@ func _spend_gold(g, n) -> void:
 	var fl: float = g.force_limit(tag)
 	var regs: float = g.army_regs(tag)
 	var war: bool = g.is_at_war(tag)
-	var want: float = fl if war else fl * 0.75
+	# a full war chest pays for a full army in peace too (late-game hoards had nothing else to buy)
+	var rich: bool = n.gold > maxf(n.income, 1.0) * float(g.bal.ai_rich_months)
+	var want: float = fl if (war or rich) else fl * 0.75
 	# never plan an army the treasury cannot pay for (small states would go bankrupt and desert)
 	var upkeep: float = g.regiment_upkeep(tag) * (1.0 if war else float(g.bal.peace_maintenance_mult))
 	var affordable: float = maxf(1.0, n.income * (0.85 if war else 0.7) / maxf(upkeep, 0.001))
@@ -375,6 +377,7 @@ func _consider_war(g, n) -> void:
 	if n.adm < float(g.bal.core_cost_per_dev) * 8.0:
 		return
 	var aggression: float = n.aggression * g.diff("ai_aggression")
+	var rich: bool = n.gold > maxf(n.income, 1.0) * float(g.bal.ai_rich_months)
 	if g.rng.randf() > float(g.bal.ai_war_chance) * aggression:
 		return
 	var best := ""
@@ -388,6 +391,8 @@ func _consider_war(g, n) -> void:
 			continue
 		var ratio := war_odds(g, tag, t)
 		var need: float = float(g.bal.ai_war_ratio) / aggression * (0.85 if claim else 1.0)
+		if rich:
+			need *= float(g.bal.ai_rich_war_need)  # a war chest buys mercenaries and outlasts the enemy
 		if t == g.player:
 			need /= g.diff("ai_vs_player")
 		if ratio < need:
